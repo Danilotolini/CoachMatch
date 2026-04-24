@@ -1,9 +1,130 @@
-*, *::before, *::after {
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+
+@theme {
+  /* Brand · Primária */
+  --color-primary: #f4ffc6;
+  --color-primary-dim: #c7ef00;
+  --color-primary-fixed: #d1fc00;
+  --color-primary-fixed-dim: #c4ec00;
+  --color-primary-container: #d1fc00;
+  --color-on-primary: #546600;
+  --color-on-primary-fixed: #3c4a00;
+  --color-on-primary-fixed-variant: #556800;
+  --color-on-primary-container: #4c5d00;
+  --color-inverse-primary: #546600;
+  --color-surface-tint: #f4ffc6;
+
+  /* Secundária */
+  --color-secondary: #efe754;
+  --color-secondary-dim: #e0d947;
+  --color-secondary-fixed: #efe754;
+  --color-secondary-fixed-dim: #e0d947;
+  --color-secondary-container: #656100;
+  --color-on-secondary: #575400;
+  --color-on-secondary-fixed: #444100;
+  --color-on-secondary-fixed-variant: #625e00;
+  --color-on-secondary-container: #fffac3;
+
+  /* Terciária */
+  --color-tertiary: #ffeb9c;
+  --color-tertiary-dim: #edce35;
+  --color-tertiary-fixed: #fcdc43;
+  --color-tertiary-fixed-dim: #edce35;
+  --color-tertiary-container: #fcdc43;
+  --color-on-tertiary: #665600;
+  --color-on-tertiary-fixed: #473b00;
+  --color-on-tertiary-fixed-variant: #675700;
+  --color-on-tertiary-container: #5c4e00;
+
+  /* Feedback */
+  --color-error: #ff7351;
+  --color-error-dim: #d53d18;
+  --color-error-container: #b92902;
+  --color-on-error: #450900;
+  --color-on-error-container: #ffd2c8;
+
+  /* Superfícies */
+  --color-background: #0e0e0e;
+  --color-surface: #0e0e0e;
+  --color-surface-dim: #0e0e0e;
+  --color-surface-bright: #2c2c2c;
+  --color-surface-variant: #262626;
+  --color-surface-container-lowest: #000000;
+  --color-surface-container-low: #131313;
+  --color-surface-container: #1a1a1a;
+  --color-surface-container-high: #20201f;
+  --color-surface-container-highest: #262626;
+  --color-inverse-surface: #fcf9f8;
+
+  /* Texto & Contornos */
+  --color-on-background: #ffffff;
+  --color-on-surface: #ffffff;
+  --color-on-surface-variant: #adaaaa;
+  --color-outline: #767575;
+  --color-outline-variant: #484847;
+  --color-inverse-on-surface: #565555;
+
+  /* Fontes */
+  --font-headline: 'Lexend', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-label: 'Inter', system-ui, sans-serif;
+
+  /* Border radius */
+  --radius: 0.5rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html,
 body {
-  font-family: system-ui, sans-serif;
+  min-height: max(884px, 100dvh);
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary-fixed-variant);
+}
+
+.material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+.kinetic-grid {
+  background-image: radial-gradient(
+    circle at 2px 2px,
+    rgba(244, 255, 198, 0.05) 1px,
+    transparent 0
+  );
+  background-size: 32px 32px;
+}
+
+.editorial-shadow {
+  box-shadow: 0px 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.glass-header {
+  background: rgba(14, 14, 14, 0.6);
+  backdrop-filter: blur(20px);
 }
