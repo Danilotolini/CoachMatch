@@ -8,7 +8,7 @@ export function useSuggestGym() {
   return useMutation({
     mutationFn: (payload: GymSuggestPayload) => suggestGym(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gyms'] })
+      void queryClient.invalidateQueries({ queryKey: ['gyms'] })
     },
   })
 }
