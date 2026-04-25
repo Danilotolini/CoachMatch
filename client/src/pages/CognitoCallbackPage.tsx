@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { exchangeCodeForTokens } from '@/lib/cognito'
 import { setToken } from '@/lib/auth'
 import { fetchCoachMe } from '@/api/coaches'
@@ -17,6 +18,7 @@ function statusRoute(status: CoachStatus): string {
 
 export default function CognitoCallbackPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [error, setError] = useState<string | null>(null)
   // Prevents double-invocation in React StrictMode (dev only)
   const handled = useRef(false)
@@ -51,6 +53,7 @@ export default function CognitoCallbackPage() {
 
         try {
           const coach = await fetchCoachMe()
+          queryClient.setQueryData(['coachMe'], coach)
           navigate(statusRoute(coach.status), { replace: true })
         } catch (err) {
           const is404 = err instanceof ApiError && err.status === 404
@@ -67,7 +70,7 @@ export default function CognitoCallbackPage() {
     }
 
     void finish()
-  }, [navigate])
+  }, [navigate, queryClient])
 
   if (error) {
     return (
