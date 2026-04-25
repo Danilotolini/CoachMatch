@@ -25,16 +25,16 @@ function buildUrl(path: string, params?: QueryParams): string {
 
 async function request<T>(url: string, init: RequestInit): Promise<T> {
   const token = getToken()
+  const headers = new Headers(init.headers)
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+
   const res = await fetch(url, {
     ...init,
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init.headers,
-    },
+    headers,
   })
 
   if (!res.ok) {
-    throw new ApiError(res.status, `${init.method ?? 'GET'} ${url} failed (${res.status})`)
+    throw new ApiError(res.status, `${init.method ?? 'GET'} ${url} failed (${String(res.status)})`)
   }
 
   const text = await res.text()
