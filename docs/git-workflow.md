@@ -144,9 +144,14 @@ git stash pop
 ### 4. Subir a branch e abrir o Pull Request
 
 ```bash
-# Sobe sua branch para o GitHub
+# Se for o primeiro envio da branch:
 git push origin feat/task-42
+
+# Se a branch já foi enviada antes e você fez rebase:
+git push --force-with-lease origin feat/task-42
 ```
+
+> **Por que `--force-with-lease` depois do rebase?** O rebase reescreve o histórico local, então o GitHub vai rejeitar um `git push` normal porque enxerga os commits como "divergentes". O `--force-with-lease` força o envio, mas com segurança: ele cancela o push caso alguém tenha enviado algo na mesma branch desde sua última atualização.
 
 Depois, no GitHub:
 - Abra um Pull Request de `feat/task-42` **para** `feat/busca-trainers` (não para `main`).
@@ -165,6 +170,7 @@ Depois, no GitHub:
 6. git checkout feat/<feature> && git pull origin feat/<feature>
 7. git checkout feat/task-<id> && git rebase feat/<feature>
 8. git stash pop          ← restaura os rascunhos (se usou stash)
-9. git push origin feat/task-<id>
+9. git push origin feat/task-<id>             ← primeiro envio
+   git push --force-with-lease origin feat/task-<id>  ← após rebase
 10. Abrir PR no GitHub para feat/<feature>
 ```
