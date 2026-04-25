@@ -13,7 +13,9 @@ export function uploadToS3(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const form = new FormData()
-    Object.entries(fields).forEach(([k, v]) => form.append(k, v))
+    Object.entries(fields).forEach(([k, v]) => {
+      form.append(k, v)
+    })
     form.append('file', file)
 
     const xhr = new XMLHttpRequest()
@@ -27,9 +29,11 @@ export function uploadToS3(
 
     xhr.addEventListener('load', () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve()
-      else reject(new Error(`S3 upload failed: ${xhr.status}`))
+      else reject(new Error(`S3 upload failed: ${String(xhr.status)}`))
     })
-    xhr.addEventListener('error', () => reject(new Error('S3 upload network error')))
+    xhr.addEventListener('error', () => {
+      reject(new Error('S3 upload network error'))
+    })
     xhr.send(form)
   })
 }

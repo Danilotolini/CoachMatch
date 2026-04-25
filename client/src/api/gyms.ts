@@ -18,5 +18,5 @@ export function fetchGyms(params: GymsParams = {}) {
 }
 
 export function suggestGym(payload: GymSuggestPayload) {
-  return apiPost<void>('/gyms/suggest', payload)
+  return apiPost<undefined>('/gyms/suggest', payload)
 }
