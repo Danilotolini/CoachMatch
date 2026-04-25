@@ -13,15 +13,44 @@ import OnboardingPage from '@/pages/OnboardingPage'
 import PendingReviewPage from '@/pages/PendingReviewPage'
 import RejectedPage from '@/pages/RejectedPage'
 import DashboardPage from '@/pages/DashboardPage'
+import { RouteGuard } from '@/components/RouteGuard'
 
 const router = createBrowserRouter([
   { path: '/', element: <WelcomePage /> },
   { path: '/entrar', element: <LoginPage /> },
   { path: '/auth/cognito/callback', element: <CognitoCallbackPage /> },
-  { path: '/cadastro/profissional', element: <OnboardingPage /> },
-  { path: '/em-analise', element: <PendingReviewPage /> },
-  { path: '/reprovado', element: <RejectedPage /> },
-  { path: '/dashboard', element: <DashboardPage /> },
+  {
+    path: '/cadastro/profissional',
+    element: (
+      <RouteGuard allow={['PROFILE_INCOMPLETE']}>
+        <OnboardingPage />
+      </RouteGuard>
+    ),
+  },
+  {
+    path: '/em-analise',
+    element: (
+      <RouteGuard allow={['PENDING_REVIEW']}>
+        <PendingReviewPage />
+      </RouteGuard>
+    ),
+  },
+  {
+    path: '/reprovado',
+    element: (
+      <RouteGuard allow={['REJECTED']}>
+        <RejectedPage />
+      </RouteGuard>
+    ),
+  },
+  {
+    path: '/dashboard',
+    element: (
+      <RouteGuard allow={['APPROVED']}>
+        <DashboardPage />
+      </RouteGuard>
+    ),
+  },
 ])
 
 const root = document.getElementById('root')
