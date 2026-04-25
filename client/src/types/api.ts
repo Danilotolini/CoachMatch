@@ -1,3 +1,38 @@
+export type CoachStatus =
+  | 'PROFILE_INCOMPLETE'
+  | 'PENDING_REVIEW'
+  | 'APPROVED'
+  | 'REJECTED'
+
+export interface CoachMe {
+  email: string
+  name: string | null
+  phone: string | null
+  instagram: string | null
+  cref: string | null
+  profilePhoto: string | null
+  profileVideo: string | null
+  specialties: string[]
+  territory: 'GYMS' | 'HOME_SERVICE' | null
+  gyms: string[]
+  serviceRadius: number | null
+  status: CoachStatus
+  rejectionReason: string | null
+}
+
+export interface CoachMePayload {
+  name?: string | undefined
+  phone?: string | undefined
+  instagram?: string | undefined
+  cref?: string | undefined
+  profilePhoto?: string | undefined
+  profileVideo?: string | undefined
+  specialties?: string[] | undefined
+  territory?: 'GYMS' | 'HOME_SERVICE' | undefined
+  gyms?: string[] | undefined
+  serviceRadius?: number | undefined
+}
+
 export interface Specialty {
   id: string
   name: string
