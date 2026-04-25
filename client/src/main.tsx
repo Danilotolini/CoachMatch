@@ -8,6 +8,7 @@ import './index.css'
 
 import WelcomePage from '@/pages/WelcomePage'
 import LoginPage from '@/pages/LoginPage'
+import RoutesTestPage from '@/pages/RoutesTestPage'
 import CognitoCallbackPage from '@/pages/CognitoCallbackPage'
 import OnboardingPage from '@/pages/OnboardingPage'
 import PendingReviewPage from '@/pages/PendingReviewPage'
@@ -17,6 +18,7 @@ import { RouteGuard } from '@/components/RouteGuard'
 
 const router = createBrowserRouter([
   { path: '/', element: <WelcomePage /> },
+  { path: '/rotas', element: <RoutesTestPage /> },
   { path: '/entrar', element: <LoginPage /> },
   { path: '/auth/cognito/callback', element: <CognitoCallbackPage /> },
   {
