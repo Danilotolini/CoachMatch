@@ -9,10 +9,14 @@ import type { CoachStatus } from '@/types/api'
 
 function statusRoute(status: CoachStatus): string {
   switch (status) {
-    case 'PROFILE_INCOMPLETE': return '/cadastro/profissional'
-    case 'PENDING_REVIEW': return '/em-analise'
-    case 'APPROVED': return '/dashboard'
-    case 'REJECTED': return '/reprovado'
+    case 'PROFILE_INCOMPLETE':
+      return '/cadastro/profissional'
+    case 'PENDING_REVIEW':
+      return '/em-analise'
+    case 'APPROVED':
+      return '/dashboard'
+    case 'REJECTED':
+      return '/reprovado'
   }
 }
 
@@ -43,9 +47,9 @@ export default function CognitoCallbackPage() {
       return
     }
 
-    async function finish() {
+    async function finish(authorizationCode: string) {
       try {
-        const tokens = await exchangeCodeForTokens(code!, state)
+        const tokens = await exchangeCodeForTokens(authorizationCode, state)
         setToken(tokens.id_token)
 
         // Remove code from URL before routing
@@ -54,12 +58,12 @@ export default function CognitoCallbackPage() {
         try {
           const coach = await fetchCoachMe()
           queryClient.setQueryData(['coachMe'], coach)
-          navigate(statusRoute(coach.status), { replace: true })
+          void navigate(statusRoute(coach.status), { replace: true })
         } catch (err) {
           const is404 = err instanceof ApiError && err.status === 404
           const isNetwork = err instanceof TypeError
           if (is404 || isNetwork) {
-            navigate('/cadastro/profissional', { replace: true })
+            void navigate('/cadastro/profissional', { replace: true })
           } else {
             throw err
           }
@@ -69,16 +73,14 @@ export default function CognitoCallbackPage() {
       }
     }
 
-    void finish()
+    void finish(code)
   }, [navigate, queryClient])
 
   if (error) {
     return (
       <main className="min-h-dvh flex flex-col items-center justify-center p-6 bg-background">
         <div className="text-center max-w-sm">
-          <span className="material-symbols-outlined text-error text-5xl mb-4 block">
-            error
-          </span>
+          <span className="material-symbols-outlined text-error text-5xl mb-4 block">error</span>
           <h1 className="font-headline text-xl font-bold text-on-surface mb-2">
             Erro na autenticação
           </h1>

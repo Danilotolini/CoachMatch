@@ -4,7 +4,7 @@ const PKCE_KEY = 'cognito_pkce_verifier'
 const STATE_KEY = 'cognito_oauth_state'
 
 function redirectUri(): string {
-  return `${window.location.origin}/auth/cognito/callback`
+  return `${env.cognitoRedirectOrigin ?? window.location.origin}/auth/cognito/callback`
 }
 
 function base64UrlEncode(buffer: ArrayBuffer): string {
@@ -47,8 +47,47 @@ export async function getLoginUrl(): Promise<string> {
 interface TokenResponse {
   id_token: string
   access_token: string
-  refresh_token: string
+  refresh_token?: string | undefined
   expires_in: number
+}
+
+interface CognitoErrorResponse {
+  error: string
+  error_description?: string | undefined
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function parseCognitoError(value: unknown): CognitoErrorResponse {
+  if (!isRecord(value) || typeof value['error'] !== 'string') {
+    return { error: 'Erro ao trocar código de autenticação.' }
+  }
+
+  return {
+    error: value['error'],
+    error_description:
+      typeof value['error_description'] === 'string' ? value['error_description'] : undefined,
+  }
+}
+
+function parseTokenResponse(value: unknown): TokenResponse {
+  if (
+    !isRecord(value) ||
+    typeof value['id_token'] !== 'string' ||
+    typeof value['access_token'] !== 'string' ||
+    typeof value['expires_in'] !== 'number'
+  ) {
+    throw new Error('Resposta de autenticação inválida.')
+  }
+
+  return {
+    id_token: value['id_token'],
+    access_token: value['access_token'],
+    refresh_token: typeof value['refresh_token'] === 'string' ? value['refresh_token'] : undefined,
+    expires_in: value['expires_in'],
+  }
 }
 
 export async function exchangeCodeForTokens(
@@ -86,9 +125,9 @@ export async function exchangeCodeForTokens(
   })
 
   if (!res.ok) {
-    const err = (await res.json()) as { error: string; error_description?: string }
+    const err = parseCognitoError(await res.json())
     throw new Error(err.error_description ?? err.error)
   }
 
-  return res.json() as Promise<TokenResponse>
+  return parseTokenResponse(await res.json())
 }
