@@ -8,8 +8,8 @@ import './index.css'
 
 import WelcomePage from '@/pages/WelcomePage'
 import LoginPage from '@/pages/LoginPage'
+import CognitoCallbackPage from '@/pages/CognitoCallbackPage'
 import OnboardingPage from '@/pages/OnboardingPage'
-import EmailPendingPage from '@/pages/EmailPendingPage'
 import PendingReviewPage from '@/pages/PendingReviewPage'
 import RejectedPage from '@/pages/RejectedPage'
 import DashboardPage from '@/pages/DashboardPage'
@@ -17,8 +17,8 @@ import DashboardPage from '@/pages/DashboardPage'
 const router = createBrowserRouter([
   { path: '/', element: <WelcomePage /> },
   { path: '/entrar', element: <LoginPage /> },
+  { path: '/auth/cognito/callback', element: <CognitoCallbackPage /> },
   { path: '/cadastro/profissional', element: <OnboardingPage /> },
-  { path: '/aguardando-confirmacao', element: <EmailPendingPage /> },
   { path: '/em-analise', element: <PendingReviewPage /> },
   { path: '/reprovado', element: <RejectedPage /> },
   { path: '/dashboard', element: <DashboardPage /> },
