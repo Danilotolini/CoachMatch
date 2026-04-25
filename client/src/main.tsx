@@ -1,13 +1,31 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { createBrowserRouter, RouterProvider } from 'react-router'
 import './index.css'
-import App from '@/App'
+
+import WelcomePage from '@/pages/WelcomePage'
+import LoginPage from '@/pages/LoginPage'
+import OnboardingPage from '@/pages/OnboardingPage'
+import EmailPendingPage from '@/pages/EmailPendingPage'
+import PendingReviewPage from '@/pages/PendingReviewPage'
+import RejectedPage from '@/pages/RejectedPage'
+import DashboardPage from '@/pages/DashboardPage'
+
+const router = createBrowserRouter([
+  { path: '/', element: <WelcomePage /> },
+  { path: '/entrar', element: <LoginPage /> },
+  { path: '/cadastro/profissional', element: <OnboardingPage /> },
+  { path: '/aguardando-confirmacao', element: <EmailPendingPage /> },
+  { path: '/em-analise', element: <PendingReviewPage /> },
+  { path: '/reprovado', element: <RejectedPage /> },
+  { path: '/dashboard', element: <DashboardPage /> },
+])
 
 const root = document.getElementById('root')
 if (!root) throw new Error('Root element not found')
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <RouterProvider router={router} />
   </StrictMode>,
 )
