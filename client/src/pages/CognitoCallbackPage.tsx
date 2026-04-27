@@ -27,25 +27,16 @@ export default function CognitoCallbackPage() {
   // Prevents double-invocation in React StrictMode (dev only)
   const handled = useRef(false)
 
+  const params = new URLSearchParams(window.location.search)
+  const code = params.get('code')
+  const state = params.get('state')
+  const errorParam = params.get('error')
+  const errorDesc = params.get('error_description')
+  const urlError = errorParam ? (errorDesc ?? errorParam) : (!code ? 'Código de autorização não encontrado.' : null)
+
   useEffect(() => {
-    if (handled.current) return
+    if (handled.current || !code || urlError) return
     handled.current = true
-
-    const params = new URLSearchParams(window.location.search)
-    const code = params.get('code')
-    const state = params.get('state')
-    const errorParam = params.get('error')
-    const errorDesc = params.get('error_description')
-
-    if (errorParam) {
-      setError(errorDesc ?? errorParam)
-      return
-    }
-
-    if (!code) {
-      setError('Código de autorização não encontrado.')
-      return
-    }
 
     async function finish(authorizationCode: string) {
       try {
@@ -74,9 +65,11 @@ export default function CognitoCallbackPage() {
     }
 
     void finish(code)
-  }, [navigate, queryClient])
+  }, [code, navigate, queryClient, state, urlError])
 
-  if (error) {
+  const displayedError = error ?? urlError
+
+  if (displayedError) {
     return (
       <main className="min-h-dvh flex flex-col items-center justify-center p-6 bg-background">
         <div className="text-center max-w-sm">
@@ -84,7 +77,7 @@ export default function CognitoCallbackPage() {
           <h1 className="font-headline text-xl font-bold text-on-surface mb-2">
             Erro na autenticação
           </h1>
-          <p className="text-on-surface-variant text-sm mb-6">{error}</p>
+          <p className="text-on-surface-variant text-sm mb-6">{displayedError}</p>
           <a href="/entrar" className="text-primary font-bold hover:underline">
             Tentar novamente
           </a>
