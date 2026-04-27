@@ -4,7 +4,7 @@ const PKCE_KEY = 'cognito_pkce_verifier'
 const STATE_KEY = 'cognito_oauth_state'
 
 function redirectUri(): string {
-  return `${env.cognitoRedirectOrigin ?? window.location.origin}/auth/cognito/callback`
+  return `${window.location.origin}/auth/cognito/callback`
 }
 
 function base64UrlEncode(buffer: ArrayBuffer): string {

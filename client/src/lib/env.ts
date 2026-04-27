@@ -2,7 +2,6 @@ const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
 const cognitoClientId = import.meta.env.VITE_COGNITO_CLIENT_ID
 const cognitoClientSecret = import.meta.env.VITE_COGNITO_CLIENT_SECRET
 const cognitoDomain = import.meta.env.VITE_COGNITO_DOMAIN
-const cognitoRedirectOrigin = import.meta.env.VITE_COGNITO_REDIRECT_ORIGIN
 
 if (!apiBaseUrl) throw new Error('VITE_API_BASE_URL is not defined. Check .env.local')
 if (!cognitoClientId) throw new Error('VITE_COGNITO_CLIENT_ID is not defined. Check .env.local')
@@ -18,5 +17,4 @@ export const env = {
   cognitoClientId,
   cognitoClientSecret: cognitoClientSecret ?? null,
   cognitoDomain,
-  cognitoRedirectOrigin: cognitoRedirectOrigin ?? null,
 } as const
