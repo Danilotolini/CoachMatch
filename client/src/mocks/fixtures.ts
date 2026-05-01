@@ -1,0 +1,80 @@
+import type { CoachMe, Gym, Specialty } from '@/types/api'
+
+export const initialCoachMe: CoachMe = {
+  email: 'mock@coachmatch.app',
+  name: null,
+  phone: null,
+  instagram: null,
+  cref: null,
+  profilePhoto: null,
+  profileVideo: null,
+  specialties: [],
+  territory: null,
+  gyms: [],
+  serviceRadius: null,
+  status: 'PROFILE_INCOMPLETE',
+  rejectionReason: null,
+}
+
+export const specialties: Specialty[] = [
+  { id: 'musculacao', name: 'Musculação' },
+  { id: 'crossfit', name: 'CrossFit' },
+  { id: 'funcional', name: 'Funcional' },
+  { id: 'pilates', name: 'Pilates' },
+  { id: 'yoga', name: 'Yoga' },
+  { id: 'corrida', name: 'Corrida' },
+  { id: 'natacao', name: 'Natação' },
+  { id: 'lutas', name: 'Lutas' },
+  { id: 'reabilitacao', name: 'Reabilitação' },
+  { id: 'emagrecimento', name: 'Emagrecimento' },
+  { id: 'hipertrofia', name: 'Hipertrofia' },
+  { id: 'mobilidade', name: 'Mobilidade' },
+]
+
+export const gyms: Gym[] = [
+  {
+    id: 'smartfit-paulista',
+    name: 'Smart Fit Paulista',
+    address: 'Av. Paulista, 1000',
+    city: 'São Paulo',
+    state: 'SP',
+    neighborhood: 'Bela Vista',
+    coordinates: { lat: -23.5613, lng: -46.6565 },
+  },
+  {
+    id: 'bluefit-pinheiros',
+    name: 'Bluefit Pinheiros',
+    address: 'R. dos Pinheiros, 500',
+    city: 'São Paulo',
+    state: 'SP',
+    neighborhood: 'Pinheiros',
+    coordinates: { lat: -23.5662, lng: -46.6818 },
+  },
+  {
+    id: 'bodytech-vila-olimpia',
+    name: 'Bodytech Vila Olímpia',
+    address: 'R. Olimpíadas, 200',
+    city: 'São Paulo',
+    state: 'SP',
+    neighborhood: 'Vila Olímpia',
+    coordinates: { lat: -23.5953, lng: -46.6864 },
+  },
+  {
+    id: 'selfit-moema',
+    name: 'Selfit Moema',
+    address: 'Av. Ibirapuera, 2000',
+    city: 'São Paulo',
+    state: 'SP',
+    neighborhood: 'Moema',
+    coordinates: { lat: -23.6043, lng: -46.6669 },
+  },
+  {
+    id: 'companhia-atletica-jardins',
+    name: 'Companhia Atlética Jardins',
+    address: 'R. Haddock Lobo, 1500',
+    city: 'São Paulo',
+    state: 'SP',
+    neighborhood: 'Jardim Paulista',
+    coordinates: { lat: -23.5614, lng: -46.6649 },
+  },
+]
