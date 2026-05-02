@@ -13,7 +13,7 @@ stages:
 plugins:
   - serverless-dynamodb
   - serverless-offline
-  
+
 
 provider:
   timeout: 30
@@ -22,7 +22,7 @@ provider:
   # Uncomment to easily set up a custom domain. Read the docs for more details:
   # https://www.serverless.com/framework/docs/providers/aws/guide/domains
   # domain: api.example.com
-          
+
 functions:
   api:
     handler: handler.handler
@@ -39,7 +39,33 @@ resources:  # era "resource" (sem o 's')
           - AttributeName: coachId
             AttributeType: S
         KeySchema:
-          - AttributeName: coachId  
+          - AttributeName: coachId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    goalsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: goals
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    modalitiesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: modalities
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
@@ -54,3 +80,12 @@ custom:
       port: 8000
       inMemory: true
       migrate: true  # cria as tabelas automaticamente
+    seed:
+      domain:
+        sources:
+          - table: goals
+            sources:
+              - ./seed/goals.json
+          - table: modalities
+            sources:
+              - ./seed/modalities.json

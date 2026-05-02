@@ -1,0 +1,9 @@
+[
+  { "id": "1", "name": "Musculação" },
+  { "id": "2", "name": "Crossfit" },
+  { "id": "3", "name": "Funcional" },
+  { "id": "4", "name": "Natação" },
+  { "id": "5", "name": "Pilates" },
+  { "id": "6", "name": "Yoga" },
+  { "id": "7", "name": "Corrida" }
+]

@@ -1,22 +1,21 @@
-const express = require("express")
-const router = express.Router()
+import { Router } from "express";
+import { listAllGoals } from "../../repository/goals.js";
 
-const GOALS = [
-  { id: "1", name: "Emagrecer" },
-  { id: "2", name: "Ganhar massa" },
-  { id: "3", name: "Condicionamento físico" },
-  { id: "4", name: "Saúde e bem-estar" },
-  { id: "5", name: "Reabilitação" },
-  { id: "6", name: "Performance esportiva" },
-]
+const router = Router();
 
-router.get("/goals", (req, res) => {
-  res.json({
-    data: GOALS,
-    page: 1,
-    limit: 20,
-    total: GOALS.length,
-  })
-})
+router.get("/goals", async (req, res) => {
+  try {
+    const goals = await listAllGoals();
+    res.json({
+      data: goals,
+      page: 1,
+      limit: 20,
+      total: goals.length,
+    });
+  } catch (error) {
+    console.error("Erro ao listar goals:", error);
+    res.status(500).json({ error: "Erro ao buscar goals" });
+  }
+});
 
-module.exports = router
+export default router;
