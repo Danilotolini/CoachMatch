@@ -23,7 +23,7 @@ export function ProgressHeader({
       </div>
       <div className="max-w-2xl mx-auto h-0.5 bg-surface-container-highest rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-primary to-primary-dim rounded-full transition-all duration-700"
+          className="h-full bg-linear-to-r from-primary to-primary-dim rounded-full transition-all duration-700"
           style={{ width: `${String(progress)}%` }}
         />
       </div>
