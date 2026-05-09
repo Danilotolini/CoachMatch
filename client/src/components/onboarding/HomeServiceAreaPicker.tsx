@@ -1,0 +1,404 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEstados, useMunicipios } from '@/hooks/useIbgeLocalidades'
+import { useViaCepBairros } from '@/hooks/useViaCepBairros'
+import { useOnboardingStore } from '@/stores/onboardingStore'
+
+export function HomeServiceAreaPicker() {
+  const homeAreas = useOnboardingStore((s) => s.form.homeAreas)
+  const addHomeArea = useOnboardingStore((s) => s.addHomeArea)
+  const removeHomeArea = useOnboardingStore((s) => s.removeHomeArea)
+
+  const [draftState, setDraftState] = useState('')
+  const [draftCity, setDraftCity] = useState('')
+  const [draftNeighborhoods, setDraftNeighborhoods] = useState<string[]>([])
+  const [logradouro, setLogradouro] = useState('')
+  const [draftKey, setDraftKey] = useState(0)
+
+  const estadosQuery = useEstados()
+  const municipiosQuery = useMunicipios(draftState || null)
+  const viaCepQuery = useViaCepBairros(draftState || null, draftCity || null, logradouro)
+
+  const bairrosSugeridos = useMemo(() => {
+    const data = viaCepQuery.data ?? []
+    const set = new Set<string>()
+    for (const item of data) {
+      if (item.bairro) set.add(item.bairro)
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }, [viaCepQuery.data])
+
+  const cityDisabled = !draftState || municipiosQuery.isLoading
+  const showSearchHint = logradouro.trim().length > 0 && logradouro.trim().length < 3
+
+  const canAdd = !!draftState && !!draftCity && draftNeighborhoods.length > 0
+  const isDuplicate = homeAreas.some((area) => area.state === draftState && area.city === draftCity)
+
+  const resetDraft = () => {
+    setDraftState('')
+    setDraftCity('')
+    setDraftNeighborhoods([])
+    setLogradouro('')
+    setDraftKey((k) => k + 1)
+  }
+
+  const handleStateChange = (uf: string) => {
+    setDraftState(uf)
+    setDraftCity('')
+    setDraftNeighborhoods([])
+    setLogradouro('')
+    setDraftKey((k) => k + 1)
+  }
+
+  const handleCityChange = (city: string) => {
+    setDraftCity(city)
+    setDraftNeighborhoods([])
+    setLogradouro('')
+  }
+
+  const toggleDraftNeighborhood = (bairro: string) => {
+    setDraftNeighborhoods((prev) =>
+      prev.includes(bairro) ? prev.filter((n) => n !== bairro) : [...prev, bairro],
+    )
+  }
+
+  const handleAdd = () => {
+    if (!canAdd || isDuplicate) return
+    addHomeArea({
+      state: draftState,
+      city: draftCity,
+      neighborhoods: draftNeighborhoods,
+    })
+    resetDraft()
+  }
+
+  return (
+    <div className="space-y-5">
+      {homeAreas.length > 0 ? (
+        <ul className="space-y-3">
+          {homeAreas.map((area) => (
+            <li
+              key={area.id}
+              className="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4"
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <p className="font-headline text-sm font-semibold text-on-surface">
+                    {area.city} - {area.state}
+                  </p>
+                  <p className="font-body text-xs text-on-surface-variant">
+                    {area.neighborhoods.length}{' '}
+                    {area.neighborhoods.length === 1 ? 'bairro' : 'bairros'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    removeHomeArea(area.id)
+                  }}
+                  className="text-on-surface-variant hover:text-error transition-colors"
+                  aria-label={`Remover área ${area.city}`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {area.neighborhoods.map((bairro) => (
+                  <span
+                    key={bairro}
+                    className="inline-flex items-center bg-surface-container-highest rounded-full py-1 px-3 gap-1.5"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    <span className="font-body text-xs text-on-surface">{bairro}</span>
+                  </span>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="bg-surface-container-low/50 border border-dashed border-outline-variant/30 rounded-xl p-4 space-y-4">
+        <p className="font-label text-xs text-on-surface-variant uppercase tracking-widest">
+          {homeAreas.length > 0 ? 'Adicionar outra área' : 'Nova área de atendimento'}
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <SelectField
+            label="Estado"
+            value={draftState}
+            onChange={handleStateChange}
+            disabled={estadosQuery.isLoading}
+            placeholder={estadosQuery.isLoading ? 'Carregando...' : 'Selecione'}
+            options={(estadosQuery.data ?? []).map((e) => ({
+              value: e.sigla,
+              label: `${e.nome} (${e.sigla})`,
+            }))}
+          />
+          <CityAutocomplete
+            key={draftKey}
+            value={draftCity}
+            onChange={handleCityChange}
+            options={municipiosQuery.data.map((m) => m.nome)}
+            disabled={cityDisabled}
+            placeholder={
+              !draftState
+                ? 'Selecione um estado primeiro'
+                : municipiosQuery.isLoading
+                  ? 'Carregando municípios...'
+                  : 'Digite para buscar...'
+            }
+          />
+        </div>
+
+        {draftCity ? (
+          <div className="space-y-3">
+            <label className="block font-label text-xs text-on-surface-variant">
+              Bairros de atendimento
+            </label>
+            <div className="bg-surface-container-highest rounded-full px-4 py-3 flex items-center border border-outline-variant/15 focus-within:border-primary/50 transition-colors">
+              <span className="material-symbols-outlined text-on-surface-variant mr-3">search</span>
+              <input
+                type="text"
+                placeholder="Digite uma rua para descobrir bairros..."
+                value={logradouro}
+                onChange={(e) => {
+                  setLogradouro(e.target.value)
+                }}
+                className="bg-transparent border-none w-full text-on-surface font-body text-sm focus:ring-0 focus:outline-none p-0 placeholder-on-surface-variant/50"
+              />
+            </div>
+            {showSearchHint ? (
+              <p className="font-body text-xs text-on-surface-variant">
+                Digite ao menos 3 caracteres.
+              </p>
+            ) : null}
+            {viaCepQuery.isFetching ? (
+              <p className="font-body text-xs text-on-surface-variant">Buscando...</p>
+            ) : null}
+            {viaCepQuery.isError ? (
+              <p className="font-body text-xs text-error">
+                Não foi possível consultar os bairros agora.
+              </p>
+            ) : null}
+            {bairrosSugeridos.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {bairrosSugeridos.map((bairro) => {
+                  const active = draftNeighborhoods.includes(bairro)
+                  return (
+                    <button
+                      key={bairro}
+                      type="button"
+                      onClick={() => {
+                        toggleDraftNeighborhood(bairro)
+                      }}
+                      className={`rounded-full px-3 py-1.5 font-body text-xs border transition-colors ${
+                        active
+                          ? 'bg-primary text-on-primary-fixed border-primary'
+                          : 'bg-surface-container-low border-outline-variant/30 text-on-surface hover:bg-surface-container-high'
+                      }`}
+                    >
+                      {bairro}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
+
+            {draftNeighborhoods.length > 0 ? (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {draftNeighborhoods.map((bairro) => (
+                  <span
+                    key={bairro}
+                    className="inline-flex items-center bg-surface-container-low border border-outline-variant/30 rounded-lg py-2 px-3 gap-2"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-primary" />
+                    <span className="font-body text-xs text-on-surface">{bairro}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleDraftNeighborhood(bairro)
+                      }}
+                      className="text-on-surface-variant hover:text-error transition-colors ml-1"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {isDuplicate ? (
+          <p className="font-body text-xs text-error">
+            Já existe uma área para {draftCity} - {draftState}. Remova a antiga para editar.
+          </p>
+        ) : null}
+
+        <button
+          type="button"
+          disabled={!canAdd || isDuplicate}
+          onClick={handleAdd}
+          className="w-full bg-primary/10 text-primary font-headline font-bold text-xs uppercase tracking-widest py-3 rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+        >
+          + Adicionar área
+        </button>
+      </div>
+    </div>
+  )
+}
+
+interface CityAutocompleteProps {
+  value: string
+  onChange: (value: string) => void
+  options: string[]
+  placeholder: string
+  disabled?: boolean
+}
+
+function CityAutocomplete({
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled,
+}: CityAutocompleteProps) {
+  const [query, setQuery] = useState(value)
+  const [open, setOpen] = useState(false)
+  const [highlight, setHighlight] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    const nq = normalize(q)
+    if (!nq) return options.slice(0, 50)
+    return options.filter((opt) => normalize(opt).includes(nq)).slice(0, 50)
+  }, [options, query])
+
+  const select = (city: string) => {
+    onChange(city)
+    setQuery(city)
+    setOpen(false)
+  }
+
+  return (
+    <div>
+      <label className="block font-label text-xs text-on-surface-variant mb-2">Cidade</label>
+      <div ref={containerRef} className="relative">
+        <div className="bg-surface-container-highest rounded-lg border border-outline-variant/15 focus-within:border-primary/50 transition-colors flex items-center px-4">
+          <span className="material-symbols-outlined text-on-surface-variant mr-2 text-[20px]">
+            search
+          </span>
+          <input
+            type="text"
+            value={query}
+            disabled={disabled}
+            placeholder={placeholder}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setOpen(true)
+              setHighlight(0)
+              if (e.target.value === '') onChange('')
+            }}
+            onFocus={() => {
+              setOpen(true)
+            }}
+            onKeyDown={(e) => {
+              if (!open) return
+              if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                setHighlight((h) => Math.min(h + 1, filtered.length - 1))
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault()
+                setHighlight((h) => Math.max(h - 1, 0))
+              } else if (e.key === 'Enter') {
+                e.preventDefault()
+                if (filtered[highlight]) select(filtered[highlight])
+              } else if (e.key === 'Escape') {
+                setOpen(false)
+              }
+            }}
+            className="w-full bg-transparent border-none py-3 font-body text-sm text-on-surface focus:ring-0 focus:outline-none disabled:opacity-50"
+          />
+        </div>
+        {open && !disabled && filtered.length > 0 ? (
+          <ul className="absolute z-10 mt-1 w-full max-h-60 overflow-auto rounded-lg bg-surface-container-high border border-outline-variant/20 shadow-lg">
+            {filtered.map((city, idx) => (
+              <li key={city}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    select(city)
+                  }}
+                  onMouseEnter={() => {
+                    setHighlight(idx)
+                  }}
+                  className={`w-full text-left px-4 py-2 font-body text-sm transition-colors ${
+                    idx === highlight
+                      ? 'bg-primary/15 text-on-surface'
+                      : 'text-on-surface hover:bg-surface-container-highest'
+                  }`}
+                >
+                  {city}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {open && !disabled && query.trim() && filtered.length === 0 ? (
+          <div className="absolute z-10 mt-1 w-full rounded-lg bg-surface-container-high border border-outline-variant/20 shadow-lg px-4 py-3 font-body text-xs text-on-surface-variant">
+            Nenhuma cidade encontrada.
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+interface SelectFieldProps {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  options: { value: string; label: string }[]
+  placeholder: string
+  disabled?: boolean
+}
+
+function SelectField({ label, value, onChange, options, placeholder, disabled }: SelectFieldProps) {
+  return (
+    <div>
+      <label className="block font-label text-xs text-on-surface-variant mb-2">{label}</label>
+      <div className="bg-surface-container-highest rounded-lg border border-outline-variant/15 focus-within:border-primary/50 transition-colors">
+        <select
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value)
+          }}
+          disabled={disabled}
+          className="w-full bg-transparent border-none px-4 py-3 font-body text-sm text-on-surface focus:ring-0 focus:outline-none disabled:opacity-50"
+        >
+          <option value="">{placeholder}</option>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  )
+}
