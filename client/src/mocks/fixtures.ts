@@ -1,39 +1,42 @@
-import type { CoachMe, Gym, Specialty } from '@/types/api'
+import type { Coach, Gym, Specialty } from '@/types/api'
 
-export const initialCoachMe: CoachMe = {
+const NOW = '2026-04-18T10:00:00Z'
+
+export const initialCoach: Coach = {
+  coachId: 'mock-coach-id',
   email: 'mock@coachmatch.app',
-  name: null,
-  phone: null,
-  instagram: null,
-  cref: null,
-  profilePhoto: null,
-  profileVideo: null,
-  specialties: [],
-  territory: null,
-  gyms: [],
-  serviceRadius: null,
-  status: 'PROFILE_INCOMPLETE',
-  rejectionReason: null,
+  status: 'PENDING_PROFILE',
+  profile: {
+    name: '',
+    phone: null,
+    specialties: [],
+    cref: '',
+    instagram: '',
+    profile_video: false,
+  },
+  work_location: [],
+  createdAt: NOW,
+  updatedAt: NOW,
 }
 
 export const specialties: Specialty[] = [
-  { id: 'musculacao', name: 'Musculação' },
-  { id: 'crossfit', name: 'CrossFit' },
-  { id: 'funcional', name: 'Funcional' },
-  { id: 'pilates', name: 'Pilates' },
-  { id: 'yoga', name: 'Yoga' },
-  { id: 'corrida', name: 'Corrida' },
-  { id: 'natacao', name: 'Natação' },
-  { id: 'lutas', name: 'Lutas' },
-  { id: 'reabilitacao', name: 'Reabilitação' },
-  { id: 'emagrecimento', name: 'Emagrecimento' },
-  { id: 'hipertrofia', name: 'Hipertrofia' },
-  { id: 'mobilidade', name: 'Mobilidade' },
+  { id: 'MUSCULATION', label: 'Musculação' },
+  { id: 'CROSSFIT', label: 'CrossFit' },
+  { id: 'FUNCTIONAL', label: 'Funcional' },
+  { id: 'PILATES', label: 'Pilates' },
+  { id: 'YOGA', label: 'Yoga' },
+  { id: 'RUNNING', label: 'Corrida' },
+  { id: 'SWIMMING', label: 'Natação' },
+  { id: 'FIGHTING', label: 'Lutas' },
+  { id: 'REHAB', label: 'Reabilitação' },
+  { id: 'WEIGHT_LOSS', label: 'Emagrecimento' },
+  { id: 'HYPERTROPHY', label: 'Hipertrofia' },
+  { id: 'MOBILITY', label: 'Mobilidade' },
 ]
 
 export const gyms: Gym[] = [
   {
-    id: 'smartfit-paulista',
+    gymId: 'gym_smartfit_paulista',
     name: 'Smart Fit Paulista',
     address: 'Av. Paulista, 1000',
     city: 'São Paulo',
@@ -42,7 +45,7 @@ export const gyms: Gym[] = [
     coordinates: { lat: -23.5613, lng: -46.6565 },
   },
   {
-    id: 'bluefit-pinheiros',
+    gymId: 'gym_bluefit_pinheiros',
     name: 'Bluefit Pinheiros',
     address: 'R. dos Pinheiros, 500',
     city: 'São Paulo',
@@ -51,7 +54,7 @@ export const gyms: Gym[] = [
     coordinates: { lat: -23.5662, lng: -46.6818 },
   },
   {
-    id: 'bodytech-vila-olimpia',
+    gymId: 'gym_bodytech_vilaolimpia',
     name: 'Bodytech Vila Olímpia',
     address: 'R. Olimpíadas, 200',
     city: 'São Paulo',
@@ -60,7 +63,7 @@ export const gyms: Gym[] = [
     coordinates: { lat: -23.5953, lng: -46.6864 },
   },
   {
-    id: 'selfit-moema',
+    gymId: 'gym_selfit_moema',
     name: 'Selfit Moema',
     address: 'Av. Ibirapuera, 2000',
     city: 'São Paulo',
@@ -69,7 +72,7 @@ export const gyms: Gym[] = [
     coordinates: { lat: -23.6043, lng: -46.6669 },
   },
   {
-    id: 'companhia-atletica-jardins',
+    gymId: 'gym_companhia_atletica_jardins',
     name: 'Companhia Atlética Jardins',
     address: 'R. Haddock Lobo, 1500',
     city: 'São Paulo',

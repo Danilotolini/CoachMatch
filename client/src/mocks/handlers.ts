@@ -1,30 +1,39 @@
 import { http, HttpResponse, delay } from 'msw'
 import type {
-  CoachMe,
-  CoachMePayload,
+  Coach,
+  CoachUpdatePayload,
   Gym,
+  GymSuggestPayload,
+  GymSuggestResponse,
   PaginatedResponse,
   Specialty,
   UploadUrlResponse,
   PaymentPayload,
   Transaction,
 } from '@/types/api'
-import { gyms, initialCoachMe, specialties } from '@/mocks/fixtures'
+import { gyms, initialCoach, specialties } from '@/mocks/fixtures'
 
 const MOCK_S3_URL = 'https://mock-s3.local/upload'
 
 const state = {
-  coachMe: { ...initialCoachMe },
+  coach: { ...initialCoach },
   transactions: new Map<string, Transaction>(),
 }
 
 function paginate<T>(items: T[], page: number, limit: number): PaginatedResponse<T> {
+  const total = items.length
+  const totalPages = Math.max(1, Math.ceil(total / limit))
   const start = (page - 1) * limit
   return {
     data: items.slice(start, start + limit),
-    page,
-    limit,
-    total: items.length,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    },
   }
 }
 
@@ -40,24 +49,40 @@ function matchesSearch(haystack: string, needle: string | null): boolean {
   return haystack.toLowerCase().includes(needle.toLowerCase())
 }
 
+function matchesExact(haystack: string, needle: string | null): boolean {
+  if (!needle) return true
+  return haystack.toLowerCase() === needle.toLowerCase()
+}
+
+function nowIso(): string {
+  return new Date().toISOString()
+}
+
 export const handlers = [
   http.get('*/coaches/me', async () => {
     await delay(200)
-    return HttpResponse.json<CoachMe>(state.coachMe)
+    return HttpResponse.json<Coach>(state.coach)
   }),
 
   http.put('*/coaches/me', async ({ request }) => {
     await delay(300)
-    const payload = (await request.json()) as CoachMePayload
-    const definedEntries = Object.entries(payload).filter(([, v]) => v !== undefined)
-    const merged: CoachMe = {
-      ...state.coachMe,
-      ...(Object.fromEntries(definedEntries) as Partial<CoachMe>),
+    const payload = (await request.json()) as CoachUpdatePayload
+    state.coach = {
+      ...state.coach,
+      profile: { ...state.coach.profile, ...(payload.profile ?? {}) },
+      work_location: payload.work_location ?? state.coach.work_location,
+      updatedAt: nowIso(),
     }
-    merged.status =
-      state.coachMe.status === 'PROFILE_INCOMPLETE' ? 'PENDING_REVIEW' : state.coachMe.status
-    state.coachMe = merged
-    return HttpResponse.json<CoachMe>(state.coachMe)
+    return HttpResponse.json<Coach>(state.coach)
+  }),
+
+  http.post('*/coaches/me/submit-for-review', async () => {
+    await delay(250)
+    if (state.coach.status !== 'PENDING_PROFILE') {
+      return HttpResponse.json({ error: 'Estado atual não permite submissão.' }, { status: 409 })
+    }
+    state.coach = { ...state.coach, status: 'PROFILE_REVIEW', updatedAt: nowIso() }
+    return HttpResponse.json<Coach>(state.coach)
   }),
 
   http.get('*/specialties', async ({ request }) => {
@@ -66,7 +91,9 @@ export const handlers = [
     const search = url.searchParams.get('search')
     const page = getNumberParam(url, 'page', 1)
     const limit = getNumberParam(url, 'limit', 20)
-    const filtered = specialties.filter((s: Specialty) => matchesSearch(s.name, search))
+    const filtered = specialties.filter(
+      (s: Specialty) => matchesSearch(s.label, search) || matchesSearch(s.id, search),
+    )
     return HttpResponse.json(paginate(filtered, page, limit))
   }),
 
@@ -78,22 +105,43 @@ export const handlers = [
     const page = getNumberParam(url, 'page', 1)
     const limit = getNumberParam(url, 'limit', 20)
     const filtered = gyms.filter(
-      (g: Gym) => matchesSearch(g.name, search) && matchesSearch(g.city, city),
+      (g: Gym) =>
+        (matchesSearch(g.name, search) ||
+          matchesSearch(g.address, search) ||
+          matchesSearch(g.neighborhood, search)) &&
+        matchesExact(g.city, city),
     )
     return HttpResponse.json(paginate(filtered, page, limit))
   }),
 
-  http.post('*/gyms/suggest', async () => {
+  http.post('*/gyms/suggest', async ({ request }) => {
     await delay(250)
-    return new HttpResponse(null, { status: 201 })
+    const payload = (await request.json()) as GymSuggestPayload
+    const newGym: Gym = {
+      gymId: `gym_${Math.random().toString(16).slice(2, 10)}`,
+      name: payload.name,
+      address: payload.address,
+      city: payload.city,
+      state: payload.state.toUpperCase(),
+      neighborhood: payload.neighborhood,
+      coordinates: payload.coordinates,
+    }
+    return HttpResponse.json<GymSuggestResponse>(
+      {
+        data: newGym,
+        message: 'Sugestão registrada com sucesso. Aguardando aprovação.',
+      },
+      { status: 201 },
+    )
   }),
 
   http.post('*/upload-url', async ({ request }) => {
     await delay(150)
     const body = (await request.json()) as { filename: string; contentType: string }
-    const key = `mock/${String(Date.now())}-${body.filename}`
+    const key = `uploads/${String(Date.now())}-${body.filename}`
     return HttpResponse.json<UploadUrlResponse>({
       key,
+      expiresIn: 300,
       upload: {
         url: MOCK_S3_URL,
         fields: {
@@ -107,6 +155,13 @@ export const handlers = [
   http.post(MOCK_S3_URL, async () => {
     await delay(400)
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  // Dev-only: simula aprovação manual do admin (não existe no swagger).
+  http.post('*/dev/approve-coach', async () => {
+    await delay(150)
+    state.coach = { ...state.coach, status: 'APPROVED', updatedAt: nowIso() }
+    return HttpResponse.json<Coach>(state.coach)
   }),
 
   // Payment Handlers

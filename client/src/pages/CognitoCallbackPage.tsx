@@ -9,13 +9,15 @@ import type { CoachStatus } from '@/types/api'
 
 function statusRoute(status: CoachStatus): string {
   switch (status) {
-    case 'PROFILE_INCOMPLETE':
+    case 'PENDING_PROFILE':
       return '/cadastro/profissional'
-    case 'PENDING_REVIEW':
+    case 'PROFILE_REVIEW':
       return '/em-analise'
     case 'APPROVED':
+    case 'ACTIVE':
       return '/dashboard'
     case 'REJECTED':
+    case 'INACTIVE':
       return '/reprovado'
   }
 }
@@ -32,7 +34,11 @@ export default function CognitoCallbackPage() {
   const state = params.get('state')
   const errorParam = params.get('error')
   const errorDesc = params.get('error_description')
-  const urlError = errorParam ? (errorDesc ?? errorParam) : (!code ? 'Código de autorização não encontrado.' : null)
+  const urlError = errorParam
+    ? (errorDesc ?? errorParam)
+    : !code
+      ? 'Código de autorização não encontrado.'
+      : null
 
   useEffect(() => {
     if (handled.current || !code || urlError) return

@@ -6,10 +6,12 @@ import { ApiError } from '@/lib/http'
 import type { CoachStatus } from '@/types/api'
 
 const STATUS_ROUTE: Record<CoachStatus, string> = {
-  PROFILE_INCOMPLETE: '/cadastro/profissional',
-  PENDING_REVIEW: '/em-analise',
+  PENDING_PROFILE: '/cadastro/profissional',
+  PROFILE_REVIEW: '/em-analise',
   APPROVED: '/dashboard',
+  ACTIVE: '/dashboard',
   REJECTED: '/reprovado',
+  INACTIVE: '/reprovado',
 }
 
 interface RouteGuardProps {
@@ -39,7 +41,7 @@ export function RouteGuard({ allow, children }: RouteGuardProps) {
       return <Navigate to="/entrar" replace />
     }
     // 404 ou falha de rede (CORS, offline): assume perfil ainda não criado
-    if (!allow.includes('PROFILE_INCOMPLETE')) {
+    if (!allow.includes('PENDING_PROFILE')) {
       return <Navigate to="/cadastro/profissional" replace />
     }
     return <>{children}</>

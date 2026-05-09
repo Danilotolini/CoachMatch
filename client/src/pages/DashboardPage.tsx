@@ -1,6 +1,5 @@
 import { useCoachMe } from '@/hooks/useCoachMe'
-import { clearToken } from '@/lib/auth'
-import { useNavigate } from 'react-router'
+import { logout } from '@/lib/cognito'
 
 /**
  * Layout breakpoints:
@@ -10,23 +9,22 @@ import { useNavigate } from 'react-router'
  */
 export default function DashboardPage() {
   const { data } = useCoachMe()
-  const navigate = useNavigate()
 
-  const name = data?.name ?? undefined
-  const cref = data?.cref ?? undefined
-  const profilePhoto = data?.profilePhoto ?? undefined
+  const profile = data?.profile
+  const name = profile?.name ?? undefined
+  const cref = profile?.cref ?? undefined
+  const profilePhoto: string | undefined = undefined
   const firstName = name?.split(' ')[0] ?? 'profissional'
-  const specialtiesCount = data?.specialties.length ?? 0
-  const gymsCount = data?.gyms.length ?? 0
-  const territoryLabel = data?.territory === 'HOME_SERVICE' ? 'Raio de atendimento' : 'Academias'
-  const territoryValue =
-    data?.territory === 'HOME_SERVICE'
-      ? `${String(data.serviceRadius ?? 0)} km`
-      : String(gymsCount)
+  const specialtiesCount = profile?.specialties.length ?? 0
+  const homeService = data?.work_location.find((loc) => loc.type === 'HOME_SERVICE')
+  const gymsCount = data?.work_location.filter((loc) => loc.type === 'GYM').length ?? 0
+  const territoryLabel = homeService ? 'Bairros atendidos' : 'Academias'
+  const territoryValue = homeService
+    ? String(homeService.coverage.neighborhoods.length)
+    : String(gymsCount)
 
   function handleLogout() {
-    clearToken()
-    void navigate('/entrar', { replace: true })
+    logout()
   }
 
   return (
@@ -41,7 +39,6 @@ export default function DashboardPage() {
             name={name}
             onLogout={handleLogout}
           />
-
 
           <section className="flex flex-col gap-8 px-6 pb-12 md:px-12 lg:mx-auto lg:w-full lg:max-w-3xl lg:px-10">
             <ApprovedBanner className="lg:hidden" />
