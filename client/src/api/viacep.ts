@@ -7,6 +7,16 @@ export interface ViaCepAddress {
   uf: string
 }
 
+export async function fetchAddressByCep(cep: string): Promise<ViaCepAddress | null> {
+  const digits = cep.replace(/\D/g, '')
+  if (digits.length !== 8) return null
+  const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`)
+  if (!res.ok) throw new Error(`ViaCEP ${String(res.status)}`)
+  const data = (await res.json()) as ViaCepAddress | { erro: true }
+  if ('erro' in data) return null
+  return data
+}
+
 export async function fetchViaCepAddresses(
   uf: string,
   city: string,
