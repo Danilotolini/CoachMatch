@@ -1,51 +1,71 @@
 export type CoachStatus =
-  | 'PROFILE_INCOMPLETE'
-  | 'PENDING_REVIEW'
+  | 'PENDING_PROFILE'
+  | 'PROFILE_REVIEW'
   | 'APPROVED'
   | 'REJECTED'
+  | 'ACTIVE'
+  | 'INACTIVE'
 
-export interface CoachMe {
-  email: string
-  name: string | null
-  phone: string | null
-  instagram: string | null
-  cref: string | null
-  profilePhoto: string | null
-  profileVideo: string | null
-  specialties: string[]
-  territory: 'GYMS' | 'HOME_SERVICE' | null
-  gyms: string[]
-  serviceRadius: number | null
-  status: CoachStatus
-  rejectionReason: string | null
+export interface Coordinates {
+  lat: number
+  lng: number
 }
 
-export interface CoachMePayload {
-  name?: string | undefined
-  phone?: string | undefined
-  instagram?: string | undefined
-  cref?: string | undefined
-  profilePhoto?: string | undefined
-  profileVideo?: string | undefined
-  specialties?: string[] | undefined
-  territory?: 'GYMS' | 'HOME_SERVICE' | undefined
-  gyms?: string[] | undefined
-  serviceRadius?: number | undefined
+export interface CoachProfile {
+  name: string
+  phone: string | null
+  specialties: string[]
+  cref: string
+  instagram: string
+  profile_video: boolean
+}
+
+export interface WorkLocationGym {
+  type: 'GYM'
+  gymId: string
+}
+
+export interface HomeServiceCoverage {
+  city: string
+  state: string
+  neighborhoods: string[]
+}
+
+export interface WorkLocationHomeService {
+  type: 'HOME_SERVICE'
+  coverage: HomeServiceCoverage
+}
+
+export type WorkLocation = WorkLocationGym | WorkLocationHomeService
+
+export interface Coach {
+  coachId: string
+  email: string
+  status: CoachStatus
+  profile: CoachProfile
+  work_location: WorkLocation[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CoachUpdatePayload {
+  profile?: Partial<CoachProfile>
+  work_location?: WorkLocation[]
 }
 
 export interface Specialty {
   id: string
-  name: string
+  label: string
 }
 
 export interface Gym {
-  id: string
+  gymId: string
   name: string
   address: string
   city: string
   state: string
   neighborhood: string
-  coordinates: { lat: number; lng: number }
+  coordinates: Coordinates
 }
 
 export interface GymSuggestPayload {
@@ -54,18 +74,31 @@ export interface GymSuggestPayload {
   city: string
   state: string
   neighborhood: string
-  coordinates: { lat: number; lng: number }
+  coordinates: Coordinates
+}
+
+export interface GymSuggestResponse {
+  data: Gym
+  message: string
+}
+
+export interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
 }
 
 export interface PaginatedResponse<T> {
   data: T[]
-  page: number
-  limit: number
-  total: number
+  pagination: Pagination
 }
 
 export interface UploadUrlResponse {
   key: string
+  expiresIn: number
   upload: {
     url: string
     fields: Record<string, string>

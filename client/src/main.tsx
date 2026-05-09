@@ -31,7 +31,7 @@ const router = createBrowserRouter([
   {
     path: '/cadastro/profissional',
     element: (
-      <RouteGuard allow={['PROFILE_INCOMPLETE']}>
+      <RouteGuard allow={['PENDING_PROFILE']}>
         <OnboardingPage />
       </RouteGuard>
     ),
@@ -39,7 +39,7 @@ const router = createBrowserRouter([
   {
     path: '/em-analise',
     element: (
-      <RouteGuard allow={['PENDING_REVIEW']}>
+      <RouteGuard allow={['PROFILE_REVIEW']}>
         <PendingReviewPage />
       </RouteGuard>
     ),
@@ -47,7 +47,7 @@ const router = createBrowserRouter([
   {
     path: '/reprovado',
     element: (
-      <RouteGuard allow={['REJECTED']}>
+      <RouteGuard allow={['REJECTED', 'INACTIVE']}>
         <RejectedPage />
       </RouteGuard>
     ),
@@ -55,7 +55,7 @@ const router = createBrowserRouter([
   {
     path: '/dashboard',
     element: (
-      <RouteGuard allow={['APPROVED']}>
+      <RouteGuard allow={['APPROVED', 'ACTIVE']}>
         <DashboardPage />
       </RouteGuard>
     ),

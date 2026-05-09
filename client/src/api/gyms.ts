@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from '@/lib/http'
-import type { Gym, GymSuggestPayload, PaginatedResponse } from '@/types/api'
+import type { Gym, GymSuggestPayload, GymSuggestResponse, PaginatedResponse } from '@/types/api'
 
 export interface GymsParams {
   search?: string | undefined
@@ -36,5 +36,5 @@ export async function fetchGyms(params: GymsParams = {}): Promise<PaginatedRespo
 }
 
 export function suggestGym(payload: GymSuggestPayload) {
-  return apiPost<undefined>('/gyms/suggest', payload)
+  return apiPost<GymSuggestResponse>('/gyms/suggest', payload)
 }

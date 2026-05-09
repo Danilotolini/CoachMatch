@@ -1,10 +1,14 @@
-import { apiGet, apiPut } from '@/lib/http'
-import type { CoachMe, CoachMePayload } from '@/types/api'
+import { apiGet, apiPost, apiPut } from '@/lib/http'
+import type { Coach, CoachUpdatePayload } from '@/types/api'
 
-export function fetchCoachMe(): Promise<CoachMe> {
-  return apiGet<CoachMe>('/coaches/me')
+export function fetchCoachMe(): Promise<Coach> {
+  return apiGet<Coach>('/coaches/me')
 }
 
-export function updateCoachMe(payload: CoachMePayload): Promise<CoachMe> {
-  return apiPut<CoachMe>('/coaches/me', payload)
+export function updateCoachMe(payload: CoachUpdatePayload): Promise<Coach> {
+  return apiPut<Coach>('/coaches/me', payload)
+}
+
+export function submitCoachForReview(): Promise<Coach> {
+  return apiPost<Coach>('/coaches/me/submit-for-review', {})
 }

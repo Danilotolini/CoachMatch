@@ -12,12 +12,12 @@ const ROUTES: RouteEntry[] = [
   {
     path: '/cadastro/profissional',
     label: 'Onboarding Profissional',
-    description: 'Formulário de cadastro (requer PROFILE_INCOMPLETE)',
+    description: 'Formulário de cadastro (requer PENDING_PROFILE)',
   },
   {
     path: '/em-analise',
     label: 'Em Análise',
-    description: 'Status PENDING_REVIEW',
+    description: 'Status PROFILE_REVIEW',
   },
   {
     path: '/reprovado',
