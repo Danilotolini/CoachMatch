@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { exchangeCodeForTokens } from '@/lib/cognito'
+import { exchangeCodeForTokens, type CognitoAudience } from '@/lib/cognito'
 import { setToken } from '@/lib/auth'
 import { fetchCoachMe } from '@/api/coaches'
 import { ApiError } from '@/lib/http'
@@ -22,7 +22,11 @@ function statusRoute(status: CoachStatus): string {
   }
 }
 
-export default function CognitoCallbackPage() {
+interface CognitoCallbackPageProps {
+  audience?: CognitoAudience
+}
+
+export default function CognitoCallbackPage({ audience = 'coach' }: CognitoCallbackPageProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [error, setError] = useState<string | null>(null)
@@ -46,11 +50,16 @@ export default function CognitoCallbackPage() {
 
     async function finish(authorizationCode: string) {
       try {
-        const tokens = await exchangeCodeForTokens(authorizationCode, state)
+        const tokens = await exchangeCodeForTokens(authorizationCode, state, audience)
         setToken(tokens.id_token)
 
         // Remove code from URL before routing
         window.history.replaceState({}, '', window.location.pathname)
+
+        if (audience === 'student') {
+          void navigate('/cadastro/aluno', { replace: true })
+          return
+        }
 
         try {
           const coach = await fetchCoachMe()
@@ -71,7 +80,7 @@ export default function CognitoCallbackPage() {
     }
 
     void finish(code)
-  }, [code, navigate, queryClient, state, urlError])
+  }, [audience, code, navigate, queryClient, state, urlError])
 
   const displayedError = error ?? urlError
 
@@ -84,7 +93,10 @@ export default function CognitoCallbackPage() {
             Erro na autenticação
           </h1>
           <p className="text-on-surface-variant text-sm mb-6">{displayedError}</p>
-          <a href="/entrar" className="text-primary font-bold hover:underline">
+          <a
+            href={audience === 'student' ? '/entrar/aluno' : '/entrar'}
+            className="text-primary font-bold hover:underline"
+          >
             Tentar novamente
           </a>
         </div>
