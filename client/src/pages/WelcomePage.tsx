@@ -1,4 +1,3 @@
-import { Link } from 'react-router'
 import { WelcomeFooter } from '@/components/welcome/WelcomeFooter'
 import { WelcomeHeroPanel } from '@/components/welcome/WelcomeHeroPanel'
 import { WelcomeProfileCard } from '@/components/welcome/WelcomeProfileCard'
@@ -26,28 +25,15 @@ export default function WelcomePage() {
           <WelcomeProfileCard
             to="/cadastro/cliente"
             icon="fitness_center"
-            title="Sou Cliente"
+            title="Acesso Aluno"
             description="Busco coaches de elite e treinos personalizados."
           />
           <WelcomeProfileCard
             to="/entrar"
             icon="lock"
             title="Acesso Profissional"
-            badge="SSO"
-            description="Gerencie seus clientes e escale sua carreira. Acesso via login seguro (AWS Cognito)."
+            description="Gerencie seus clientes e escale sua carreira."
           />
-        </div>
-
-        <div className="mt-12">
-          <p className="text-on-surface-variant text-sm font-medium">
-            Já possui uma conta?{' '}
-            <Link
-              to="/entrar"
-              className="text-primary hover:underline underline-offset-4 ml-1 transition-all"
-            >
-              Log In
-            </Link>
-          </p>
         </div>
 
         <WelcomeFooter />
