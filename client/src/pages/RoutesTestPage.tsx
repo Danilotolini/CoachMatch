@@ -8,7 +8,31 @@ interface RouteEntry {
 
 const ROUTES: RouteEntry[] = [
   { path: '/', label: 'Boas-vindas', description: 'Tela inicial pública' },
-  { path: '/entrar', label: 'Entrar', description: 'Redireciona para Cognito Hosted UI' },
+  {
+    path: '/entrar',
+    label: 'Entrar Profissional',
+    description: 'Redireciona para Cognito Hosted UI',
+  },
+  {
+    path: '/entrar/aluno',
+    label: 'Entrar Aluno',
+    description: 'Redireciona para o user pool público de aluno',
+  },
+  {
+    path: '/cadastro/aluno',
+    label: 'Onboarding Aluno',
+    description: 'Perfil BASIC após login Cognito',
+  },
+  {
+    path: '/cadastro/aluno/saude',
+    label: 'Saúde Aluno',
+    description: 'Desbloqueia READY_TO_MATCH',
+  },
+  {
+    path: '/aluno',
+    label: 'Home Aluno',
+    description: 'Discovery pós-cadastro com busca, agenda e favoritos',
+  },
   {
     path: '/cadastro/profissional',
     label: 'Onboarding Profissional',

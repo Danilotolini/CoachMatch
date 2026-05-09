@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools' 
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { queryClient } from '@/lib/queryClient'
 import './index.css'
 
@@ -17,9 +17,12 @@ import LoginPage from '@/pages/LoginPage'
 import RoutesTestPage from '@/pages/RoutesTestPage'
 import CognitoCallbackPage from '@/pages/CognitoCallbackPage'
 import OnboardingPage from '@/pages/OnboardingPage'
+import StudentOnboardingPage from '@/pages/StudentOnboardingPage'
+import StudentHealthFormPage from '@/pages/StudentHealthFormPage'
 import PendingReviewPage from '@/pages/PendingReviewPage'
 import RejectedPage from '@/pages/RejectedPage'
-import DashboardPage from '@/pages/DashboardPage' 
+import DashboardPage from '@/pages/DashboardPage'
+import StudentHomePage from '@/pages/StudentHomePage'
 import PaymentPage from '@/pages/PaymentPage'
 import { RouteGuard } from '@/components/RouteGuard'
 
@@ -27,7 +30,12 @@ const router = createBrowserRouter([
   { path: '/', element: <WelcomePage /> },
   { path: '/rotas', element: <RoutesTestPage /> },
   { path: '/entrar', element: <LoginPage /> },
+  { path: '/entrar/aluno', element: <LoginPage audience="student" /> },
   { path: '/auth/cognito/callback', element: <CognitoCallbackPage /> },
+  { path: '/auth/cognito/student/callback', element: <CognitoCallbackPage audience="student" /> },
+  { path: '/cadastro/aluno', element: <StudentOnboardingPage /> },
+  { path: '/cadastro/aluno/saude', element: <StudentHealthFormPage /> },
+  { path: '/aluno', element: <StudentHomePage /> },
   {
     path: '/cadastro/profissional',
     element: (
@@ -59,7 +67,7 @@ const router = createBrowserRouter([
         <DashboardPage />
       </RouteGuard>
     ),
-  }, 
+  },
   {
     path: '/pagamento/:sessionId',
     element: (
