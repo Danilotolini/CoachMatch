@@ -1,10 +1,31 @@
 import { env } from '@/lib/env'
+import { clearToken } from '@/lib/auth'
 
 const PKCE_KEY = 'cognito_pkce_verifier'
 const STATE_KEY = 'cognito_oauth_state'
 
 function redirectUri(): string {
   return `${window.location.origin}/auth/cognito/callback`
+}
+
+function logoutUri(returnPath: string): string {
+  return `${window.location.origin}${returnPath}`
+}
+
+export function getLogoutUrl(returnPath = '/'): string {
+  const params = new URLSearchParams({
+    client_id: env.cognitoClientId,
+    logout_uri: logoutUri(returnPath),
+  })
+  return `${env.cognitoDomain}/logout?${params.toString()}`
+}
+
+// Limpa token local e redireciona para o /logout do Cognito Hosted UI,
+// que encerra a sessão lá e devolve o usuário ao logout_uri configurado.
+// O logout_uri precisa estar na lista "Allowed sign-out URLs" do App Client.
+export function logout(returnPath = '/'): void {
+  clearToken()
+  window.location.href = getLogoutUrl(returnPath)
 }
 
 function base64UrlEncode(buffer: ArrayBuffer): string {
