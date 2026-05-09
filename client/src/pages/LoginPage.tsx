@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
-import { getLoginUrl } from '@/lib/cognito'
+import { getLoginUrl, type CognitoAudience } from '@/lib/cognito'
 
-export default function LoginPage() {
+interface LoginPageProps {
+  audience?: CognitoAudience
+}
+
+export default function LoginPage({ audience = 'coach' }: LoginPageProps) {
   const [loginUrl, setLoginUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    getLoginUrl()
+    getLoginUrl(audience)
       .then((url) => {
         if (cancelled) return
         setLoginUrl(url)
@@ -21,7 +25,7 @@ export default function LoginPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [audience])
 
   if (error) {
     return (
