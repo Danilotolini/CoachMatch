@@ -1,66 +1,113 @@
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { ProgressHeader } from '@/components/layout/ProgressHeader'
 import { Input } from '@/components/ui/Input'
 import { Chip } from '@/components/ui/Chip'
-import { RadioOption } from '@/components/ui/RadioOption'
+import { HomeServiceAreaPicker } from '@/components/onboarding/HomeServiceAreaPicker'
 import { getAuthUser } from '@/lib/auth'
 import { useGyms } from '@/hooks/useGyms'
 import { useSpecialties } from '@/hooks/useSpecialties'
-import { useUpdateCoachMe } from '@/hooks/useCoachMe'
-import { createCoachPayload, useOnboardingStore } from '@/stores/onboardingStore'
+import { useSubmitCoachForReview, useUpdateCoachMe } from '@/hooks/useCoachMe'
+import { useVideoUpload } from '@/hooks/useVideoUpload'
+import { buildCoachUpdatePayload, useOnboardingStore } from '@/stores/onboardingStore'
+import type { Coach, Specialty } from '@/types/api'
 
 const HERO_MOBILE = '/assets/images/onboarding-hero-mobile.png'
-
 const HERO_DESKTOP = '/assets/images/onboarding-hero-desktop.png'
 
-const SPECIALTY_OPTIONS = [
-  'Hipertrofia',
-  'Crossfit',
-  'Emagrecimento',
-  'Força',
-  'Reabilitação',
-  'Mobilidade',
-  'Biomecânica Aplicada',
-  'Funcional',
+const FALLBACK_SPECIALTIES: Specialty[] = [
+  { id: 'HYPERTROPHY', label: 'Hipertrofia' },
+  { id: 'CROSSFIT', label: 'CrossFit' },
+  { id: 'WEIGHT_LOSS', label: 'Emagrecimento' },
+  { id: 'STRENGTH', label: 'Força' },
+  { id: 'REHAB', label: 'Reabilitação' },
+  { id: 'MOBILITY', label: 'Mobilidade' },
+  { id: 'BIOMECHANICS', label: 'Biomecânica Aplicada' },
+  { id: 'FUNCTIONAL', label: 'Funcional' },
 ]
+
+function statusToRoute(status: Coach['status']): string {
+  switch (status) {
+    case 'PROFILE_REVIEW':
+      return '/em-analise'
+    case 'APPROVED':
+    case 'ACTIVE':
+      return '/dashboard'
+    case 'REJECTED':
+    case 'INACTIVE':
+      return '/reprovado'
+    default:
+      return '/cadastro/profissional'
+  }
+}
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
   const authUser = getAuthUser()
   const updateCoach = useUpdateCoachMe()
+  const submitForReview = useSubmitCoachForReview()
+  const videoUpload = useVideoUpload()
   const form = useOnboardingStore((state) => state.form)
   const errors = useOnboardingStore((state) => state.errors)
   const specialtySearch = useOnboardingStore((state) => state.specialtySearch)
   const gymSearch = useOnboardingStore((state) => state.gymSearch)
   const setSpecialtySearch = useOnboardingStore((state) => state.setSpecialtySearch)
   const setGymSearch = useOnboardingStore((state) => state.setGymSearch)
-  const update = useOnboardingStore((state) => state.update)
   const updatePhone = useOnboardingStore((state) => state.updatePhone)
   const updateInstagram = useOnboardingStore((state) => state.updateInstagram)
   const updateCref = useOnboardingStore((state) => state.updateCref)
   const toggleSpecialty = useOnboardingStore((state) => state.toggleSpecialty)
-  const selectGym = useOnboardingStore((state) => state.selectGym)
-  const clearGym = useOnboardingStore((state) => state.clearGym)
+  const addGym = useOnboardingStore((state) => state.addGym)
+  const removeGym = useOnboardingStore((state) => state.removeGym)
   const setGymError = useOnboardingStore((state) => state.setGymError)
+  const setVideoKey = useOnboardingStore((state) => state.setVideoKey)
   const validate = useOnboardingStore((state) => state.validate)
   const resetOnboarding = useOnboardingStore((state) => state.reset)
   const { data: specialtiesData } = useSpecialties(specialtySearch)
   const { data: gymsData } = useGyms(gymSearch)
 
-  const specialtyOptions =
-    specialtiesData?.data.map((specialty) => specialty.name) ?? SPECIALTY_OPTIONS
+  const specialtyOptions = specialtiesData?.data ?? FALLBACK_SPECIALTIES
   const gymOptions = gymsData?.data ?? []
 
+  const videoInputRef = useRef<HTMLInputElement>(null)
+  const [videoFileName, setVideoFileName] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const isSubmitting = updateCoach.isPending || submitForReview.isPending
+  const hasValidationErrors = Object.values(errors).some(Boolean)
+
+  const handleVideoFile = (file: File) => {
+    setVideoFileName(file.name)
+    setSubmitError(null)
+    videoUpload.mutate(file, {
+      onSuccess: (key) => {
+        setVideoKey(key)
+      },
+      onError: () => {
+        setVideoFileName(null)
+      },
+    })
+  }
+
   const submit = () => {
+    setSubmitError(null)
     if (!validate()) return
 
-    const payload = createCoachPayload(form, authUser.name)
+    const payload = buildCoachUpdatePayload(form, authUser.name)
 
     updateCoach.mutate(payload, {
-      onSuccess: (coach) => {
-        resetOnboarding()
-        const nextRoute = coach.status === 'PENDING_REVIEW' ? '/em-analise' : '/dashboard'
-        void navigate(nextRoute, { replace: true })
+      onSuccess: () => {
+        submitForReview.mutate(undefined, {
+          onSuccess: (coach) => {
+            resetOnboarding()
+            void navigate(statusToRoute(coach.status), { replace: true })
+          },
+          onError: () => {
+            setSubmitError('Não foi possível enviar seu perfil para análise.')
+          },
+        })
+      },
+      onError: () => {
+        setSubmitError('Não foi possível salvar seu perfil. Revise os dados e tente novamente.')
       },
     })
   }
@@ -91,8 +138,6 @@ export default function OnboardingPage() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <ProgressHeader currentStep={1} totalSteps={4} />
-
         <header className="lg:hidden relative w-full h-[260px] flex items-end p-6 bg-surface-container-lowest overflow-hidden">
           <img
             alt=""
@@ -190,10 +235,26 @@ export default function OnboardingPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <UploadCard
-                  icon="videocam"
-                  title="Vídeo de Apresentação"
-                  description="Faça upload de um vídeo curto (até 60s) mostrando sua energia."
+                <VideoUploadCard
+                  fileName={videoFileName}
+                  uploaded={!!form.videoKey}
+                  uploading={videoUpload.isPending}
+                  progress={videoUpload.progress}
+                  error={
+                    videoUpload.isError ? 'Falha no upload. Tente outro arquivo.' : errors.videoKey
+                  }
+                  onPick={() => videoInputRef.current?.click()}
+                />
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/mp4,video/quicktime"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleVideoFile(file)
+                    e.target.value = ''
+                  }}
                 />
                 <UploadCard
                   icon="photo_camera"
@@ -224,20 +285,20 @@ export default function OnboardingPage() {
                 />
               </div>
               <div className="flex flex-wrap gap-3">
-                {specialtyOptions.map((label) => {
-                  const active = form.specialties.includes(label)
+                {specialtyOptions.map((specialty) => {
+                  const active = form.specialties.includes(specialty.id)
                   return (
                     <Chip
-                      key={label}
-                      label={label}
+                      key={specialty.id}
+                      label={specialty.label}
                       active={active}
                       onClick={() => {
-                        toggleSpecialty(label)
+                        toggleSpecialty(specialty.id)
                       }}
                       {...(active
                         ? {
                             onRemove: () => {
-                              toggleSpecialty(label)
+                              toggleSpecialty(specialty.id)
                             },
                           }
                         : {})}
@@ -252,40 +313,44 @@ export default function OnboardingPage() {
           </Section>
 
           <Section title="Território">
-            <div className="space-y-4">
-              <RadioOption
-                label="Academias Parceiras"
-                description="Atendo em academias específicas na minha região."
-                checked={form.territory === 'GYMS'}
-                onChange={() => {
-                  update('territory', 'GYMS')
-                }}
-              />
-              {form.territory === 'GYMS' ? (
-                <div className="ml-10 pl-5 border-l-2 border-surface-container-highest space-y-4">
-                  <div className="bg-surface-container-highest rounded-t-lg border-b border-surface-variant focus-within:border-primary transition-colors p-3 flex items-center">
-                    <span className="material-symbols-outlined text-on-surface-variant mr-3">
-                      location_on
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Buscar por nome da academia ou bairro..."
-                      value={gymSearch}
-                      onChange={(e) => {
-                        setGymSearch(e.target.value)
-                        clearGym()
-                      }}
-                      className="bg-transparent border-none w-full text-on-surface font-body text-sm focus:ring-0 focus:outline-none p-0 placeholder-on-surface-variant/50"
-                    />
-                  </div>
-                  {gymOptions.length > 0 && !form.gym ? (
-                    <div className="space-y-2">
-                      {gymOptions.slice(0, 5).map((gym) => (
+            <p className="font-body text-sm text-on-surface-variant -mt-2">
+              Você pode atender em academias parceiras, em Atendimento Externo, ou nos dois modelos.
+              Adicione pelo menos uma opção.
+            </p>
+
+            <div className="bg-surface-container-low p-5 rounded-xl space-y-4">
+              <h3 className="font-headline text-base font-semibold text-on-surface">
+                Academias Parceiras
+              </h3>
+              <p className="font-body text-xs text-on-surface-variant">
+                Atendo em academias específicas na minha região.
+              </p>
+              <div className="ml-0 space-y-4">
+                <div className="bg-surface-container-highest rounded-t-lg border-b border-surface-variant focus-within:border-primary transition-colors p-3 flex items-center">
+                  <span className="material-symbols-outlined text-on-surface-variant mr-3">
+                    location_on
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Buscar por nome da academia ou bairro..."
+                    value={gymSearch}
+                    onChange={(e) => {
+                      setGymSearch(e.target.value)
+                    }}
+                    className="bg-transparent border-none w-full text-on-surface font-body text-sm focus:ring-0 focus:outline-none p-0 placeholder-on-surface-variant/50"
+                  />
+                </div>
+                {gymSearch && gymOptions.length > 0 ? (
+                  <div className="space-y-2">
+                    {gymOptions
+                      .filter((gym) => !form.gyms.some((selected) => selected.id === gym.gymId))
+                      .slice(0, 5)
+                      .map((gym) => (
                         <button
-                          key={gym.id}
+                          key={gym.gymId}
                           type="button"
                           onClick={() => {
-                            selectGym(gym)
+                            addGym(gym)
                           }}
                           className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-left transition-colors hover:bg-surface-container-high"
                         >
@@ -297,85 +362,77 @@ export default function OnboardingPage() {
                           </span>
                         </button>
                       ))}
-                    </div>
-                  ) : null}
-                  {form.gym ? (
-                    <div className="inline-flex items-center bg-surface-container-low border border-outline-variant/30 rounded-lg py-2 px-3 gap-2">
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                      <span className="font-body text-xs text-on-surface">{form.gymName}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          clearGym()
-                        }}
-                        className="text-on-surface-variant hover:text-error transition-colors ml-2"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">close</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setGymError('Busque uma academia existente antes de concluir.')
-                      }}
-                      className="text-primary text-xs font-bold uppercase tracking-widest hover:underline"
-                    >
-                      + Sugerir academia
-                    </button>
-                  )}
-                  {errors.gym ? <p className="font-body text-xs text-error">{errors.gym}</p> : null}
-                </div>
-              ) : null}
-
-              <RadioOption
-                label="Home Service / Outdoor"
-                description="Vou até o cliente ou atendo em parques/condomínios."
-                checked={form.territory === 'HOME_SERVICE'}
-                onChange={() => {
-                  update('territory', 'HOME_SERVICE')
-                }}
-              />
-              {form.territory === 'HOME_SERVICE' ? (
-                <div className="ml-10 pl-5 border-l-2 border-surface-container-highest mt-2">
-                  <div className="flex justify-between font-label text-xs text-on-surface-variant mb-2">
-                    <span>Raio de Atendimento</span>
-                    <span className="text-primary font-bold">{form.radius} km</span>
                   </div>
-                  <input
-                    type="range"
-                    min={10}
-                    max={50}
-                    value={form.radius}
-                    onChange={(e) => {
-                      update('radius', Number(e.target.value))
-                    }}
-                    className="w-full accent-primary"
-                  />
-                  {errors.radius ? (
-                    <p className="mt-2 font-body text-xs text-error">{errors.radius}</p>
-                  ) : null}
-                </div>
-              ) : null}
+                ) : null}
+                {form.gyms.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {form.gyms.map((gym) => (
+                      <div
+                        key={gym.id}
+                        className="inline-flex items-center bg-surface-container-low border border-outline-variant/30 rounded-lg py-2 px-3 gap-2"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                        <span className="font-body text-xs text-on-surface">{gym.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            removeGym(gym.id)
+                          }}
+                          className="text-on-surface-variant hover:text-error transition-colors ml-2"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGymError('Busque uma academia existente antes de concluir.')
+                  }}
+                  className="text-primary text-xs font-bold uppercase tracking-widest hover:underline"
+                >
+                  + Sugerir academia
+                </button>
+                {errors.gyms ? <p className="font-body text-xs text-error">{errors.gyms}</p> : null}
+              </div>
             </div>
+
+            <div className="bg-surface-container-low p-5 rounded-xl space-y-4">
+              <h3 className="font-headline text-base font-semibold text-on-surface">
+                Atendimento Externo
+              </h3>
+              <p className="font-body text-xs text-on-surface-variant">
+                Vou até o cliente ou atendo em parques/condomínios. Adicione uma área por cidade.
+              </p>
+              <HomeServiceAreaPicker />
+            </div>
+
+            {errors.workLocation ? (
+              <p className="font-body text-xs text-error">{errors.workLocation}</p>
+            ) : null}
           </Section>
 
           <div className="pt-4 pb-12">
             <button
               type="button"
-              disabled={updateCoach.isPending}
+              disabled={isSubmitting || videoUpload.isPending}
               onClick={submit}
               className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-lg py-4 rounded-lg shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] flex items-center justify-center gap-2 uppercase tracking-wide disabled:opacity-60 disabled:pointer-events-none"
             >
-              {updateCoach.isPending ? 'Salvando...' : 'Concluir Perfil'}
-              {!updateCoach.isPending ? (
+              {isSubmitting ? 'Enviando...' : 'Concluir Perfil'}
+              {!isSubmitting ? (
                 <span className="material-symbols-outlined">arrow_forward</span>
               ) : null}
             </button>
-            {updateCoach.isError ? (
+            {hasValidationErrors ? (
               <p className="mt-4 text-center font-body text-xs text-error">
-                Não foi possível salvar seu perfil. Revise os dados e tente novamente.
+                Existem erros no formulário. Revise os campos destacados acima.
               </p>
+            ) : null}
+            {submitError ? (
+              <p className="mt-4 text-center font-body text-xs text-error">{submitError}</p>
             ) : null}
             <p className="text-center font-body text-xs text-on-surface-variant mt-4">
               Ao continuar, você aceita nossos{' '}
@@ -402,6 +459,56 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </h2>
       {children}
     </section>
+  )
+}
+
+interface VideoUploadCardProps {
+  fileName: string | null
+  uploaded: boolean
+  uploading: boolean
+  progress: number
+  error?: string | undefined
+  onPick: () => void
+}
+
+function VideoUploadCard({
+  fileName,
+  uploaded,
+  uploading,
+  progress,
+  error,
+  onPick,
+}: VideoUploadCardProps) {
+  const status = uploading
+    ? `Enviando... ${String(progress)}%`
+    : uploaded
+      ? `Pronto: ${fileName ?? 'vídeo enviado'}`
+      : 'Faça upload de um vídeo curto (até 60s) mostrando sua energia.'
+
+  const icon = uploaded ? 'check_circle' : uploading ? 'progress_activity' : 'videocam'
+
+  return (
+    <div className="flex flex-col">
+      <button
+        type="button"
+        onClick={onPick}
+        disabled={uploading}
+        className="bg-surface-container-low rounded-xl p-5 border border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center hover:bg-surface-container-highest transition-colors cursor-pointer group min-h-[160px] disabled:cursor-wait"
+      >
+        <div className="w-12 h-12 bg-surface-container-highest rounded-full flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+          <span
+            className={`material-symbols-outlined text-primary text-2xl ${uploading ? 'animate-spin' : ''}`}
+          >
+            {icon}
+          </span>
+        </div>
+        <h3 className="font-headline text-sm font-semibold text-on-surface mb-1">
+          Vídeo de Apresentação
+        </h3>
+        <p className="font-body text-xs text-on-surface-variant max-w-[200px]">{status}</p>
+      </button>
+      {error ? <p className="mt-2 font-body text-xs text-error">{error}</p> : null}
+    </div>
   )
 }
 
