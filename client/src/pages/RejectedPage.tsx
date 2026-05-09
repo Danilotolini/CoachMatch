@@ -4,7 +4,9 @@ export default function RejectedPage() {
   return (
     <main className="min-h-dvh flex flex-col items-center justify-center gap-4 p-8">
       <h1 className="font-headline text-3xl font-bold">Reprovado</h1>
-      <Link className="text-primary text-sm hover:underline" to="/">← Voltar</Link>
+      <Link className="text-primary text-sm hover:underline" to="/">
+        ← Voltar
+      </Link>
     </main>
   )
 }
