@@ -10,7 +10,7 @@ export function RadioOption({ label, description, checked, onChange }: RadioOpti
     <label
       className={`flex items-start p-5 rounded-xl cursor-pointer transition-all border ${
         checked
-          ? 'bg-surface-container-high border-primary bg-primary/5'
+          ? 'bg-surface-container-high border-primary'
           : 'bg-surface-container-low border-transparent hover:bg-surface-container-highest'
       }`}
     >
