@@ -15,7 +15,7 @@ export function RadioOption({ label, description, checked, onChange }: RadioOpti
       }`}
     >
       <input type="radio" checked={checked} onChange={onChange} className="sr-only" />
-      <div className="flex-shrink-0 mt-0.5 mr-4">
+      <div className="shrink-0 mt-0.5 mr-4">
         <span
           className={`material-symbols-outlined ${checked ? 'text-primary' : 'text-on-surface-variant'}`}
         >
