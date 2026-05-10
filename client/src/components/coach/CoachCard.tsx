@@ -14,7 +14,7 @@ export function CoachCard({ name, specialties, image, rating, price, onClick }: 
     <button
       type="button"
       onClick={onClick}
-      className="group block w-full text-left overflow-hidden rounded-xl bg-surface-container-low border border-outline-variant/20 transition-all hover:border-outline-variant/40 active:scale-[0.98]"
+      className="group block w-full text-left overflow-hidden rounded-xl bg-surface-container-low border border-outline-variant/20 transition-all hover:border-outline-variant/40 active:scale-95"
     >
       <div
         className="relative h-40 bg-surface-container"

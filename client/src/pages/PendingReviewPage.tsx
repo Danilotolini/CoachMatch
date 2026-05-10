@@ -25,14 +25,14 @@ export default function PendingReviewPage() {
     <main className="relative flex min-h-[max(884px,100dvh)] w-full flex-col bg-surface text-on-surface">
       <header className="flex items-center justify-between px-6 py-6 md:px-12">
         <span className="font-headline text-xl font-black tracking-tighter text-primary uppercase">
-          CoachMatch
+          COACHMATCH
         </span>
         <button
           type="button"
           onClick={handleLogout}
           className="font-label text-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface"
         >
-          Sair
+          SAIR
         </button>
       </header>
 
@@ -78,7 +78,7 @@ export default function PendingReviewPage() {
               }}
               icon="check"
             >
-              Aprovar perfil
+              APROVAR PERFIL
             </Button>
             {approve.isError ? (
               <p className="mt-3 text-sm text-error">Falha ao aprovar. Tente novamente.</p>

@@ -161,7 +161,7 @@ function TopBar({ firstName, profilePhoto, name, onLogout }: TopBarProps) {
           onClick={onLogout}
           className="font-label text-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface lg:hidden"
         >
-          Sair
+          SAIR
         </button>
       </div>
     </header>
@@ -275,13 +275,13 @@ function RequestCard({ name, message }: RequestCardProps) {
           type="button"
           className="flex-1 rounded-lg bg-primary py-2 font-headline text-sm font-bold tracking-wide text-on-primary-fixed uppercase transition-all hover:brightness-105 active:scale-[0.98]"
         >
-          Responder
+          RESPONDER
         </button>
         <button
           type="button"
           className="rounded-lg border border-outline-variant/30 px-4 font-label text-sm font-medium text-on-surface-variant transition-colors hover:border-outline"
         >
-          Depois
+          DEPOIS
         </button>
       </div>
     </div>
@@ -322,7 +322,7 @@ function ProfileCard({
         type="button"
         className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-surface-container-high py-3 font-headline text-sm font-bold tracking-wide text-on-surface uppercase transition-all hover:bg-surface-container-highest active:scale-[0.99]"
       >
-        Ver perfil público
+        VER PERFIL PÚBLICO
         <span className="material-symbols-outlined text-[18px]">open_in_new</span>
       </button>
     </div>
@@ -349,7 +349,7 @@ function SideNav({ onLogout }: { onLogout: () => void }) {
   return (
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-outline-variant/10 bg-surface-container-low/40 px-5 py-8 lg:flex">
       <div className="mb-10 px-2 font-headline text-xl font-black tracking-tighter text-primary uppercase">
-        CoachMatch
+        COACHMATCH
       </div>
       <ul className="flex flex-1 flex-col gap-1">
         {NAV_ITEMS.map((item) => (
@@ -374,7 +374,7 @@ function SideNav({ onLogout }: { onLogout: () => void }) {
         className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
       >
         <span className="material-symbols-outlined text-[20px]">logout</span>
-        <span className="font-label text-sm font-medium">Sair</span>
+        <span className="font-label text-sm font-medium">SAIR</span>
       </button>
     </aside>
   )
