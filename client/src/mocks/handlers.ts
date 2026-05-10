@@ -157,7 +157,22 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  // Dev-only: simula aprovação manual do admin (não existe no swagger).
+  // ViaCEP (terceiro). Mock default para testes.
+  http.get('https://viacep.com.br/ws/:uf/:city/:logradouro/json/', async () => {
+    await delay(50)
+    return HttpResponse.json([
+      {
+        cep: '01310-100',
+        logradouro: 'Avenida Paulista',
+        complemento: '',
+        bairro: 'Bela Vista',
+        localidade: 'São Paulo',
+        uf: 'SP',
+      },
+    ])
+  }),
+
+  // Dev-only: simula aprovação manual do admin
   http.post('*/dev/approve-coach', async () => {
     await delay(150)
     state.coach = { ...state.coach, status: 'APPROVED', updatedAt: nowIso() }
