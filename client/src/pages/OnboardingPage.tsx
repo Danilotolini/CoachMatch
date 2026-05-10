@@ -118,9 +118,9 @@ export default function OnboardingPage() {
         <img
           alt=""
           src={HERO_DESKTOP}
-          className="absolute inset-0 w-full h-full object-cover grayscale-[20%] contrast-125 mix-blend-luminosity opacity-80"
+          className="absolute inset-0 w-full h-full object-cover grayscale-20 contrast-125 mix-blend-luminosity opacity-80"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface/80 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-surface-container-lowest via-surface/80 to-transparent" />
         <div className="relative z-10 p-12 xl:p-16 mb-8">
           <span className="inline-block bg-primary text-on-primary-fixed px-3 py-1 font-label text-xs font-bold uppercase tracking-widest rounded-sm mb-6">
             Partner Program
@@ -138,13 +138,13 @@ export default function OnboardingPage() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="lg:hidden relative w-full h-[260px] flex items-end p-6 bg-surface-container-lowest overflow-hidden">
+        <header className="lg:hidden relative w-full h-65 flex items-end p-6 bg-surface-container-lowest overflow-hidden">
           <img
             alt=""
             src={HERO_MOBILE}
             className="absolute inset-0 w-full h-full object-cover opacity-40"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-surface to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-surface to-transparent" />
           <div className="relative z-10 w-full">
             <span className="text-primary font-headline text-xs font-bold tracking-[0.2em] uppercase block mb-3">
               CoachMatch · Personal Pro
@@ -152,7 +152,7 @@ export default function OnboardingPage() {
             <h1 className="font-headline text-4xl font-bold leading-tight text-on-surface">
               Ative sua
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-dim">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-primary-dim">
                 Potência.
               </span>
             </h1>
@@ -419,7 +419,7 @@ export default function OnboardingPage() {
               type="button"
               disabled={isSubmitting || videoUpload.isPending}
               onClick={submit}
-              className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-lg py-4 rounded-lg shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] flex items-center justify-center gap-2 uppercase tracking-wide disabled:opacity-60 disabled:pointer-events-none"
+              className="w-full bg-linear-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-lg py-4 rounded-lg shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] flex items-center justify-center gap-2 uppercase tracking-wide disabled:opacity-60 disabled:pointer-events-none"
             >
               {isSubmitting ? 'Enviando...' : 'Concluir Perfil'}
               {!isSubmitting ? (
@@ -493,7 +493,7 @@ function VideoUploadCard({
         type="button"
         onClick={onPick}
         disabled={uploading}
-        className="bg-surface-container-low rounded-xl p-5 border border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center hover:bg-surface-container-highest transition-colors cursor-pointer group min-h-[160px] disabled:cursor-wait"
+        className="bg-surface-container-low rounded-xl p-5 border border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center hover:bg-surface-container-highest transition-colors cursor-pointer group min-h-40 disabled:cursor-wait "
       >
         <div className="w-12 h-12 bg-surface-container-highest rounded-full flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
           <span
@@ -505,7 +505,7 @@ function VideoUploadCard({
         <h3 className="font-headline text-sm font-semibold text-on-surface mb-1">
           Vídeo de Apresentação
         </h3>
-        <p className="font-body text-xs text-on-surface-variant max-w-[200px]">{status}</p>
+        <p className="font-body text-xs text-on-surface-variant max-w-50">{status}</p>
       </button>
       {error ? <p className="mt-2 font-body text-xs text-error">{error}</p> : null}
     </div>
@@ -524,13 +524,13 @@ function UploadCard({
   return (
     <button
       type="button"
-      className="bg-surface-container-low rounded-xl p-5 border border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center hover:bg-surface-container-highest transition-colors cursor-pointer group min-h-[160px]"
+      className="bg-surface-container-low rounded-xl p-5 border border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center hover:bg-surface-container-highest transition-colors cursor-pointer group min-h-40"
     >
       <div className="w-12 h-12 bg-surface-container-highest rounded-full flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
         <span className="material-symbols-outlined text-primary text-2xl">{icon}</span>
       </div>
       <h3 className="font-headline text-sm font-semibold text-on-surface mb-1">{title}</h3>
-      <p className="font-body text-xs text-on-surface-variant max-w-[200px]">{description}</p>
+      <p className="font-body text-xs text-on-surface-variant max-w-50">{description}</p>
     </button>
   )
 }
