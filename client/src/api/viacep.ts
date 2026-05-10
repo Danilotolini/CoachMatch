@@ -12,7 +12,7 @@ export async function fetchViaCepAddresses(
   city: string,
   logradouro: string,
 ): Promise<ViaCepAddress[]> {
-  const url = `https://viacep.com.br/ws/${uf}/${encodeURIComponent(city)}/${encodeURIComponent(logradouro)}/json/`
+  const url = `https://viacep.com.br/ws/${encodeURIComponent(uf)}/${encodeURIComponent(city)}/${encodeURIComponent(logradouro)}/json/`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`ViaCEP ${String(res.status)}`)
   const data = (await res.json()) as ViaCepAddress[] | { erro: true }

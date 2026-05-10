@@ -241,7 +241,7 @@ export function HomeServiceAreaPicker() {
           onClick={handleAdd}
           className="w-full bg-primary/10 text-primary font-headline font-bold text-xs uppercase tracking-widest py-3 rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:pointer-events-none"
         >
-          + Adicionar área
+           ADICIONAR ÁREA
         </button>
       </div>
     </div>
