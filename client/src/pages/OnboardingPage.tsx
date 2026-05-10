@@ -28,15 +28,15 @@ const FALLBACK_SPECIALTIES: Specialty[] = [
 function statusToRoute(status: Coach['status']): string {
   switch (status) {
     case 'PROFILE_REVIEW':
-      return '/em-analise'
+      return '/coach/em-analise'
     case 'APPROVED':
     case 'ACTIVE':
-      return '/dashboard'
+      return '/coach/dashboard'
     case 'REJECTED':
     case 'INACTIVE':
-      return '/reprovado'
+      return '/coach/reprovado'
     default:
-      return '/cadastro/profissional'
+      return '/coach/cadastrar'
   }
 }
 

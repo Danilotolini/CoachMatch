@@ -6,12 +6,12 @@ import { ApiError } from '@/lib/http'
 import type { CoachStatus } from '@/types/api'
 
 const STATUS_ROUTE: Record<CoachStatus, string> = {
-  PENDING_PROFILE: '/cadastro/profissional',
-  PROFILE_REVIEW: '/em-analise',
-  APPROVED: '/dashboard',
-  ACTIVE: '/dashboard',
-  REJECTED: '/reprovado',
-  INACTIVE: '/reprovado',
+  PENDING_PROFILE: '/coach/cadastrar',
+  PROFILE_REVIEW: '/coach/em-analise',
+  APPROVED: '/coach/dashboard',
+  ACTIVE: '/coach/dashboard',
+  REJECTED: '/coach/reprovado',
+  INACTIVE: '/coach/reprovado',
 }
 
 interface RouteGuardProps {
@@ -31,18 +31,18 @@ export function RouteGuard({ allow, children }: RouteGuardProps) {
   const hasToken = !!getToken()
   const { data, isLoading, isError, error } = useCoachMe()
 
-  if (!hasToken) return <Navigate to="/entrar" replace />
+  if (!hasToken) return <Navigate to="/coach/entrar" replace />
 
   if (isLoading) return <Spinner />
 
   if (isError) {
     if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
       clearToken()
-      return <Navigate to="/entrar" replace />
+      return <Navigate to="/coach/entrar" replace />
     }
     // 404 ou falha de rede (CORS, offline): assume perfil ainda não criado
     if (!allow.includes('PENDING_PROFILE')) {
-      return <Navigate to="/cadastro/profissional" replace />
+      return <Navigate to="/coach/cadastrar" replace />
     }
     return <>{children}</>
   }

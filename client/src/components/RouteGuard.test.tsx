@@ -23,11 +23,11 @@ function renderGuard(allow: Coach['status'][], initialPath = '/protected') {
               </RouteGuard>
             }
           />
-          <Route path="/entrar" element={<div>login page</div>} />
-          <Route path="/cadastro/profissional" element={<div>onboarding page</div>} />
-          <Route path="/em-analise" element={<div>analise page</div>} />
-          <Route path="/dashboard" element={<div>dashboard page</div>} />
-          <Route path="/reprovado" element={<div>reprovado page</div>} />
+          <Route path="/coach/entrar" element={<div>login page</div>} />
+          <Route path="/coach/cadastrar" element={<div>onboarding page</div>} />
+          <Route path="/coach/em-analise" element={<div>analise page</div>} />
+          <Route path="/coach/dashboard" element={<div>dashboard page</div>} />
+          <Route path="/coach/reprovado" element={<div>reprovado page</div>} />
         </Routes>
       </MemoryRouter>
     </QueryWrapper>,
@@ -35,7 +35,7 @@ function renderGuard(allow: Coach['status'][], initialPath = '/protected') {
 }
 
 describe('RouteGuard', () => {
-  it('redireciona para /entrar quando não há token', async () => {
+  it('redireciona para /coach/entrar quando não há token', async () => {
     renderGuard(['APPROVED'])
     expect(await screen.findByText('login page')).toBeInTheDocument()
   })
@@ -57,7 +57,7 @@ describe('RouteGuard', () => {
     expect(await screen.findByText('dashboard page')).toBeInTheDocument()
   })
 
-  it('em erro 401 limpa token e redireciona para /entrar', async () => {
+  it('em erro 401 limpa token e redireciona para /coach/entrar', async () => {
     setToken('fake-jwt')
     server.use(
       http.get('*/coaches/me', () => HttpResponse.json({ error: 'unauthorized' }, { status: 401 })),

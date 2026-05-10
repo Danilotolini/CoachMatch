@@ -9,7 +9,7 @@ beforeEach(() => {
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
-    value: { ...ORIGINAL_LOCATION, href: 'http://localhost/entrar' },
+    value: { ...ORIGINAL_LOCATION, href: 'http://localhost/coach/entrar' },
   })
 })
 
