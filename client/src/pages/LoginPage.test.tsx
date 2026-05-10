@@ -25,12 +25,24 @@ afterEach(() => {
 describe('LoginPage', () => {
   it('redireciona para a URL de login do Cognito', async () => {
     const url = 'https://cognito.test/oauth2/authorize?x=1'
-    vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
 
     render(<LoginPage />)
 
     expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
     expect(window.location.href).toBe(url)
+    expect(getLoginUrlSpy).toHaveBeenCalledWith('coach')
+  })
+
+  it('usa a audiência de aluno ao renderizar login de aluno', async () => {
+    const url = 'https://student-cognito.test/oauth2/authorize?x=1'
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+
+    render(<LoginPage audience="student" />)
+
+    expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
+    expect(window.location.href).toBe(url)
+    expect(getLoginUrlSpy).toHaveBeenCalledWith('student')
   })
 
   it('mostra mensagem de erro se falhar ao gerar URL', async () => {
