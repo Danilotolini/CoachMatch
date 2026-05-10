@@ -157,6 +157,37 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
+  // IBGE (terceiro). Mock default para testes.
+  http.get('https://servicodados.ibge.gov.br/api/v1/localidades/estados', async () => {
+    await delay(50)
+    return HttpResponse.json([
+      { id: 35, sigla: 'SP', nome: 'São Paulo' },
+      { id: 33, sigla: 'RJ', nome: 'Rio de Janeiro' },
+      { id: 26, sigla: 'PE', nome: 'Pernambuco' },
+    ])
+  }),
+
+  http.get('https://servicodados.ibge.gov.br/api/v1/localidades/municipios', async () => {
+    await delay(50)
+    return HttpResponse.json([
+      {
+        id: 3550308,
+        nome: 'São Paulo',
+        microrregiao: { mesorregiao: { UF: { sigla: 'SP' } } },
+      },
+      {
+        id: 3304557,
+        nome: 'Rio de Janeiro',
+        microrregiao: { mesorregiao: { UF: { sigla: 'RJ' } } },
+      },
+      {
+        id: 2611606,
+        nome: 'Recife',
+        microrregiao: { mesorregiao: { UF: { sigla: 'PE' } } },
+      },
+    ])
+  }),
+
   // ViaCEP (terceiro). Mock default para testes.
   http.get('https://viacep.com.br/ws/:uf/:city/:logradouro/json/', async () => {
     await delay(50)
