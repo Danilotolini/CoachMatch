@@ -19,6 +19,9 @@ pnpm build         # tsc -b && vite build
 pnpm preview
 pnpm lint
 pnpm format        # prettier --write src
+pnpm test          # vitest run
+pnpm test:watch    # vitest (watch mode)
+pnpm test:coverage # vitest run --coverage (relatório em coverage/, abrir coverage/index.html)
 ```
 
 Sempre `pnpm`, nunca `npm`/`yarn`.

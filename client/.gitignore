@@ -2,3 +2,6 @@
 dist/
 dist-ssr/
 dev-dist/
+
+# Test coverage (local)
+coverage/
