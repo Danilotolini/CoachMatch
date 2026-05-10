@@ -38,7 +38,14 @@ describe('getLogoutUrl', () => {
   })
 
   it('usa "/" como default', () => {
-    expect(getLogoutUrl()).toContain('logout_uri=http%3A%2F%2Fapp.test%2F')
+    expect(getLogoutUrl()).toContain('logout_uri=http%3A%2F%2Fapp.test')
+  })
+
+  it('monta URL de logout para o app client de aluno', () => {
+    const url = getLogoutUrl('/', 'student')
+    expect(url).toContain('/logout?')
+    expect(url).toContain('client_id=3rjn45koljliioocd5usijdv9s')
+    expect(url).toContain('logout_uri=http%3A%2F%2Fapp.test')
   })
 })
 
@@ -69,15 +76,26 @@ describe('getLoginUrl', () => {
     expect(state).toBeTruthy()
     expect(challenge).toBeTruthy()
 
-    expect(sessionStorage.getItem('cognito_oauth_state')).toBe(state)
-    expect(sessionStorage.getItem('cognito_pkce_verifier')).toBeTruthy()
+    expect(sessionStorage.getItem('cognito_coach_oauth_state')).toBe(state)
+    expect(sessionStorage.getItem('cognito_coach_pkce_verifier')).toBeTruthy()
+  })
+
+  it('usa redirect e chaves PKCE de aluno', async () => {
+    const raw = await getLoginUrl('student')
+    const [, query] = raw.split('?')
+    const params = new URLSearchParams(query)
+
+    expect(params.get('client_id')).toBe('3rjn45koljliioocd5usijdv9s')
+    expect(params.get('redirect_uri')).toBe('http://app.test/auth/cognito/student/callback')
+    expect(sessionStorage.getItem('cognito_student_oauth_state')).toBe(params.get('state'))
+    expect(sessionStorage.getItem('cognito_student_pkce_verifier')).toBeTruthy()
   })
 })
 
 describe('exchangeCodeForTokens', () => {
   function seedSession(state: string, verifier: string) {
-    sessionStorage.setItem('cognito_oauth_state', state)
-    sessionStorage.setItem('cognito_pkce_verifier', verifier)
+    sessionStorage.setItem('cognito_coach_oauth_state', state)
+    sessionStorage.setItem('cognito_coach_pkce_verifier', verifier)
   }
 
   it('troca code por tokens quando state confere', async () => {
@@ -100,8 +118,8 @@ describe('exchangeCodeForTokens', () => {
     expect(tokens.refresh_token).toBe('ref-1')
 
     // session foi consumida
-    expect(sessionStorage.getItem('cognito_oauth_state')).toBeNull()
-    expect(sessionStorage.getItem('cognito_pkce_verifier')).toBeNull()
+    expect(sessionStorage.getItem('cognito_coach_oauth_state')).toBeNull()
+    expect(sessionStorage.getItem('cognito_coach_pkce_verifier')).toBeNull()
   })
 
   it('rejeita quando state não confere', async () => {
@@ -110,7 +128,7 @@ describe('exchangeCodeForTokens', () => {
   })
 
   it('rejeita quando não há verifier salvo', async () => {
-    sessionStorage.setItem('cognito_oauth_state', 'xyz')
+    sessionStorage.setItem('cognito_coach_oauth_state', 'xyz')
     await expect(exchangeCodeForTokens('code-abc', 'xyz')).rejects.toThrow(/Sessão de login/i)
   })
 
@@ -139,5 +157,29 @@ describe('exchangeCodeForTokens', () => {
     await expect(exchangeCodeForTokens('code-abc', 'xyz')).rejects.toThrow(
       /Resposta de autenticação inválida/i,
     )
+  })
+
+  it('troca code de aluno sem enviar client_secret', async () => {
+    sessionStorage.setItem('cognito_student_oauth_state', 'xyz')
+    sessionStorage.setItem('cognito_student_pkce_verifier', 'verifier-123')
+
+    let body = ''
+    server.use(
+      http.post('*/oauth2/token', async ({ request }) => {
+        body = await request.text()
+        return HttpResponse.json({
+          id_token: 'student-id',
+          access_token: 'student-access',
+          expires_in: 3600,
+        })
+      }),
+    )
+
+    const tokens = await exchangeCodeForTokens('code-abc', 'xyz', 'student')
+
+    expect(tokens.id_token).toBe('student-id')
+    expect(body).toContain('client_id=3rjn45koljliioocd5usijdv9s')
+    expect(body).toContain('redirect_uri=http%3A%2F%2Fapp.test%2Fauth%2Fcognito%2Fstudent%2Fcallback')
+    expect(body).not.toContain('client_secret=')
   })
 })

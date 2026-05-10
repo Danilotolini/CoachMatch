@@ -20,14 +20,20 @@ function setLocationSearch(search: string) {
   })
 }
 
-function renderPage() {
+function renderPage(audience: 'coach' | 'student' = 'coach') {
+  const callbackPath =
+    audience === 'student' ? '/auth/cognito/student/callback' : '/auth/cognito/callback'
   const { wrapper: QueryWrapper } = createWrapper()
   return render(
     <QueryWrapper>
-      <MemoryRouter initialEntries={['/auth/cognito/callback']}>
+      <MemoryRouter initialEntries={[callbackPath]}>
         <Routes>
-          <Route path="/auth/cognito/callback" element={<CognitoCallbackPage />} />
+          <Route
+            path={callbackPath}
+            element={<CognitoCallbackPage audience={audience} />}
+          />
           <Route path="/cadastro/profissional" element={<div>onboarding page</div>} />
+          <Route path="/cadastro/aluno" element={<div>onboarding aluno page</div>} />
           <Route path="/em-analise" element={<div>analise page</div>} />
           <Route path="/dashboard" element={<div>dashboard page</div>} />
           <Route path="/reprovado" element={<div>reprovado page</div>} />
@@ -63,6 +69,15 @@ describe('CognitoCallbackPage', () => {
     expect(screen.getByText('Usuário negou acesso')).toBeInTheDocument()
   })
 
+  it('mostra link de retry para login de aluno quando callback de aluno falha', () => {
+    setLocationSearch('?error=access_denied&error_description=Usuário+negou+acesso')
+    renderPage('student')
+    expect(screen.getByRole('link', { name: 'Tentar novamente' })).toHaveAttribute(
+      'href',
+      '/entrar/aluno',
+    )
+  })
+
   it('troca code por tokens e redireciona para rota do status', async () => {
     setLocationSearch('?code=abc&state=xyz')
     vi.spyOn(cognito, 'exchangeCodeForTokens').mockResolvedValue({
@@ -96,6 +111,21 @@ describe('CognitoCallbackPage', () => {
     renderPage()
 
     expect(await screen.findByText('onboarding page')).toBeInTheDocument()
+  })
+
+  it('troca code como aluno e redireciona direto para onboarding de aluno', async () => {
+    setLocationSearch('?code=abc&state=xyz')
+    const exchangeSpy = vi.spyOn(cognito, 'exchangeCodeForTokens').mockResolvedValue({
+      id_token: 'student-id-token-123',
+      access_token: 'student-access-token-123',
+      expires_in: 3600,
+    })
+
+    renderPage('student')
+
+    expect(await screen.findByText('onboarding aluno page')).toBeInTheDocument()
+    expect(getToken()).toBe('student-id-token-123')
+    expect(exchangeSpy).toHaveBeenCalledWith('abc', 'xyz', 'student')
   })
 
   it('mostra erro quando exchangeCodeForTokens falha', async () => {
