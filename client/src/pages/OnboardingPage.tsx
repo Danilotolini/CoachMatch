@@ -268,7 +268,7 @@ export default function OnboardingPage() {
           <Section title="Domínio">
             <div className="bg-surface-container-low p-6 rounded-xl space-y-5">
               <p className="text-sm text-on-surface-variant font-body">
-                Selecione suas principais áreas de atuação (máx 3).
+                Selecione suas principais áreas de atuação.
               </p>
               <div className="bg-surface-container-highest rounded-full px-4 py-3 flex items-center border border-outline-variant/15 focus-within:border-primary/50 transition-colors">
                 <span className="material-symbols-outlined text-on-surface-variant mr-3">

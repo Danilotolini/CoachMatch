@@ -135,8 +135,6 @@ function validateForm(form: OnboardingFormState): FormErrors {
 
   if (form.specialties.length === 0) {
     errors.specialties = 'Selecione pelo menos uma especialidade.'
-  } else if (form.specialties.length > 3) {
-    errors.specialties = 'Selecione no máximo 3 especialidades.'
   }
 
   if (form.gyms.length === 0 && form.homeAreas.length === 0) {
@@ -222,9 +220,7 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
     set((state) => {
       const specialties = state.form.specialties.includes(label)
         ? state.form.specialties.filter((specialty) => specialty !== label)
-        : state.form.specialties.length >= 3
-          ? state.form.specialties
-          : [...state.form.specialties, label]
+        : [...state.form.specialties, label]
 
       return {
         form: { ...state.form, specialties },
