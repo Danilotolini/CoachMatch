@@ -29,15 +29,15 @@ import { RouteGuard } from '@/components/RouteGuard'
 const router = createBrowserRouter([
   { path: '/', element: <WelcomePage /> },
   { path: '/rotas', element: <RoutesTestPage /> },
-  { path: '/entrar', element: <LoginPage /> },
-  { path: '/entrar/aluno', element: <LoginPage audience="student" /> },
+      { path: '/coach/entrar', element: <LoginPage /> },
+      { path: '/aluno/entrar', element: <LoginPage audience="student" /> },
   { path: '/auth/cognito/callback', element: <CognitoCallbackPage /> },
   { path: '/auth/cognito/student/callback', element: <CognitoCallbackPage audience="student" /> },
-  { path: '/cadastro/aluno', element: <StudentOnboardingPage /> },
-  { path: '/cadastro/aluno/saude', element: <StudentHealthFormPage /> },
+      { path: '/aluno/cadastrar', element: <StudentOnboardingPage /> },
+      { path: '/aluno/cadastrar/saude', element: <StudentHealthFormPage /> },
   { path: '/aluno', element: <StudentHomePage /> },
   {
-    path: '/cadastro/profissional',
+        path: '/coach/cadastrar',
     element: (
       <RouteGuard allow={['PENDING_PROFILE']}>
         <OnboardingPage />
@@ -45,7 +45,7 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: '/em-analise',
+        path: '/coach/em-analise',
     element: (
       <RouteGuard allow={['PROFILE_REVIEW']}>
         <PendingReviewPage />
@@ -53,7 +53,7 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: '/reprovado',
+        path: '/coach/reprovado',
     element: (
       <RouteGuard allow={['REJECTED', 'INACTIVE']}>
         <RejectedPage />
@@ -61,7 +61,7 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: '/dashboard',
+        path: '/coach/dashboard',
     element: (
       <RouteGuard allow={['APPROVED', 'ACTIVE']}>
         <DashboardPage />

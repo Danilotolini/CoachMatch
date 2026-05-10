@@ -9,8 +9,8 @@ function renderPage() {
     <MemoryRouter initialEntries={['/']}>
       <Routes>
         <Route path="/" element={<WelcomePage />} />
-        <Route path="/entrar" element={<div>login page</div>} />
-        <Route path="/entrar/aluno" element={<div>login aluno page</div>} />
+        <Route path="/coach/entrar" element={<div>login page</div>} />
+        <Route path="/aluno/entrar" element={<div>login aluno page</div>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -24,13 +24,13 @@ describe('WelcomePage', () => {
     expect(screen.getByRole('button', { name: /Acesso Profissional/i })).toBeInTheDocument()
   })
 
-  it('navega para /entrar/aluno ao clicar em Acesso Aluno', async () => {
+  it('navega para /aluno/entrar ao clicar em Acesso Aluno', async () => {
     renderPage()
     await userEvent.click(screen.getByRole('button', { name: /Acesso Aluno/i }))
     expect(screen.getByText('login aluno page')).toBeInTheDocument()
   })
 
-  it('navega para /entrar ao clicar em Acesso Profissional', async () => {
+  it('navega para /coach/entrar ao clicar em Acesso Profissional', async () => {
     renderPage()
     await userEvent.click(screen.getByRole('button', { name: /Acesso Profissional/i }))
     expect(screen.getByText('login page')).toBeInTheDocument()

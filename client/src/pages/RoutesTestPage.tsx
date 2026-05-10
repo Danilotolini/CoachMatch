@@ -9,22 +9,22 @@ interface RouteEntry {
 const ROUTES: RouteEntry[] = [
   { path: '/', label: 'Boas-vindas', description: 'Tela inicial pública' },
   {
-    path: '/entrar',
+    path: '/coach/entrar',
     label: 'Entrar Profissional',
     description: 'Redireciona para Cognito Hosted UI',
   },
   {
-    path: '/entrar/aluno',
+    path: '/aluno/entrar',
     label: 'Entrar Aluno',
     description: 'Redireciona para o user pool público de aluno',
   },
   {
-    path: '/cadastro/aluno',
+    path: '/aluno/cadastrar',
     label: 'Onboarding Aluno',
     description: 'Perfil BASIC após login Cognito',
   },
   {
-    path: '/cadastro/aluno/saude',
+    path: '/aluno/cadastrar/saude',
     label: 'Saúde Aluno',
     description: 'Desbloqueia READY_TO_MATCH',
   },
@@ -34,22 +34,22 @@ const ROUTES: RouteEntry[] = [
     description: 'Discovery pós-cadastro com busca, agenda e favoritos',
   },
   {
-    path: '/cadastro/profissional',
+    path: '/coach/cadastrar',
     label: 'Onboarding Profissional',
     description: 'Formulário de cadastro (requer PENDING_PROFILE)',
   },
   {
-    path: '/em-analise',
+    path: '/coach/em-analise',
     label: 'Em Análise',
     description: 'Status PROFILE_REVIEW',
   },
   {
-    path: '/reprovado',
+    path: '/coach/reprovado',
     label: 'Reprovado',
     description: 'Status REJECTED',
   },
   {
-    path: '/dashboard',
+    path: '/coach/dashboard',
     label: 'Dashboard',
     description: 'Status APPROVED (placeholder)',
   },

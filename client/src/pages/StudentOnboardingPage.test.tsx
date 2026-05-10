@@ -8,10 +8,10 @@ import { server } from '@/mocks/server'
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={['/cadastro/aluno']}>
+    <MemoryRouter initialEntries={['/aluno/cadastrar']}>
       <Routes>
-        <Route path="/cadastro/aluno" element={<StudentOnboardingPage />} />
-        <Route path="/cadastro/aluno/saude" element={<div>saude page</div>} />
+        <Route path="/aluno/cadastrar" element={<StudentOnboardingPage />} />
+        <Route path="/aluno/cadastrar/saude" element={<div>saude page</div>} />
       </Routes>
     </MemoryRouter>,
   )
