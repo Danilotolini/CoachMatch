@@ -25,48 +25,54 @@ import DashboardPage from '@/pages/DashboardPage'
 import StudentHomePage from '@/pages/StudentHomePage'
 import PaymentPage from '@/pages/PaymentPage'
 import { RouteGuard } from '@/components/RouteGuard'
+import { AppShell } from '@/components/AppShell'
 
 const router = createBrowserRouter([
-  { path: '/', element: <WelcomePage /> },
-  { path: '/rotas', element: <RoutesTestPage /> },
+  {
+    element: <AppShell />,
+    children: [
+      { path: '/', element: <WelcomePage /> },
+      { path: '/rotas', element: <RoutesTestPage /> },
       { path: '/coach/entrar', element: <LoginPage /> },
       { path: '/aluno/entrar', element: <LoginPage audience="student" /> },
-  { path: '/auth/cognito/callback', element: <CognitoCallbackPage /> },
-  { path: '/auth/cognito/student/callback', element: <CognitoCallbackPage audience="student" /> },
+      { path: '/auth/cognito/callback', element: <CognitoCallbackPage /> },
+      { path: '/auth/cognito/student/callback', element: <CognitoCallbackPage audience="student" /> },
       { path: '/aluno/cadastrar', element: <StudentOnboardingPage /> },
       { path: '/aluno/cadastrar/saude', element: <StudentHealthFormPage /> },
-  { path: '/aluno', element: <StudentHomePage /> },
-  {
+      { path: '/aluno', element: <StudentHomePage /> },
+      {
         path: '/coach/cadastrar',
-    element: (
-      <RouteGuard allow={['PENDING_PROFILE']}>
-        <OnboardingPage />
-      </RouteGuard>
-    ),
-  },
-  {
+        element: (
+          <RouteGuard allow={['PENDING_PROFILE']}>
+            <OnboardingPage />
+          </RouteGuard>
+        ),
+      },
+      {
         path: '/coach/em-analise',
-    element: (
-      <RouteGuard allow={['PROFILE_REVIEW']}>
-        <PendingReviewPage />
-      </RouteGuard>
-    ),
-  },
-  {
+        element: (
+          <RouteGuard allow={['PROFILE_REVIEW']}>
+            <PendingReviewPage />
+          </RouteGuard>
+        ),
+      },
+      {
         path: '/coach/reprovado',
-    element: (
-      <RouteGuard allow={['REJECTED', 'INACTIVE']}>
-        <RejectedPage />
-      </RouteGuard>
-    ),
-  },
-  {
+        element: (
+          <RouteGuard allow={['REJECTED', 'INACTIVE']}>
+            <RejectedPage />
+          </RouteGuard>
+        ),
+      },
+      {
         path: '/coach/dashboard',
-    element: (
-      <RouteGuard allow={['APPROVED', 'ACTIVE']}>
-        <DashboardPage />
-      </RouteGuard>
-    ),
+        element: (
+          <RouteGuard allow={['APPROVED', 'ACTIVE']}>
+            <DashboardPage />
+          </RouteGuard>
+        ),
+      },
+    ],
   },
   {
     path: '/pagamento/:sessionId',
