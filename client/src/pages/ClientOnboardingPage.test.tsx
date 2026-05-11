@@ -3,14 +3,14 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { http, HttpResponse } from 'msw'
-import StudentOnboardingPage from './StudentOnboardingPage'
+import ClientOnboardingPage from './ClientOnboardingPage'
 import { server } from '@/mocks/server'
 
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/client/onboarding']}>
       <Routes>
-        <Route path="/client/onboarding" element={<StudentOnboardingPage />} />
+        <Route path="/client/onboarding" element={<ClientOnboardingPage />} />
         <Route path="/client/health" element={<div>saude page</div>} />
       </Routes>
     </MemoryRouter>,
@@ -32,7 +32,7 @@ function mockCepSuccess() {
   )
 }
 
-describe('StudentOnboardingPage', () => {
+describe('ClientOnboardingPage', () => {
   it('renderiza as três seções principais', () => {
     renderPage()
 

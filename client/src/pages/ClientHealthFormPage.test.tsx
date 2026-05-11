@@ -2,20 +2,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import StudentHealthFormPage from './StudentHealthFormPage'
+import ClientHealthFormPage from './ClientHealthFormPage'
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
 
 function renderPage(initialEntries = ['/client/health']) {
-  vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+  vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
 
   return render(
     <MemoryRouter initialEntries={initialEntries} initialIndex={initialEntries.length - 1}>
       <Routes>
         <Route path="/client/onboarding" element={<div>onboarding aluno page</div>} />
-        <Route path="/client/health" element={<StudentHealthFormPage />} />
+        <Route path="/client/health" element={<ClientHealthFormPage />} />
         <Route path="/client" element={<div>home aluno page</div>} />
       </Routes>
     </MemoryRouter>,
@@ -29,7 +29,7 @@ async function answerAllParq(value: 'Sim' | 'Não') {
   }
 }
 
-describe('StudentHealthFormPage', () => {
+describe('ClientHealthFormPage', () => {
   it('renderiza as seções principais do formulário de saúde', () => {
     renderPage()
 

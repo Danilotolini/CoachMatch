@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { exchangeCodeForTokens, type CognitoAudience } from '@/lib/cognito'
+import { type AppAudience, toCognitoAudience } from '@/lib/audience'
+import { exchangeCodeForTokens } from '@/lib/cognito'
 import { setToken } from '@/lib/auth'
 import { fetchCoachMe } from '@/api/coaches'
 import { ApiError } from '@/lib/http'
@@ -23,7 +24,7 @@ function statusRoute(status: CoachStatus): string {
 }
 
 interface CognitoCallbackPageProps {
-  audience?: CognitoAudience
+  audience?: AppAudience
 }
 
 export default function CognitoCallbackPage({ audience = 'coach' }: CognitoCallbackPageProps) {
@@ -50,13 +51,17 @@ export default function CognitoCallbackPage({ audience = 'coach' }: CognitoCallb
 
     async function finish(authorizationCode: string) {
       try {
-        const tokens = await exchangeCodeForTokens(authorizationCode, state, audience)
+        const tokens = await exchangeCodeForTokens(
+          authorizationCode,
+          state,
+          toCognitoAudience(audience),
+        )
         setToken(tokens.id_token)
 
         // Remove code from URL before routing
         window.history.replaceState({}, '', window.location.pathname)
 
-        if (audience === 'student') {
+        if (audience === 'client') {
           void navigate('/client/onboarding', { replace: true })
           return
         }
@@ -94,7 +99,7 @@ export default function CognitoCallbackPage({ audience = 'coach' }: CognitoCallb
           </h1>
           <p className="text-on-surface-variant text-sm mb-6">{displayedError}</p>
           <a
-            href={audience === 'student' ? '/client/login' : '/coach/login'}
+            href={audience === 'client' ? '/client/login' : '/coach/login'}
             className="text-primary font-bold hover:underline"
           >
             Tentar novamente

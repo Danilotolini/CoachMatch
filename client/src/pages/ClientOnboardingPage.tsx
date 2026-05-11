@@ -56,7 +56,7 @@ function formatCep(raw: string): string {
   return `${d.slice(0, 5)}-${d.slice(5)}`
 }
 
-export default function StudentOnboardingPage() {
+export default function ClientOnboardingPage() {
   const navigate = useNavigate()
   const photoInputRef = useRef<HTMLInputElement>(null)
 
