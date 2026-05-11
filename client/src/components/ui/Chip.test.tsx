@@ -24,12 +24,12 @@ describe('Chip', () => {
   })
 
   it('renderiza botão de remover apenas quando active e onRemove forem informados', () => {
-    render(<Chip label="Yoga" active onRemove={() => {}} />)
+    render(<Chip label="Yoga" active onRemove={vi.fn()} />)
     expect(screen.getByRole('button', { name: 'Remover Yoga' })).toBeInTheDocument()
   })
 
   it('não renderiza botão de remover quando inativo', () => {
-    render(<Chip label="Yoga" onRemove={() => {}} />)
+    render(<Chip label="Yoga" onRemove={vi.fn()} />)
     expect(screen.queryByRole('button', { name: 'Remover Yoga' })).not.toBeInTheDocument()
   })
 

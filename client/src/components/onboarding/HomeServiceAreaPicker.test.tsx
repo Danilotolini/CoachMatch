@@ -108,9 +108,7 @@ describe('HomeServiceAreaPicker', () => {
     const listbox = await screen.findByRole('button', { name: 'São Paulo' })
     await user.click(listbox)
 
-    expect(
-      await screen.findByText(/Já existe uma área para São Paulo - SP/i),
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/Já existe uma área para São Paulo - SP/i)).toBeInTheDocument()
   })
 
   it('mostra os bairros já selecionados na lista existente', () => {
@@ -122,7 +120,10 @@ describe('HomeServiceAreaPicker', () => {
 
     renderPicker()
 
-    const list = screen.getByText('São Paulo - SP').closest('li')!
+    const list = screen.getByText('São Paulo - SP').closest('li')
+    expect(list).not.toBeNull()
+    if (!list) return
+
     expect(within(list).getByText('Bela Vista')).toBeInTheDocument()
     expect(within(list).getByText('Pinheiros')).toBeInTheDocument()
     expect(within(list).getByText('2 bairros')).toBeInTheDocument()

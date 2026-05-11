@@ -45,7 +45,7 @@ describe('DashboardPage', () => {
   })
 
   it('chama logout ao clicar em SAIR', async () => {
-    const logoutSpy = vi.spyOn(cognito, 'logout').mockImplementation(() => {})
+    const logoutSpy = vi.spyOn(cognito, 'logout').mockImplementation(() => undefined)
     renderPage()
 
     await userEvent.click(screen.getAllByRole('button', { name: 'SAIR' })[0])
