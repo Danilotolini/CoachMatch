@@ -44,7 +44,7 @@ const INITIAL_ANSWERS: Record<string, Answer | null> = PARQ.reduce<Record<string
   {},
 )
 
-export default function StudentHealthFormPage() {
+export default function ClientHealthFormPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState<FormState>({
     answers: INITIAL_ANSWERS,

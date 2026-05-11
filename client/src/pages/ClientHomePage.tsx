@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Card } from '@/components/ui/Card'
 import { getAuthUser } from '@/lib/auth'
+import { toCognitoAudience } from '@/lib/audience'
 import { logout } from '@/lib/cognito'
 
 interface Coach {
@@ -75,7 +76,7 @@ const RECENT_COACHES: RecentCoach[] = [
 
 const CATEGORIES = ['Musculacao', 'Funcional', 'Crossfit', 'Corrida', 'Pilates', 'Yoga']
 
-const STUDENT_NAV_ITEMS = [
+const CLIENT_NAV_ITEMS = [
   { label: 'Inicio', icon: 'home', active: true },
   { label: 'Buscar', icon: 'search' },
   { label: 'Agenda', icon: 'event' },
@@ -83,20 +84,20 @@ const STUDENT_NAV_ITEMS = [
   { label: 'Perfil', icon: 'person' },
 ]
 
-export default function StudentHomePage() {
+export default function ClientHomePage() {
   const user = getAuthUser()
   const firstName = useMemo(() => user.name?.split(' ')[0] ?? 'aluno', [user.name])
 
   function handleLogout() {
-    logout('/', 'student')
+    logout('/', toCognitoAudience('client'))
   }
 
   return (
     <main className="relative flex min-h-[max(884px,100dvh)] w-full bg-surface text-on-surface">
-      <StudentSideNav onLogout={handleLogout} />
+      <ClientSideNav onLogout={handleLogout} />
 
       <div className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">
-        <StudentTopBar firstName={firstName} onLogout={handleLogout} />
+        <ClientTopBar firstName={firstName} onLogout={handleLogout} />
 
         <div className="flex min-w-0 flex-1 flex-col lg:flex-row">
           <section className="flex min-w-0 flex-1 flex-col gap-8 px-4 pb-12 sm:px-6 md:px-10 lg:mx-auto lg:max-w-4xl lg:px-10">
@@ -108,19 +109,19 @@ export default function StudentHomePage() {
           </section>
 
           <aside className="hidden border-l border-outline-variant/10 bg-surface-container-low/30 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-80 lg:shrink-0 lg:flex-col lg:gap-6 lg:overflow-y-auto lg:px-6 lg:py-8 xl:w-96">
-            <StudentSummary />
+            <ClientSummary />
             <MapPreview />
             <AgendaPreview />
           </aside>
         </div>
       </div>
 
-      <StudentBottomNav />
+      <ClientBottomNav />
     </main>
   )
 }
 
-function StudentTopBar({ firstName, onLogout }: { firstName: string; onLogout: () => void }) {
+function ClientTopBar({ firstName, onLogout }: { firstName: string; onLogout: () => void }) {
   return (
     <header className="glass-header sticky top-0 z-20 flex items-center justify-between px-4 py-4 sm:px-6 md:px-10 lg:relative lg:bg-transparent lg:px-10 lg:py-8 lg:backdrop-blur-none">
       <div className="flex min-w-0 flex-col">
@@ -243,9 +244,7 @@ function CoachCard({ coach }: { coach: Coach }) {
           <img src={coach.image} alt="" className="h-full w-full object-cover opacity-90" />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <span className="material-symbols-outlined text-[64px] text-primary/70">
-              exercise
-            </span>
+            <span className="material-symbols-outlined text-[64px] text-primary/70">exercise</span>
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
@@ -322,7 +321,7 @@ function CategoryChips() {
   )
 }
 
-function StudentSummary() {
+function ClientSummary() {
   return (
     <Card className="p-5">
       <div className="mb-5 flex items-center gap-3">
@@ -388,15 +387,7 @@ function AgendaPreview() {
   )
 }
 
-function SectionHeader({
-  title,
-  action,
-  icon,
-}: {
-  title: string
-  action?: string
-  icon?: string
-}) {
+function SectionHeader({ title, action, icon }: { title: string; action?: string; icon?: string }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <h2 className="font-headline text-xl font-semibold tracking-tight">{title}</h2>
@@ -413,14 +404,14 @@ function SectionHeader({
   )
 }
 
-function StudentSideNav({ onLogout }: { onLogout: () => void }) {
+function ClientSideNav({ onLogout }: { onLogout: () => void }) {
   return (
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-outline-variant/10 bg-surface-container-low/40 px-5 py-8 lg:flex">
       <div className="mb-10 px-2 font-headline text-xl font-black tracking-tight text-primary uppercase">
         CoachMatch
       </div>
       <ul className="flex flex-1 flex-col gap-1">
-        {STUDENT_NAV_ITEMS.map((item) => (
+        {CLIENT_NAV_ITEMS.map((item) => (
           <li key={item.label}>
             <button
               type="button"
@@ -448,14 +439,14 @@ function StudentSideNav({ onLogout }: { onLogout: () => void }) {
   )
 }
 
-function StudentBottomNav() {
+function ClientBottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-outline-variant/10 bg-surface-container-low/95 backdrop-blur lg:hidden">
       <ul
         className="grid grid-cols-5 px-1 pt-2"
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
       >
-        {STUDENT_NAV_ITEMS.map((item) => (
+        {CLIENT_NAV_ITEMS.map((item) => (
           <li key={item.label}>
             <button
               type="button"

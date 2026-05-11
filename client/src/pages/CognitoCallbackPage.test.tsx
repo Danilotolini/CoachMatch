@@ -11,27 +11,29 @@ import { getToken } from '@/lib/auth'
 import type { Coach } from '@/types/api'
 
 const ORIGINAL_LOCATION = window.location
+const LOCATION_PROTOTYPE = Object.getPrototypeOf(ORIGINAL_LOCATION) as object | null
+
+function mockLocation(overrides: Partial<Location>) {
+  return Object.assign(Object.create(LOCATION_PROTOTYPE) as Location, ORIGINAL_LOCATION, overrides)
+}
 
 function setLocationSearch(search: string) {
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
-    value: { ...ORIGINAL_LOCATION, pathname: '/auth/cognito/callback', search },
+    value: mockLocation({ pathname: '/auth/cognito/callback', search }),
   })
 }
 
-function renderPage(audience: 'coach' | 'student' = 'coach') {
+function renderPage(audience: 'coach' | 'client' = 'coach') {
   const callbackPath =
-    audience === 'student' ? '/auth/cognito/student/callback' : '/auth/cognito/callback'
+    audience === 'client' ? '/auth/cognito/student/callback' : '/auth/cognito/callback'
   const { wrapper: QueryWrapper } = createWrapper()
   return render(
     <QueryWrapper>
       <MemoryRouter initialEntries={[callbackPath]}>
         <Routes>
-          <Route
-            path={callbackPath}
-            element={<CognitoCallbackPage audience={audience} />}
-          />
+          <Route path={callbackPath} element={<CognitoCallbackPage audience={audience} />} />
           <Route path="/coach/onboarding" element={<div>onboarding page</div>} />
           <Route path="/client/onboarding" element={<div>onboarding aluno page</div>} />
           <Route path="/coach/pending-review" element={<div>analise page</div>} />
@@ -44,14 +46,14 @@ function renderPage(audience: 'coach' | 'student' = 'coach') {
 }
 
 beforeEach(() => {
-  vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+  vi.spyOn(window.history, 'replaceState').mockImplementation(() => undefined)
 })
 
 afterEach(() => {
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
-    value: ORIGINAL_LOCATION,
+    value: mockLocation({}),
   })
   vi.restoreAllMocks()
 })
@@ -69,9 +71,9 @@ describe('CognitoCallbackPage', () => {
     expect(screen.getByText('Usuário negou acesso')).toBeInTheDocument()
   })
 
-  it('mostra link de retry para login de aluno quando callback de aluno falha', () => {
+  it('mostra link de retry para login de cliente quando callback de aluno falha', () => {
     setLocationSearch('?error=access_denied&error_description=Usuário+negou+acesso')
-    renderPage('student')
+    renderPage('client')
     expect(screen.getByRole('link', { name: 'Tentar novamente' })).toHaveAttribute(
       'href',
       '/client/login',
@@ -104,16 +106,14 @@ describe('CognitoCallbackPage', () => {
       access_token: 'access-token-123',
       expires_in: 3600,
     })
-    server.use(
-      http.get('*/coaches/me', () => HttpResponse.json({ error: 'nf' }, { status: 404 })),
-    )
+    server.use(http.get('*/coaches/me', () => HttpResponse.json({ error: 'nf' }, { status: 404 })))
 
     renderPage()
 
     expect(await screen.findByText('onboarding page')).toBeInTheDocument()
   })
 
-  it('troca code como aluno e redireciona direto para onboarding de aluno', async () => {
+  it('troca code como cliente e redireciona direto para onboarding de cliente', async () => {
     setLocationSearch('?code=abc&state=xyz')
     const exchangeSpy = vi.spyOn(cognito, 'exchangeCodeForTokens').mockResolvedValue({
       id_token: 'student-id-token-123',
@@ -121,7 +121,7 @@ describe('CognitoCallbackPage', () => {
       expires_in: 3600,
     })
 
-    renderPage('student')
+    renderPage('client')
 
     expect(await screen.findByText('onboarding aluno page')).toBeInTheDocument()
     expect(getToken()).toBe('student-id-token-123')

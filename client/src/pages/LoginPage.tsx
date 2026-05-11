@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { getLoginUrl, type CognitoAudience } from '@/lib/cognito'
+import { type AppAudience, toCognitoAudience } from '@/lib/audience'
+import { getLoginUrl } from '@/lib/cognito'
 
 interface LoginPageProps {
-  audience?: CognitoAudience
+  audience?: AppAudience
 }
 
 export default function LoginPage({ audience = 'coach' }: LoginPageProps) {
@@ -11,7 +12,7 @@ export default function LoginPage({ audience = 'coach' }: LoginPageProps) {
 
   useEffect(() => {
     let cancelled = false
-    getLoginUrl(audience)
+    getLoginUrl(toCognitoAudience(audience))
       .then((url) => {
         if (cancelled) return
         setLoginUrl(url)

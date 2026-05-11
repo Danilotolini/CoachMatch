@@ -4,12 +4,17 @@ import LoginPage from './LoginPage'
 import * as cognito from '@/lib/cognito'
 
 const ORIGINAL_LOCATION = window.location
+const LOCATION_PROTOTYPE = Object.getPrototypeOf(ORIGINAL_LOCATION) as object | null
+
+function mockLocation(overrides: Partial<Location>) {
+  return Object.assign(Object.create(LOCATION_PROTOTYPE) as Location, ORIGINAL_LOCATION, overrides)
+}
 
 beforeEach(() => {
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
-    value: { ...ORIGINAL_LOCATION, href: 'http://localhost/coach/login' },
+    value: mockLocation({ href: 'http://localhost/coach/login' }),
   })
 })
 
@@ -17,7 +22,7 @@ afterEach(() => {
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
-    value: ORIGINAL_LOCATION,
+    value: mockLocation({}),
   })
   vi.restoreAllMocks()
 })
@@ -34,11 +39,11 @@ describe('LoginPage', () => {
     expect(getLoginUrlSpy).toHaveBeenCalledWith('coach')
   })
 
-  it('usa a audiência de aluno ao renderizar login de aluno', async () => {
+  it('usa a audiência externa de aluno ao renderizar login de cliente', async () => {
     const url = 'https://student-cognito.test/oauth2/authorize?x=1'
     const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
 
-    render(<LoginPage audience="student" />)
+    render(<LoginPage audience="client" />)
 
     expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
     expect(window.location.href).toBe(url)

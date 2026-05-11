@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import StudentHomePage from './StudentHomePage'
+import ClientHomePage from './ClientHomePage'
 import { setToken } from '@/lib/auth'
 import * as cognito from '@/lib/cognito'
 
@@ -17,11 +17,11 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('StudentHomePage', () => {
+describe('ClientHomePage', () => {
   it('mostra o primeiro nome do aluno autenticado', () => {
     setToken(makeIdToken({ name: 'Ana Paula', email: 'ana@example.com' }))
 
-    render(<StudentHomePage />)
+    render(<ClientHomePage />)
 
     expect(screen.getByRole('heading', { name: 'Oi, Ana' })).toBeInTheDocument()
   })
@@ -29,7 +29,7 @@ describe('StudentHomePage', () => {
   it('usa fallback "aluno" quando token não tem nome', () => {
     setToken(makeIdToken({ email: 'sem-nome@example.com' }))
 
-    render(<StudentHomePage />)
+    render(<ClientHomePage />)
 
     expect(screen.getByRole('heading', { name: 'Oi, aluno' })).toBeInTheDocument()
   })
@@ -37,7 +37,7 @@ describe('StudentHomePage', () => {
   it('renderiza cards e navegação principais da home', () => {
     setToken(makeIdToken({ given_name: 'Joao', family_name: 'Silva' }))
 
-    render(<StudentHomePage />)
+    render(<ClientHomePage />)
 
     expect(screen.getByText('Proxima sessao')).toBeInTheDocument()
     expect(screen.getByText('Marcos Vieira')).toBeInTheDocument()
@@ -47,10 +47,10 @@ describe('StudentHomePage', () => {
   })
 
   it('chama logout de aluno ao clicar em Sair', async () => {
-    const logoutSpy = vi.spyOn(cognito, 'logout').mockImplementation(() => {})
+    const logoutSpy = vi.spyOn(cognito, 'logout').mockImplementation(() => undefined)
     setToken(makeIdToken({ name: 'Ana Paula' }))
 
-    render(<StudentHomePage />)
+    render(<ClientHomePage />)
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Sair' })[0])
 
