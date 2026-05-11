@@ -8,15 +8,15 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function renderPage(initialEntries = ['/aluno/cadastrar/saude']) {
+function renderPage(initialEntries = ['/client/health']) {
   vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
 
   return render(
     <MemoryRouter initialEntries={initialEntries} initialIndex={initialEntries.length - 1}>
       <Routes>
-        <Route path="/aluno/cadastrar" element={<div>onboarding aluno page</div>} />
-        <Route path="/aluno/cadastrar/saude" element={<StudentHealthFormPage />} />
-        <Route path="/aluno" element={<div>home aluno page</div>} />
+        <Route path="/client/onboarding" element={<div>onboarding aluno page</div>} />
+        <Route path="/client/health" element={<StudentHealthFormPage />} />
+        <Route path="/client" element={<div>home aluno page</div>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -75,7 +75,7 @@ describe('StudentHealthFormPage', () => {
   })
 
   it('volta para a etapa anterior ao clicar em Voltar', async () => {
-    renderPage(['/aluno/cadastrar', '/aluno/cadastrar/saude'])
+    renderPage(['/client/onboarding', '/client/health'])
 
     await userEvent.click(screen.getByRole('button', { name: /Voltar/i }))
 

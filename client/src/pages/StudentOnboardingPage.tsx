@@ -134,7 +134,7 @@ export default function StudentOnboardingPage() {
       !form.state ||
       !form.goal
     if (hasErrors) return
-    void navigate('/aluno/cadastrar/saude')
+    void navigate('/client/health')
   }
 
   return (

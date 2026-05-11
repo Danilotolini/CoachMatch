@@ -9,47 +9,47 @@ interface RouteEntry {
 const ROUTES: RouteEntry[] = [
   { path: '/', label: 'Boas-vindas', description: 'Tela inicial pública' },
   {
-    path: '/coach/entrar',
-    label: 'Entrar Profissional',
+    path: '/coach/login',
+    label: 'Entrar Treinador',
     description: 'Redireciona para Cognito Hosted UI',
   },
   {
-    path: '/aluno/entrar',
+    path: '/client/login',
     label: 'Entrar Aluno',
     description: 'Redireciona para o user pool público de aluno',
   },
   {
-    path: '/aluno/cadastrar',
+    path: '/client/onboarding',
     label: 'Onboarding Aluno',
     description: 'Perfil BASIC após login Cognito',
   },
   {
-    path: '/aluno/cadastrar/saude',
+    path: '/client/health',
     label: 'Saúde Aluno',
     description: 'Desbloqueia READY_TO_MATCH',
   },
   {
-    path: '/aluno',
+    path: '/client',
     label: 'Home Aluno',
     description: 'Discovery pós-cadastro com busca, agenda e favoritos',
   },
   {
-    path: '/coach/cadastrar',
-    label: 'Onboarding Profissional',
+    path: '/coach/onboarding',
+    label: 'Onboarding Treinador',
     description: 'Formulário de cadastro (requer PENDING_PROFILE)',
   },
   {
-    path: '/coach/em-analise',
+    path: '/coach/pending-review',
     label: 'Em Análise',
     description: 'Status PROFILE_REVIEW',
   },
   {
-    path: '/coach/reprovado',
+    path: '/coach/rejected',
     label: 'Reprovado',
     description: 'Status REJECTED',
   },
   {
-    path: '/coach/dashboard',
+    path: '/coach',
     label: 'Dashboard',
     description: 'Status APPROVED (placeholder)',
   },

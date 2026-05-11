@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const name = profile?.name ?? undefined
   const cref = profile?.cref ?? undefined
   const profilePhoto: string | undefined = undefined
-  const firstName = name?.split(' ')[0] ?? 'profissional'
+  const firstName = name?.split(' ')[0] ?? 'treinador'
   const specialtiesCount = profile?.specialties.length ?? 0
   const homeService = data?.work_location.find((loc) => loc.type === 'HOME_SERVICE')
   const gymsCount = data?.work_location.filter((loc) => loc.type === 'GYM').length ?? 0
@@ -177,7 +177,7 @@ function ApprovedBanner({ className = '' }: { className?: string }) {
       <div className="flex flex-1 flex-col">
         <span className="font-headline text-sm font-semibold">Perfil ativo</span>
         <span className="font-label text-xs text-on-surface-variant">
-          Você está visível para alunos buscando personal trainers.
+          Você está visível para alunos buscando treinadores.
         </span>
       </div>
     </div>

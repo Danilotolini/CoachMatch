@@ -5,8 +5,8 @@ import { SESSION_EXPIRED_EVENT, type SessionExpiredDetail } from '@/lib/auth'
 
 function loginPathForCurrentRoute(): string {
   const path = window.location.pathname
-  if (path.startsWith('/aluno')) return '/aluno/entrar'
-  return '/coach/entrar'
+  if (path.startsWith('/client')) return '/client/login'
+  return '/coach/login'
 }
 
 export function SessionExpiredRedirect() {

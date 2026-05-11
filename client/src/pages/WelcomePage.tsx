@@ -23,16 +23,16 @@ export default function WelcomePage() {
 
         <div className="grid w-full max-w-xl grid-cols-1 gap-6">
           <WelcomeProfileCard
-            to="/aluno/entrar"
+            to="/client/login"
             icon="fitness_center"
             title="Acesso Aluno"
-            description="Busco coaches de elite e treinos personalizados."
+            description="Busco treinadores de elite e treinos personalizados."
           />
           <WelcomeProfileCard
-            to="/coach/entrar"
+            to="/coach/login"
             icon="lock"
-            title="Acesso Profissional"
-            description="Gerencie seus clientes e escale sua carreira."
+            title="Acesso Treinador"
+            description="Gerencie seus alunos e escale sua carreira."
           />
         </div>
 

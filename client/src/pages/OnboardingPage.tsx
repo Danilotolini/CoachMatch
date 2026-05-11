@@ -28,15 +28,15 @@ const FALLBACK_SPECIALTIES: Specialty[] = [
 function statusToRoute(status: Coach['status']): string {
   switch (status) {
     case 'PROFILE_REVIEW':
-      return '/coach/em-analise'
+      return '/coach/pending-review'
     case 'APPROVED':
     case 'ACTIVE':
-      return '/coach/dashboard'
+      return '/coach'
     case 'REJECTED':
     case 'INACTIVE':
-      return '/coach/reprovado'
+      return '/coach/rejected'
     default:
-      return '/coach/cadastrar'
+      return '/coach/onboarding'
   }
 }
 
@@ -168,7 +168,7 @@ export default function OnboardingPage() {
               Configure seu Arsenal
             </h2>
             <p className="font-body text-on-surface-variant">
-              Complete seu perfil profissional para ser descoberto pelos alunos.
+              Complete seu perfil de treinador para ser descoberto pelos alunos.
             </p>
           </div>
 
@@ -183,7 +183,7 @@ export default function OnboardingPage() {
                   disabled
                 />
                 <Input
-                  label="E-mail Profissional"
+                  label="E-mail do treinador"
                   type="email"
                   value={authUser.email ?? 'E-mail não informado'}
                   disabled
@@ -404,7 +404,7 @@ export default function OnboardingPage() {
                 Atendimento Externo
               </h3>
               <p className="font-body text-xs text-on-surface-variant">
-                Vou até o cliente ou atendo em parques/condomínios. Adicione uma área por cidade.
+                Vou até o aluno ou atendo em parques/condomínios. Adicione uma área por cidade.
               </p>
               <HomeServiceAreaPicker />
             </div>

@@ -10,15 +10,15 @@ import type { CoachStatus } from '@/types/api'
 function statusRoute(status: CoachStatus): string {
   switch (status) {
     case 'PENDING_PROFILE':
-      return '/coach/cadastrar'
+      return '/coach/onboarding'
     case 'PROFILE_REVIEW':
-      return '/coach/em-analise'
+      return '/coach/pending-review'
     case 'APPROVED':
     case 'ACTIVE':
-      return '/coach/dashboard'
+      return '/coach'
     case 'REJECTED':
     case 'INACTIVE':
-      return '/coach/reprovado'
+      return '/coach/rejected'
   }
 }
 
@@ -57,7 +57,7 @@ export default function CognitoCallbackPage({ audience = 'coach' }: CognitoCallb
         window.history.replaceState({}, '', window.location.pathname)
 
         if (audience === 'student') {
-          void navigate('/aluno/cadastrar', { replace: true })
+          void navigate('/client/onboarding', { replace: true })
           return
         }
 
@@ -69,7 +69,7 @@ export default function CognitoCallbackPage({ audience = 'coach' }: CognitoCallb
           const is404 = err instanceof ApiError && err.status === 404
           const isNetwork = err instanceof TypeError
           if (is404 || isNetwork) {
-            void navigate('/coach/cadastrar', { replace: true })
+            void navigate('/coach/onboarding', { replace: true })
           } else {
             throw err
           }
@@ -94,7 +94,7 @@ export default function CognitoCallbackPage({ audience = 'coach' }: CognitoCallb
           </h1>
           <p className="text-on-surface-variant text-sm mb-6">{displayedError}</p>
           <a
-            href={audience === 'student' ? '/aluno/entrar' : '/coach/entrar'}
+            href={audience === 'student' ? '/client/login' : '/coach/login'}
             className="text-primary font-bold hover:underline"
           >
             Tentar novamente

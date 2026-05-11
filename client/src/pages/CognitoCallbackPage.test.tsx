@@ -32,11 +32,11 @@ function renderPage(audience: 'coach' | 'student' = 'coach') {
             path={callbackPath}
             element={<CognitoCallbackPage audience={audience} />}
           />
-          <Route path="/coach/cadastrar" element={<div>onboarding page</div>} />
-          <Route path="/aluno/cadastrar" element={<div>onboarding aluno page</div>} />
-          <Route path="/coach/em-analise" element={<div>analise page</div>} />
-          <Route path="/coach/dashboard" element={<div>dashboard page</div>} />
-          <Route path="/coach/reprovado" element={<div>reprovado page</div>} />
+          <Route path="/coach/onboarding" element={<div>onboarding page</div>} />
+          <Route path="/client/onboarding" element={<div>onboarding aluno page</div>} />
+          <Route path="/coach/pending-review" element={<div>analise page</div>} />
+          <Route path="/coach" element={<div>dashboard page</div>} />
+          <Route path="/coach/rejected" element={<div>reprovado page</div>} />
         </Routes>
       </MemoryRouter>
     </QueryWrapper>,
@@ -74,7 +74,7 @@ describe('CognitoCallbackPage', () => {
     renderPage('student')
     expect(screen.getByRole('link', { name: 'Tentar novamente' })).toHaveAttribute(
       'href',
-      '/aluno/entrar',
+      '/client/login',
     )
   })
 
