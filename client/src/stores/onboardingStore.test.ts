@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Gym } from '@/types/api'
-import {
-  buildCoachUpdatePayload,
-  onlyDigits,
-  useOnboardingStore,
-} from './onboardingStore'
+import { buildCoachUpdatePayload, onlyDigits, useOnboardingStore } from './onboardingStore'
 
 const baseGym: Gym = {
   gymId: 'gym-1',
@@ -214,7 +210,10 @@ describe('addHomeArea / removeHomeArea', () => {
       neighborhoods: ['Boa Viagem'],
     })
 
-    const id = useOnboardingStore.getState().form.homeAreas[0]!.id
+    const id = useOnboardingStore.getState().form.homeAreas[0]?.id
+    expect(id).toBeTypeOf('string')
+    if (typeof id !== 'string') throw new Error('Área deveria ter um id.')
+
     useOnboardingStore.getState().removeHomeArea(id)
 
     expect(useOnboardingStore.getState().form.homeAreas).toEqual([])

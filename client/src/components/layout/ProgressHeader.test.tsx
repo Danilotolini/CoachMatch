@@ -17,13 +17,13 @@ describe('ProgressHeader', () => {
 
   it('calcula a largura da barra de progresso em porcentagem', () => {
     const { container } = render(<ProgressHeader currentStep={1} totalSteps={4} />)
-    const bar = container.querySelector('[style*="width"]') as HTMLElement | null
+    const bar = container.querySelector<HTMLElement>('[style*="width"]')
     expect(bar?.style.width).toBe('25%')
   })
 
   it('chega a 100% no último passo', () => {
     const { container } = render(<ProgressHeader currentStep={3} totalSteps={3} />)
-    const bar = container.querySelector('[style*="width"]') as HTMLElement | null
+    const bar = container.querySelector<HTMLElement>('[style*="width"]')
     expect(bar?.style.width).toBe('100%')
   })
 })

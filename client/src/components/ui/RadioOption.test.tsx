@@ -10,7 +10,7 @@ describe('RadioOption', () => {
         label="Treino em casa"
         description="Atendimento na sua residência"
         checked={false}
-        onChange={() => {}}
+        onChange={vi.fn()}
       />,
     )
 
@@ -19,19 +19,19 @@ describe('RadioOption', () => {
   })
 
   it('omite a descrição quando não informada', () => {
-    render(<RadioOption label="Online" checked={false} onChange={() => {}} />)
+    render(<RadioOption label="Online" checked={false} onChange={vi.fn()} />)
     // Apenas o label deveria estar presente como texto significativo
     expect(screen.queryByText('Atendimento')).not.toBeInTheDocument()
   })
 
   it('marca o radio quando checked=true', () => {
-    render(<RadioOption label="Online" checked onChange={() => {}} />)
+    render(<RadioOption label="Online" checked onChange={vi.fn()} />)
     expect(screen.getByRole('radio')).toBeChecked()
     expect(screen.getByText('radio_button_checked')).toBeInTheDocument()
   })
 
   it('mostra ícone vazio quando não checked', () => {
-    render(<RadioOption label="Online" checked={false} onChange={() => {}} />)
+    render(<RadioOption label="Online" checked={false} onChange={vi.fn()} />)
     expect(screen.getByRole('radio')).not.toBeChecked()
     expect(screen.getByText('radio_button_unchecked')).toBeInTheDocument()
   })

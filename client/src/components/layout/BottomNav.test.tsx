@@ -5,7 +5,7 @@ import { BottomNav } from './BottomNav'
 
 describe('BottomNav', () => {
   it('renderiza os 4 tabs com labels corretas', () => {
-    render(<BottomNav active="browse" onChange={() => {}} />)
+    render(<BottomNav active="browse" onChange={vi.fn()} />)
     expect(screen.getByRole('button', { name: /Explorar/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Treinos/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Agenda/i })).toBeInTheDocument()
@@ -13,14 +13,9 @@ describe('BottomNav', () => {
   })
 
   it('marca o tab ativo com aria-current="page"', () => {
-    render(<BottomNav active="agenda" onChange={() => {}} />)
-    expect(screen.getByRole('button', { name: /Agenda/i })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
-    expect(screen.getByRole('button', { name: /Explorar/i })).not.toHaveAttribute(
-      'aria-current',
-    )
+    render(<BottomNav active="agenda" onChange={vi.fn()} />)
+    expect(screen.getByRole('button', { name: /Agenda/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: /Explorar/i })).not.toHaveAttribute('aria-current')
   })
 
   it('dispara onChange com o id do tab clicado', async () => {

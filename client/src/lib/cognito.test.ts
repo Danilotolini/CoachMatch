@@ -1,21 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import {
-  exchangeCodeForTokens,
-  getLoginUrl,
-  getLogoutUrl,
-  logout,
-} from './cognito'
+import { exchangeCodeForTokens, getLoginUrl, getLogoutUrl, logout } from './cognito'
 import { server } from '@/mocks/server'
 import { setToken, getToken } from '@/lib/auth'
 
 const ORIGINAL_LOCATION = window.location
+const LOCATION_PROTOTYPE = Object.getPrototypeOf(ORIGINAL_LOCATION) as object | null
+
+function mockLocation(overrides: Partial<Location>) {
+  return Object.assign(Object.create(LOCATION_PROTOTYPE) as Location, ORIGINAL_LOCATION, overrides)
+}
 
 beforeEach(() => {
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
-    value: { ...ORIGINAL_LOCATION, origin: 'http://app.test', href: 'http://app.test/' },
+    value: mockLocation({ origin: 'http://app.test', href: 'http://app.test/' }),
   })
 })
 
@@ -23,7 +23,7 @@ afterEach(() => {
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
-    value: ORIGINAL_LOCATION,
+    value: mockLocation({}),
   })
   sessionStorage.clear()
   vi.restoreAllMocks()
@@ -101,15 +101,13 @@ describe('exchangeCodeForTokens', () => {
   it('troca code por tokens quando state confere', async () => {
     seedSession('xyz', 'verifier-123')
     server.use(
-      http.post(
-        '*/oauth2/token',
-        () =>
-          HttpResponse.json({
-            id_token: 'id-1',
-            access_token: 'acc-1',
-            refresh_token: 'ref-1',
-            expires_in: 3600,
-          }),
+      http.post('*/oauth2/token', () =>
+        HttpResponse.json({
+          id_token: 'id-1',
+          access_token: 'acc-1',
+          refresh_token: 'ref-1',
+          expires_in: 3600,
+        }),
       ),
     )
 
@@ -148,11 +146,7 @@ describe('exchangeCodeForTokens', () => {
 
   it('rejeita quando a resposta tem formato inválido', async () => {
     seedSession('xyz', 'verifier-123')
-    server.use(
-      http.post('*/oauth2/token', () =>
-        HttpResponse.json({ id_token: 'só-isso' }),
-      ),
-    )
+    server.use(http.post('*/oauth2/token', () => HttpResponse.json({ id_token: 'só-isso' })))
 
     await expect(exchangeCodeForTokens('code-abc', 'xyz')).rejects.toThrow(
       /Resposta de autenticação inválida/i,
@@ -179,7 +173,9 @@ describe('exchangeCodeForTokens', () => {
 
     expect(tokens.id_token).toBe('student-id')
     expect(body).toContain('client_id=3rjn45koljliioocd5usijdv9s')
-    expect(body).toContain('redirect_uri=http%3A%2F%2Fapp.test%2Fauth%2Fcognito%2Fstudent%2Fcallback')
+    expect(body).toContain(
+      'redirect_uri=http%3A%2F%2Fapp.test%2Fauth%2Fcognito%2Fstudent%2Fcallback',
+    )
     expect(body).not.toContain('client_secret=')
   })
 })

@@ -30,7 +30,7 @@ describe('PendingReviewPage', () => {
   })
 
   it('chama logout do Cognito ao clicar em SAIR', async () => {
-    const logoutSpy = vi.spyOn(cognito, 'logout').mockImplementation(() => {})
+    const logoutSpy = vi.spyOn(cognito, 'logout').mockImplementation(() => undefined)
     renderPage()
 
     await userEvent.click(screen.getByRole('button', { name: 'SAIR' }))
