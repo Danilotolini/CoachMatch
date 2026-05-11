@@ -59,7 +59,7 @@ Regra prática: **se for um valor concreto (hex, número de px, classe Tailwind 
 **Glossário (termos fixos):**
 
 | Use | Evite |
-|---|---|
+| --- | --- |
 | Aluno | Cliente, Usuário |
 | Treinador | Profissional, Coach |
 | Sessão | Aula, Encontro |
@@ -123,7 +123,7 @@ Regra prática: **se for um valor concreto (hex, número de px, classe Tailwind 
 Tabela de tradução quando alguém descrever campos:
 
 | Spec | Primitive |
-|---|---|
+| --- | --- |
 | texto, e-mail, senha, número, telefone | [`Input`](../../client/src/components/ui/Input.tsx) |
 | escolha única (lista curta) | [`RadioOption`](../../client/src/components/ui/RadioOption.tsx) |
 | escolha única/múltipla por tag | [`Chip`](../../client/src/components/ui/Chip.tsx) |
