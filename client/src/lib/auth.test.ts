@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clearToken, getAuthUser, getToken, setToken } from './auth'
+import { clearToken, getAuthUser, getToken, isTokenExpired, setToken } from './auth'
 
 function encodeJwt(payload: Record<string, unknown>): string {
   const base64 = btoa(JSON.stringify(payload))
@@ -59,5 +59,22 @@ describe('getAuthUser', () => {
   it('ignora claim string vazia', () => {
     setToken(encodeJwt({ email: '   ', name: '' }))
     expect(getAuthUser()).toEqual({ email: null, name: null })
+  })
+})
+
+describe('isTokenExpired', () => {
+  it('retorna true quando exp está no passado', () => {
+    const token = encodeJwt({ exp: 99 })
+    expect(isTokenExpired(token, 100_000)).toBe(true)
+  })
+
+  it('retorna false quando exp está no futuro', () => {
+    const token = encodeJwt({ exp: 101 })
+    expect(isTokenExpired(token, 100_000)).toBe(false)
+  })
+
+  it('retorna false quando token não tem exp válido', () => {
+    expect(isTokenExpired(encodeJwt({ email: 'foo@bar.com' }), 100_000)).toBe(false)
+    expect(isTokenExpired('token-invalido', 100_000)).toBe(false)
   })
 })

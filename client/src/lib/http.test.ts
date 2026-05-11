@@ -1,8 +1,16 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { ApiError, apiGet, apiPost, apiPut } from './http'
 import { server } from '@/mocks/server'
-import { setToken } from '@/lib/auth'
+import { SESSION_EXPIRED_EVENT, setToken } from '@/lib/auth'
+
+function encodeJwt(payload: Record<string, unknown>): string {
+  const base64 = btoa(JSON.stringify(payload))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+  return `header.${base64}.signature`
+}
 
 afterEach(() => {
   localStorage.clear()
@@ -82,6 +90,48 @@ describe('apiGet', () => {
       name: 'ApiError',
       status: 500,
     })
+  })
+
+  it('limpa token e notifica sessão expirada em 401', async () => {
+    const listener = vi.fn()
+    setToken('jwt-abc')
+    window.addEventListener(SESSION_EXPIRED_EVENT, listener)
+    server.use(
+      http.get('http://api.test/secure', () =>
+        HttpResponse.json({ error: 'unauthorized' }, { status: 401 }),
+      ),
+    )
+
+    await expect(apiGet('/secure')).rejects.toMatchObject({ status: 401 })
+    expect(localStorage.getItem('idToken')).toBeNull()
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect((listener.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
+      reason: 'unauthorized',
+      status: 401,
+    })
+    window.removeEventListener(SESSION_EXPIRED_EVENT, listener)
+  })
+
+  it('não chama API quando token local já expirou', async () => {
+    const listener = vi.fn()
+    const requestSpy = vi.fn()
+    setToken(encodeJwt({ exp: Math.floor(Date.now() / 1000) - 1 }))
+    window.addEventListener(SESSION_EXPIRED_EVENT, listener)
+    server.use(
+      http.get('http://api.test/secure', () => {
+        requestSpy()
+        return HttpResponse.json({})
+      }),
+    )
+
+    await expect(apiGet('/secure')).rejects.toMatchObject({ status: 401 })
+    expect(requestSpy).not.toHaveBeenCalled()
+    expect(localStorage.getItem('idToken')).toBeNull()
+    expect((listener.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
+      reason: 'expired',
+      status: 401,
+    })
+    window.removeEventListener(SESSION_EXPIRED_EVENT, listener)
   })
 
   it('retorna undefined quando o body está vazio', async () => {

@@ -1,5 +1,5 @@
 import { env } from '@/lib/env'
-import { getToken } from '@/lib/auth'
+import { clearToken, getToken, isTokenExpired, notifySessionExpired } from '@/lib/auth'
 
 export class ApiError extends Error {
   readonly status: number
@@ -25,6 +25,12 @@ function buildUrl(path: string, params?: QueryParams): string {
 
 async function request<T>(url: string, init: RequestInit): Promise<T> {
   const token = getToken()
+  if (isTokenExpired(token)) {
+    clearToken()
+    notifySessionExpired({ reason: 'expired', status: 401 })
+    throw new ApiError(401, 'Sessão expirada.')
+  }
+
   const headers = new Headers(init.headers)
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
@@ -34,6 +40,10 @@ async function request<T>(url: string, init: RequestInit): Promise<T> {
   })
 
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      clearToken()
+      notifySessionExpired({ reason: 'unauthorized', status: res.status })
+    }
     throw new ApiError(res.status, `${init.method ?? 'GET'} ${url} failed (${String(res.status)})`)
   }
 
