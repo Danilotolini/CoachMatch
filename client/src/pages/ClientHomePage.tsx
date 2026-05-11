@@ -237,9 +237,9 @@ function CoachCard({ coach }: { coach: Coach }) {
   return (
     <button
       type="button"
-      className="group w-[76vw] max-w-[280px] shrink-0 snap-start overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low text-left transition-all hover:border-primary/35 hover:bg-surface-container md:w-[250px] lg:w-auto lg:max-w-none"
+      className="group w-[76vw] max-w-70 shrink-0 snap-start overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low text-left transition-all hover:border-primary/35 hover:bg-surface-container md:w-62.5 lg:w-auto lg:max-w-none"
     >
-      <div className={`relative h-40 overflow-hidden bg-gradient-to-br ${coach.tone}`}>
+      <div className={`relative h-40 overflow-hidden bg-linear-to-br ${coach.tone}`}>
         {coach.image ? (
           <img src={coach.image} alt="" className="h-full w-full object-cover opacity-90" />
         ) : (
@@ -247,7 +247,7 @@ function CoachCard({ coach }: { coach: Coach }) {
             <span className="material-symbols-outlined text-[64px] text-primary/70">exercise</span>
           </div>
         )}
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-black/80 to-transparent" />
         <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 font-label text-xs font-semibold text-on-surface backdrop-blur">
           <span className="material-symbols-outlined text-[15px] text-tertiary">star</span>
           {coach.rating}

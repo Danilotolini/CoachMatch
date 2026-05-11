@@ -14,7 +14,7 @@ main
 
 **Exemplo real:**
 
-```
+```text
 main
 └── feat/busca-trainers
     └── feat/task-42
@@ -47,7 +47,7 @@ Use um prefixo que descreve o tipo da mudança, seguido de uma descrição curta
 
 **Exemplos:**
 
-```
+```text
 feat: adiciona filtro de localização na busca
 fix: corrige validação de CREF no cadastro
 chore: atualiza dependências do projeto
@@ -136,7 +136,6 @@ git stash pop
 ```
 
 > **O que é o stash?** É como uma gaveta temporária. `git stash` guarda suas mudanças não salvas, `git stash pop` as traz de volta.
-
 > **Se aparecer conflito durante o rebase:** o Git vai pausar e indicar os arquivos com conflito. Resolva os conflitos, salve os arquivos e rode `git rebase --continue`. Se quiser cancelar e voltar ao estado anterior, use `git rebase --abort`.
 
 ---
@@ -154,6 +153,7 @@ git push --force-with-lease origin feat/task-42
 > **Por que `--force-with-lease` depois do rebase?** O rebase reescreve o histórico local, então o GitHub vai rejeitar um `git push` normal porque enxerga os commits como "divergentes". O `--force-with-lease` força o envio, mas com segurança: ele cancela o push caso alguém tenha enviado algo na mesma branch desde sua última atualização.
 
 Depois, no GitHub:
+
 - Abra um Pull Request de `feat/task-42` **para** `feat/busca-trainers` (não para `main`).
 - Descreva o que foi feito e linke a task correspondente.
 
@@ -161,7 +161,7 @@ Depois, no GitHub:
 
 ## Resumo rápido
 
-```
+```text
 1. git checkout feat/<feature>
 2. git pull origin feat/<feature>
 3. git checkout -b feat/task-<id>
