@@ -42,7 +42,7 @@ Regra prática: **se for um valor concreto (hex, número de px, classe Tailwind 
 
 - "Seu personal, sem adivinhação." (value prop)
 - "Bem-vindo." → "Como você deseja utilizar o CoachMatch hoje?"
-- "Entre para a Elite." (hero do onboarding profissional)
+- "Entre para a Elite." (hero do onboarding do treinador)
 - "Apresente seu arsenal técnico. Construa sua autoridade. Domine seu território."
 - Seções com vocabulário marcial: **Identidade, Autoridade, Domínio, Território**.
 
@@ -54,14 +54,17 @@ Regra prática: **se for um valor concreto (hex, número de px, classe Tailwind 
 
 **Pronome.** Sempre **você** (informal-respeitoso). Nunca "tu". Nunca plural-formal.
 
+**Conteúdo vs. código.** Em textos visíveis, mantenha o vocabulário de produto em pt-BR: `Aluno`, `Treinador`, `Personal`, `Sessão`. Em código, nomes técnicos e rotas locais, use inglês de domínio: `client` para aluno e `coach` para treinador. Ex.: rota `/client/onboarding`, componente `CoachCard`, copy "Aluno". Não use `Profissional` como nome de perfil/persona.
+
 **Glossário (termos fixos):**
 
 | Use | Evite |
 |---|---|
 | Aluno | Cliente, Usuário |
+| Treinador | Profissional, Coach |
 | Sessão | Aula, Encontro |
 | CREF | Certificação |
-| Personal | Treinador (geralmente). "Coach" é OK como sabor de marketing. |
+| Personal | Coach |
 
 **Emoji.** **Não usar em UI de produto.** Use Material Symbols via [`Icon`](../../client/src/components/ui/Icon.tsx).
 
@@ -92,6 +95,7 @@ Regra prática: **se for um valor concreto (hex, número de px, classe Tailwind 
 ### Iconografia
 
 - **Material Symbols Outlined** apenas, sempre via [`Icon`](../../client/src/components/ui/Icon.tsx). Item ativo do bottom nav vira preenchido.
+- Ícones canônicos já usados no produto: `explore`, `fitness_center`, `calendar_today`, `person`, `verified`, `star`, `payments`, `chat`, `notifications`, `location_on`.
 
 ### Backgrounds
 
@@ -143,5 +147,5 @@ Se o spec não casar com nenhum: **estenda** o primitive mais próximo antes de 
 3. **Hierarquia por superfície, não por borda.**
 4. **Lexend para energia, Inter para clareza. Sempre em par.**
 5. **Mobile-first.** 390 px primeiro, depois desktop.
-6. **Pt-BR.** "Aluno", "Sessão", "você". Sem emoji.
+6. **Pt-BR na UI.** "Aluno", "Treinador", "Sessão", "você". `client`/`coach` só em código e rotas locais. Sem emoji.
 7. **Press scale-down. Hover sutil. Sem bounce.**

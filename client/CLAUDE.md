@@ -2,7 +2,7 @@
 
 > Carregado automaticamente em `client/`.
 > Contexto do monorepo: [`../CLAUDE.md`](../CLAUDE.md).
-> Design system (cores, tipografia, regras visuais): [`../docs/design-system.md`](../docs/design-system.md).
+> Tokens: [`src/index.css`](src/index.css). Voz, glossário e regras visuais: [`../.agents/skills/coachmatch-design/README.md`](../.agents/skills/coachmatch-design/README.md).
 
 ## Stack
 
@@ -44,11 +44,18 @@ Sempre `pnpm`, nunca `npm`/`yarn`.
 
 ## Copy
 
-Português pt-BR, direto e confiante. Glossário de domínio em [`../docs/design-system.md`](../docs/design-system.md#voz--glossário).
+Português pt-BR, direto e confiante. Glossário de domínio em [`../.agents/skills/coachmatch-design/README.md`](../.agents/skills/coachmatch-design/README.md).
 
 - Botões: verbo no infinitivo, UPPERCASE — `AGENDAR`, `CONFIRMAR`, `VER PERFIL`. Lexend Bold + `active:scale-95`.
 - Labels curtas: `Explorar`, `Treinos`, `Agenda`, `Perfil`.
 - Tagline: _"Seu personal, sem adivinhação."_ — não traduzir, não parafrasear.
+
+## Vocabulário técnico
+
+- **Conteúdo visível em pt-BR:** use `Aluno`, `Treinador` e `Sessão`.
+- **Código e rotas locais:** use `client` para aluno e `coach` para treinador.
+- Rotas locais seguem o padrão `/client/...` e `/coach/...` com segmentos em inglês, por exemplo `/client/onboarding`, `/client/health`, `/coach/login`, `/coach/pending-review`.
+- Não trocar rotas externas, callbacks de OAuth/Cognito ou endpoints de API só para alinhar naming local.
 
 ## Padrões rápidos
 
@@ -70,5 +77,5 @@ Não empilhar mais que 3 níveis de surface na mesma tela.
 ## Dívidas técnicas abertas
 
 - `src/design/styleguide.html` usa Tailwind via CDN (preview standalone fora da SPA). Migrar pra rota React.
-- Tokens duplicados em `src/index.css`, `styleguide.html` e `docs/design-system.md` — considerar gerar os dois últimos a partir do CSS.
+- Tokens duplicados em `src/index.css` e `styleguide.html` — considerar gerar o styleguide a partir do CSS.
 - Estrutura de pastas de componentes não definida (sugerir antes de criar).

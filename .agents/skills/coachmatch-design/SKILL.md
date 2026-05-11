@@ -13,7 +13,7 @@ O uso é **conversacional e incremental** — o usuário pode descrever uma tela
 Tipicamente o usuário diz:
 
 - **Qual tela / fluxo** (ex: "tela de detalhes do aluno", "step do onboarding").
-- **Perfil** (Aluno ou Profissional) — pode estar implícito.
+- **Perfil** (Aluno ou Treinador) — pode estar implícito.
 - **Campos e comportamentos** — em qualquer nível de detalhe, de "form com nome, e-mail e senha" até spec completo com validação e estados.
 - **Referência visual** (opcional) — "igual à OnboardingPage" / "no estilo do WelcomePage".
 
@@ -29,7 +29,7 @@ Pergunte só o que **realmente** trava a geração (ex: perfil quando muda fluxo
 - **Brand**: [`client/src/components/brand/`](../../client/src/components/brand/) — `Wordmark`, `Eyebrow`, `LabelMicro`.
 - **Features de referência**:
   - [`client/src/components/welcome/`](../../client/src/components/welcome/) — composição de hero + cards de perfil.
-  - [`client/src/components/onboarding/`](../../client/src/components/onboarding/) — pickers compostos do onboarding profissional.
+  - [`client/src/components/onboarding/`](../../client/src/components/onboarding/) — pickers compostos do onboarding do treinador.
   - [`client/src/components/coach/`](../../client/src/components/coach/) — `CoachCard`, `CrefBadge`, `RatingPill`.
 - **Pages**: [`client/src/pages/`](../../client/src/pages/) — `WelcomePage`, `OnboardingPage`, `LoginPage`, `DashboardPage`, `PendingReviewPage`, `RejectedPage`, `CognitoCallbackPage`, `RoutesTestPage`.
 
@@ -41,7 +41,7 @@ Pergunte só o que **realmente** trava a geração (ex: perfil quando muda fluxo
 4. **Um acento brilhante por tela** — lime no CTA primário ou em um único callout de dado.
 5. **Hierarquia pela escada de superfície**, não por bordas. Bordas em opacidade baixa.
 6. **Mobile-first, desktop completo.** Comece em 390×844; projete `md:` e `lg:` como deliverables de primeira classe — nunca uma versão mobile esticada. `pb-safe`/`pt-safe` perto de navegação fixa.
-7. **Copy em pt-BR.** Glossário: Aluno, Sessão, você. Botões em UPPERCASE com verbo no infinitivo (`AGENDAR`, `CONFIRMAR`).
+7. **Copy em pt-BR.** Glossário: Aluno, Treinador, Personal, Sessão, você. Botões em UPPERCASE com verbo no infinitivo (`AGENDAR`, `CONFIRMAR`). Em código e rotas locais, use `client` para aluno e `coach` para treinador. Não use `Profissional` como nome de perfil/persona.
 8. **Iconografia**: Material Symbols Outlined apenas, via componente `Icon`. Sem emoji em UI de produto.
 9. **Animação controlada** — press scale-down, hover sutil. Sem easing bouncy.
 10. **`useEffect` apenas para sync externo.** Estado derivado em `useMemo`.
@@ -63,8 +63,8 @@ Não é checklist obrigatório — é o caminho de menor atrito.
 Esse formato é **opcional** — use só quando o usuário pediu algo grande e quer confirmar antes:
 
 ```
-Tela: <nome / rota>
-Perfil: Aluno | Profissional
+Tela: <nome / rota em inglês, ex: /client/onboarding ou /coach>
+Perfil: Aluno | Treinador
 Âncora visual: <página existente parecida, se houver>
 Header: <ProgressHeader step X/Y | GlassHeader | nenhum>
 Campos:

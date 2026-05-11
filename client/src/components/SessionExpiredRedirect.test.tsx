@@ -14,10 +14,10 @@ function renderWithRoutes(initialPath: string) {
       <MemoryRouter initialEntries={[initialPath]}>
         <SessionExpiredRedirect />
         <Routes>
-          <Route path="/coach/dashboard" element={<div>dashboard page</div>} />
-          <Route path="/aluno" element={<div>aluno page</div>} />
-          <Route path="/coach/entrar" element={<div>login profissional</div>} />
-          <Route path="/aluno/entrar" element={<div>login aluno</div>} />
+          <Route path="/coach" element={<div>dashboard page</div>} />
+          <Route path="/client" element={<div>aluno page</div>} />
+          <Route path="/coach/login" element={<div>login treinador</div>} />
+          <Route path="/client/login" element={<div>login aluno</div>} />
         </Routes>
       </MemoryRouter>
     </QueryWrapper>,
@@ -25,8 +25,8 @@ function renderWithRoutes(initialPath: string) {
 }
 
 describe('SessionExpiredRedirect', () => {
-  it('redireciona rotas profissionais para /coach/entrar', async () => {
-    renderWithRoutes('/coach/dashboard')
+  it('redireciona rotas de treinador para /coach/login', async () => {
+    renderWithRoutes('/coach')
 
     act(() => {
       window.dispatchEvent(
@@ -34,11 +34,11 @@ describe('SessionExpiredRedirect', () => {
       )
     })
 
-    expect(await screen.findByText('login profissional')).toBeInTheDocument()
+    expect(await screen.findByText('login treinador')).toBeInTheDocument()
   })
 
-  it('redireciona rotas de aluno para /aluno/entrar', async () => {
-    renderWithRoutes('/aluno')
+  it('redireciona rotas de aluno para /client/login', async () => {
+    renderWithRoutes('/client')
 
     act(() => {
       window.dispatchEvent(

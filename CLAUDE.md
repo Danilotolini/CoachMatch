@@ -2,9 +2,9 @@
 
 ## Produto
 
-**CoachMatch** é um marketplace que conecta alunos a personal trainers qualificados no Brasil.
+**CoachMatch** é um marketplace que conecta alunos a treinadores qualificados no Brasil.
 
-Público: clientes buscando personal trainers + profissionais de educação física.
+Público: alunos buscando profissionais de educação física.
 
 ## Onde olhar primeiro
 

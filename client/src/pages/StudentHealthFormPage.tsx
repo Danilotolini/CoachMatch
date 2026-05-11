@@ -80,7 +80,7 @@ export default function StudentHealthFormPage() {
     ) {
       return
     }
-    void navigate('/aluno')
+    void navigate('/client')
   }
 
   return (
@@ -228,7 +228,7 @@ export default function StudentHealthFormPage() {
                 error={errors.disclaimer}
               >
                 Entendo que o CoachMatch não é serviço médico. Em caso de condição clínica
-                relevante, devo procurar um profissional de saúde antes de iniciar treinos.
+                relevante, devo procurar orientação médica antes de iniciar treinos.
               </ConsentRow>
             </div>
           </section>

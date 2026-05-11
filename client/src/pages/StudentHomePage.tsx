@@ -361,7 +361,7 @@ function MapPreview() {
         <div className="absolute top-16 right-20 h-3 w-3 rounded-full bg-secondary shadow-[0_0_0_10px_rgba(239,231,84,0.08)]" />
         <div className="absolute inset-x-4 bottom-4 rounded-lg bg-black/55 px-3 py-2 backdrop-blur">
           <p className="font-label text-xs text-on-surface-variant">
-            68 profissionais perto de Pinheiros
+            68 treinadores perto de Pinheiros
           </p>
         </div>
       </div>

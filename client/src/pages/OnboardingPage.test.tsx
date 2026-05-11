@@ -15,10 +15,10 @@ function renderPage() {
   const { wrapper: QueryWrapper } = createWrapper()
   return render(
     <QueryWrapper>
-      <MemoryRouter initialEntries={['/coach/cadastrar']}>
+      <MemoryRouter initialEntries={['/coach/onboarding']}>
         <Routes>
-          <Route path="/coach/cadastrar" element={<OnboardingPage />} />
-          <Route path="/coach/em-analise" element={<div>analise page</div>} />
+          <Route path="/coach/onboarding" element={<OnboardingPage />} />
+          <Route path="/coach/pending-review" element={<div>analise page</div>} />
         </Routes>
       </MemoryRouter>
     </QueryWrapper>,
@@ -75,7 +75,7 @@ describe('OnboardingPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('submete o perfil e navega para /coach/em-analise quando válido', async () => {
+  it('submete o perfil e navega para /coach/pending-review quando válido', async () => {
     const user = userEvent.setup()
 
     // pre-popula store com dados válidos
