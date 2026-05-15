@@ -1,0 +1,10 @@
+# Ambiente local
+stage: local
+region: us-east-1
+endpoint: http://localhost:8000
+accessKeyId: fakeMyKeyId
+secretAccessKey: fakeSecretAccessKey
+
+# Ambiente dev
+# stage: dev
+# region: sa-east-1

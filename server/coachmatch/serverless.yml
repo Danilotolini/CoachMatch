@@ -1,0 +1,88 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: coachmatch
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: coachmatchapp
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: coachmatch
+
+
+
+stages:
+  dev:
+    params:
+      stage: ${self:custom.config.stage}
+      region: ${self:custom.config.region}
+  local:
+    params:
+      stage: ${self:custom.config.stage}
+      region: ${self:custom.config.region}
+      endpoint: ${self:custom.config.endpoint}
+      access_key_id: ${self:custom.config.accessKeyId}
+      secret_access: ${self:custom.config.secretAccessKey}
+
+plugins:
+  - serverless-dynamodb
+  - serverless-offline
+  
+
+provider:
+  profile: JoaoAdm
+  timeout: 30
+  name: aws
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+          Resource:
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
+
+          
+functions:
+  userPostConfirmation:
+    handler: src/api-coach-create/userPostConfirmation.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - cognitoUserPool:
+          pool: CoachAccess
+          trigger: PostConfirmation
+          existing: true
+
+
+resources: 
+  Conditions:
+    IsLocal: !Equals [ "${param:stage}", "local"]  
+  Resources:
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsLocal
+      Properties:
+        TableName: coaches
+        AttributeDefinitions:
+          - AttributeName: coachId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: coachId  
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+custom:
+  config: ${file(./config.yml)}
+  dynamodb:
+    stages:
+      - local
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true  # cria as tabelas automaticamente
