@@ -42,6 +42,20 @@ function getDevRoutes() {
   ]
 }
 
+function getClientSearchRoute() {
+  const ClientSearchPage = lazy(() => import('@/pages/ClientSearchPage'))
+  return {
+    path: '/client/search',
+    element: (
+      <ClientRouteGuard requireOnboarded>
+        <Suspense fallback={null}>
+          <ClientSearchPage />
+        </Suspense>
+      </ClientRouteGuard>
+    ),
+  }
+}
+
 const router = createBrowserRouter([
   {
     element: <AppShell />,
@@ -79,6 +93,7 @@ const router = createBrowserRouter([
           </ClientRouteGuard>
         ),
       },
+      getClientSearchRoute(),
       {
         path: '/coach/onboarding',
         element: (
