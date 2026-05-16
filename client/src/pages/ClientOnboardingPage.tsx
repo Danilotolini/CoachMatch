@@ -360,7 +360,7 @@ export default function ClientOnboardingPage() {
           <button
             type="button"
             onClick={submit}
-            className="w-full lg:w-auto lg:min-w-64 bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-sm uppercase tracking-wide py-4 px-8 rounded-lg shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:brightness-105 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full lg:w-auto lg:min-w-64 bg-linear-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-sm uppercase tracking-wide py-4 px-8 rounded-lg shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:brightness-105 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             Continuar
             <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
