@@ -1,5 +1,6 @@
 import { env } from '@/lib/env'
-import { clearToken, getToken, isTokenExpired, notifySessionExpired } from '@/lib/auth'
+import { getToken, isTokenExpired, notifySessionExpired } from '@/lib/auth'
+import { useSessionStore } from '@/stores/sessionStore'
 
 export class ApiError extends Error {
   readonly status: number
@@ -26,7 +27,7 @@ function buildUrl(path: string, params?: QueryParams): string {
 async function request<T>(url: string, init: RequestInit): Promise<T> {
   const token = getToken()
   if (isTokenExpired(token)) {
-    clearToken()
+    useSessionStore.getState().endActiveSession()
     notifySessionExpired({ reason: 'expired', status: 401 })
     throw new ApiError(401, 'Sessão expirada.')
   }
@@ -41,7 +42,7 @@ async function request<T>(url: string, init: RequestInit): Promise<T> {
 
   if (!res.ok) {
     if (res.status === 401 || res.status === 403) {
-      clearToken()
+      useSessionStore.getState().endActiveSession()
       notifySessionExpired({ reason: 'unauthorized', status: res.status })
     }
     throw new ApiError(res.status, `${init.method ?? 'GET'} ${url} failed (${String(res.status)})`)

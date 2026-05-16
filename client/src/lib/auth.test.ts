@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { clearToken, getAuthUser, getToken, isTokenExpired, setToken } from './auth'
+import { getAuthUser, getToken, isTokenExpired } from './auth'
+import { useSessionStore } from '@/stores/sessionStore'
+import { loginAs } from '@/test/session'
 
 function encodeJwt(payload: Record<string, unknown>): string {
   const base64 = btoa(JSON.stringify(payload))
@@ -9,19 +11,19 @@ function encodeJwt(payload: Record<string, unknown>): string {
   return `header.${base64}.signature`
 }
 
-describe('token storage', () => {
-  it('getToken retorna null quando não há token', () => {
+describe('getToken', () => {
+  it('retorna null quando não há sessão ativa', () => {
     expect(getToken()).toBeNull()
   })
 
-  it('setToken persiste e getToken recupera o valor', () => {
-    setToken('abc')
+  it('retorna o token do papel ativo', () => {
+    loginAs('coach', 'abc')
     expect(getToken()).toBe('abc')
   })
 
-  it('clearToken remove o token', () => {
-    setToken('abc')
-    clearToken()
+  it('retorna null após endSession do papel ativo', () => {
+    loginAs('coach', 'abc')
+    useSessionStore.getState().endSession('coach')
     expect(getToken()).toBeNull()
   })
 })
@@ -32,32 +34,32 @@ describe('getAuthUser', () => {
   })
 
   it('decodifica email e name do JWT', () => {
-    setToken(encodeJwt({ email: 'foo@bar.com', name: 'Foo Bar' }))
+    loginAs('coach', encodeJwt({ email: 'foo@bar.com', name: 'Foo Bar' }))
     expect(getAuthUser()).toEqual({ email: 'foo@bar.com', name: 'Foo Bar' })
   })
 
   it('compõe name a partir de given_name + family_name quando name ausente', () => {
-    setToken(encodeJwt({ email: 'x@y.com', given_name: 'Maria', family_name: 'Silva' }))
+    loginAs('coach', encodeJwt({ email: 'x@y.com', given_name: 'Maria', family_name: 'Silva' }))
     expect(getAuthUser().name).toBe('Maria Silva')
   })
 
   it('retorna name null quando claims sem name', () => {
-    setToken(encodeJwt({ email: 'x@y.com' }))
+    loginAs('coach', encodeJwt({ email: 'x@y.com' }))
     expect(getAuthUser()).toEqual({ email: 'x@y.com', name: null })
   })
 
   it('retorna nulos quando o payload não é JSON válido', () => {
-    setToken('header.invalid-payload.sig')
+    loginAs('coach', 'header.invalid-payload.sig')
     expect(getAuthUser()).toEqual({ email: null, name: null })
   })
 
   it('retorna nulos quando o token não tem payload', () => {
-    setToken('semponto')
+    loginAs('coach', 'semponto')
     expect(getAuthUser()).toEqual({ email: null, name: null })
   })
 
   it('ignora claim string vazia', () => {
-    setToken(encodeJwt({ email: '   ', name: '' }))
+    loginAs('coach', encodeJwt({ email: '   ', name: '' }))
     expect(getAuthUser()).toEqual({ email: null, name: null })
   })
 })
