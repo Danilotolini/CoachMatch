@@ -4,6 +4,7 @@ import { ProgressHeader } from '@/components/layout/ProgressHeader'
 import { Input } from '@/components/ui/Input'
 import { Chip } from '@/components/ui/Chip'
 import { fetchAddressByCep } from '@/api/viacep'
+import { useSubmitClientProfile } from '@/hooks/useClientMe'
 
 type Gender = 'F' | 'M' | 'NB' | 'NA'
 type Goal = 'WEIGHT_LOSS' | 'HYPERTROPHY' | 'CONDITIONING' | 'REHAB' | 'PERFORMANCE'
@@ -58,6 +59,7 @@ function formatCep(raw: string): string {
 
 export default function ClientOnboardingPage() {
   const navigate = useNavigate()
+  const submitProfile = useSubmitClientProfile()
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState<FormState>({
@@ -134,7 +136,24 @@ export default function ClientOnboardingPage() {
       !form.state ||
       !form.goal
     if (hasErrors) return
-    void navigate('/client/health')
+    if (!form.gender || !form.goal) return
+    submitProfile.mutate(
+      {
+        phone: form.phone,
+        birthDate: form.birthDate,
+        gender: form.gender,
+        cep: form.cep,
+        city: form.city,
+        state: form.state,
+        radius: form.radius,
+        goal: form.goal,
+      },
+      {
+        onSuccess: () => {
+          void navigate('/client/health')
+        },
+      },
+    )
   }
 
   return (

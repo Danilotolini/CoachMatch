@@ -1,7 +1,12 @@
 import { http, HttpResponse, delay } from 'msw'
 import type {
+  Client,
+  ClientHealthPayload,
+  ClientProfilePayload,
+  ClientStatus,
   Coach,
   CoachStatus,
+  CoachVisibility,
   CoachUpdatePayload,
   Gym,
   GymSuggestPayload,
@@ -14,14 +19,27 @@ import type {
 } from '@/types/api'
 import { gyms, initialCoach, specialties } from '@/mocks/fixtures'
 
+const wait = (ms: number) => (import.meta.env.MODE === 'test' ? Promise.resolve() : delay(ms))
+
 const MOCK_S3_URL = 'https://mock-s3.local/upload'
 const MOCK_COACH_STORAGE_KEY = 'coachmatch:mock:coach'
+const MOCK_CLIENT_STORAGE_KEY = 'coachmatch:mock:client'
 
 function buildInitialCoach(): Coach {
   return {
     ...initialCoach,
     profile: { ...initialCoach.profile },
     work_location: [...initialCoach.work_location],
+  }
+}
+
+function buildInitialClient(): Client {
+  return {
+    clientId: 'client_demo',
+    email: 'aluno@coachmatch.app',
+    status: 'ONBOARDING_PROFILE',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
   }
 }
 
@@ -42,8 +60,26 @@ function writeStoredCoach(coach: Coach): void {
   localStorage.setItem(MOCK_COACH_STORAGE_KEY, JSON.stringify(coach))
 }
 
+function readStoredClient(): Client | null {
+  if (typeof localStorage === 'undefined') return null
+  const raw = localStorage.getItem(MOCK_CLIENT_STORAGE_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as Client
+  } catch {
+    localStorage.removeItem(MOCK_CLIENT_STORAGE_KEY)
+    return null
+  }
+}
+
+function writeStoredClient(client: Client): void {
+  if (typeof localStorage === 'undefined') return
+  localStorage.setItem(MOCK_CLIENT_STORAGE_KEY, JSON.stringify(client))
+}
+
 const state = {
   coach: readStoredCoach() ?? buildInitialCoach(),
+  client: readStoredClient() ?? buildInitialClient(),
   transactions: new Map<string, Transaction>(),
 }
 
@@ -55,6 +91,16 @@ function setCoach(coach: Coach): Coach {
 
 function resetCoach(): Coach {
   return setCoach(buildInitialCoach())
+}
+
+function setClient(client: Client): Client {
+  state.client = client
+  writeStoredClient(client)
+  return state.client
+}
+
+function resetClient(): Client {
+  return setClient(buildInitialClient())
 }
 
 function paginate<T>(items: T[], page: number, limit: number): PaginatedResponse<T> {
@@ -96,13 +142,35 @@ function nowIso(): string {
 }
 
 export const handlers = [
+  http.get('*/clients/me', async () => {
+    await wait(150)
+    return HttpResponse.json<Client>(state.client)
+  }),
+
+  http.post('*/clients/me/health', async ({ request }) => {
+    await wait(200)
+    const payload = (await request.json()) as ClientHealthPayload
+    if (!payload.lgpdConsent || !payload.medicalDisclaimer) {
+      return HttpResponse.json({ error: 'Consentimentos obrigatórios.' }, { status: 400 })
+    }
+    const client = setClient({ ...state.client, status: 'ACTIVE', updatedAt: nowIso() })
+    return HttpResponse.json<Client>(client)
+  }),
+
+  http.post('*/clients/me/profile', async ({ request }) => {
+    await wait(200)
+    void ((await request.json()) as ClientProfilePayload)
+    const client = setClient({ ...state.client, status: 'ONBOARDING_HEALTH', updatedAt: nowIso() })
+    return HttpResponse.json<Client>(client)
+  }),
+
   http.get('*/coaches/me', async () => {
-    await delay(200)
+    await wait(200)
     return HttpResponse.json<Coach>(state.coach)
   }),
 
   http.put('*/coaches/me', async ({ request }) => {
-    await delay(300)
+    await wait(300)
     const payload = (await request.json()) as CoachUpdatePayload
     const coach = setCoach({
       ...state.coach,
@@ -114,16 +182,16 @@ export const handlers = [
   }),
 
   http.post('*/coaches/me/submit-for-review', async () => {
-    await delay(250)
-    if (state.coach.status !== 'PENDING_PROFILE') {
+    await wait(250)
+    if (state.coach.status !== 'ONBOARDING_PROFILE' && state.coach.status !== 'REJECTED') {
       return HttpResponse.json({ error: 'Estado atual não permite submissão.' }, { status: 409 })
     }
-    const coach = setCoach({ ...state.coach, status: 'PROFILE_REVIEW', updatedAt: nowIso() })
+    const coach = setCoach({ ...state.coach, status: 'PENDING_REVIEW', updatedAt: nowIso() })
     return HttpResponse.json<Coach>(coach)
   }),
 
   http.get('*/specialties', async ({ request }) => {
-    await delay(150)
+    await wait(150)
     const url = new URL(request.url)
     const search = url.searchParams.get('search')
     const page = getNumberParam(url, 'page', 1)
@@ -135,7 +203,7 @@ export const handlers = [
   }),
 
   http.get('*/gyms', async ({ request }) => {
-    await delay(150)
+    await wait(150)
     const url = new URL(request.url)
     const search = url.searchParams.get('search')
     const city = url.searchParams.get('city')
@@ -152,7 +220,7 @@ export const handlers = [
   }),
 
   http.post('*/gyms/suggest', async ({ request }) => {
-    await delay(250)
+    await wait(250)
     const payload = (await request.json()) as GymSuggestPayload
     const newGym: Gym = {
       gymId: `gym_${Math.random().toString(16).slice(2, 10)}`,
@@ -173,7 +241,7 @@ export const handlers = [
   }),
 
   http.post('*/upload-url', async ({ request }) => {
-    await delay(150)
+    await wait(150)
     const body = (await request.json()) as { filename: string; contentType: string }
     const key = `uploads/${String(Date.now())}-${body.filename}`
     return HttpResponse.json<UploadUrlResponse>({
@@ -190,13 +258,13 @@ export const handlers = [
   }),
 
   http.post(MOCK_S3_URL, async () => {
-    await delay(400)
+    await wait(400)
     return new HttpResponse(null, { status: 204 })
   }),
 
   // IBGE (terceiro). Mock default para testes.
   http.get('https://servicodados.ibge.gov.br/api/v1/localidades/estados', async () => {
-    await delay(50)
+    await wait(50)
     return HttpResponse.json([
       { id: 35, sigla: 'SP', nome: 'São Paulo' },
       { id: 33, sigla: 'RJ', nome: 'Rio de Janeiro' },
@@ -205,7 +273,7 @@ export const handlers = [
   }),
 
   http.get('https://servicodados.ibge.gov.br/api/v1/localidades/municipios', async () => {
-    await delay(50)
+    await wait(50)
     return HttpResponse.json([
       {
         id: 3550308,
@@ -227,7 +295,7 @@ export const handlers = [
 
   // ViaCEP (terceiro). Mock default para testes.
   http.get('https://viacep.com.br/ws/:uf/:city/:logradouro/json/', async () => {
-    await delay(50)
+    await wait(50)
     return HttpResponse.json([
       {
         cep: '01310-100',
@@ -241,14 +309,28 @@ export const handlers = [
   }),
 
   http.post('*/dev/coach/status', async ({ request }) => {
-    await delay(150)
+    await wait(150)
     const payload = (await request.json()) as { status: CoachStatus }
     const coach = setCoach({ ...state.coach, status: payload.status, updatedAt: nowIso() })
     return HttpResponse.json<Coach>(coach)
   }),
 
+  http.post('*/dev/client/onboarded', async ({ request }) => {
+    await wait(150)
+    const payload = (await request.json()) as { status: ClientStatus }
+    const client = setClient({ ...state.client, status: payload.status, updatedAt: nowIso() })
+    return HttpResponse.json<Client>(client)
+  }),
+
+  http.post('*/dev/coach/visibility', async ({ request }) => {
+    await wait(150)
+    const payload = (await request.json()) as { visibility: CoachVisibility }
+    const coach = setCoach({ ...state.coach, visibility: payload.visibility, updatedAt: nowIso() })
+    return HttpResponse.json<Coach>(coach)
+  }),
+
   http.put('*/dev/coach/profile', async ({ request }) => {
-    await delay(150)
+    await wait(150)
     const payload = (await request.json()) as CoachUpdatePayload
     const coach = setCoach({
       ...state.coach,
@@ -260,12 +342,15 @@ export const handlers = [
   }),
 
   http.post('*/dev/reset', async () => {
-    await delay(150)
-    return HttpResponse.json<{ coach: Coach }>({ coach: resetCoach() })
+    await wait(150)
+    return HttpResponse.json<{ coach: Coach; client: Client }>({
+      coach: resetCoach(),
+      client: resetClient(),
+    })
   }),
 
   http.post('*/dev/approve-coach', async () => {
-    await delay(150)
+    await wait(150)
     const coach = setCoach({ ...state.coach, status: 'APPROVED', updatedAt: nowIso() })
     return HttpResponse.json<Coach>(coach)
   }),

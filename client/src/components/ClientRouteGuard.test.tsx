@@ -1,25 +1,65 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
+import { http, HttpResponse } from 'msw'
 import { ClientRouteGuard } from './ClientRouteGuard'
 import { loginAs } from '@/test/session'
 import { useSessionStore } from '@/stores/sessionStore'
+import { createWrapper } from '@/test/createWrapper'
+import { server } from '@/mocks/server'
+import type { Client, ClientStatus } from '@/types/api'
 
-function renderGuard() {
+interface RenderOptions {
+  requireOnboarded?: boolean
+  initialPath?: string
+  guardPath?: string
+}
+
+function renderGuard({
+  requireOnboarded = false,
+  initialPath = '/client',
+  guardPath = '/client',
+}: RenderOptions = {}) {
+  const { wrapper: QueryWrapper } = createWrapper()
   return render(
-    <MemoryRouter initialEntries={['/client']}>
-      <Routes>
-        <Route
-          path="/client"
-          element={
-            <ClientRouteGuard>
-              <div>home aluno</div>
-            </ClientRouteGuard>
-          }
-        />
-        <Route path="/client/login" element={<div>login aluno</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryWrapper>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route
+            path={guardPath}
+            element={
+              <ClientRouteGuard requireOnboarded={requireOnboarded}>
+                <div>conteudo protegido</div>
+              </ClientRouteGuard>
+            }
+          />
+          <Route path="/client" element={<div>home aluno</div>} />
+          <Route path="/client/onboarding" element={<div>onboarding aluno</div>} />
+          <Route path="/client/health" element={<div>saude aluno</div>} />
+          <Route path="/client/login" element={<div>login aluno</div>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryWrapper>,
+  )
+}
+
+function mockClient(status: ClientStatus) {
+  server.use(
+    http.get('*/clients/me', () =>
+      HttpResponse.json<Client>({
+        clientId: 'client_demo',
+        email: 'aluno@coachmatch.app',
+        status,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      }),
+    ),
+  )
+}
+
+function mockClientError(status: number) {
+  server.use(
+    http.get('*/clients/me', () => HttpResponse.json({ error: 'boom' }, { status })),
   )
 }
 
@@ -29,19 +69,88 @@ describe('ClientRouteGuard', () => {
     expect(await screen.findByText('login aluno')).toBeInTheDocument()
   })
 
+  it('redireciona para /client/login e encerra sessão quando token está expirado', async () => {
+    const expiredHeader = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }))
+    const expiredPayload = btoa(JSON.stringify({ exp: 1 }))
+    loginAs('client', `${expiredHeader}.${expiredPayload}.sig`)
+    renderGuard()
+    expect(await screen.findByText('login aluno')).toBeInTheDocument()
+  })
+
   it('renderiza children quando há sessão de aluno ativa', async () => {
     loginAs('client')
-    renderGuard()
-    expect(await screen.findByText('home aluno')).toBeInTheDocument()
+    mockClient('ACTIVE')
+    renderGuard({ requireOnboarded: true })
+    expect(await screen.findByText('conteudo protegido')).toBeInTheDocument()
   })
 
   it('promove sessão de aluno quando outro papel está ativo', async () => {
     loginAs('client')
     loginAs('coach')
-    renderGuard()
-    expect(await screen.findByText('home aluno')).toBeInTheDocument()
+    mockClient('ACTIVE')
+    renderGuard({ requireOnboarded: true })
+    expect(await screen.findByText('conteudo protegido')).toBeInTheDocument()
     await waitFor(() => {
       expect(useSessionStore.getState().activeRole).toBe('client')
     })
+  })
+
+  it('redireciona home para onboarding quando aluno está na etapa de perfil', async () => {
+    loginAs('client')
+    mockClient('ONBOARDING_PROFILE')
+    renderGuard({ requireOnboarded: true })
+    expect(await screen.findByText('onboarding aluno')).toBeInTheDocument()
+  })
+
+  it('redireciona home para saúde quando aluno está na etapa de saúde', async () => {
+    loginAs('client')
+    mockClient('ONBOARDING_HEALTH')
+    renderGuard({ requireOnboarded: true })
+    expect(await screen.findByText('saude aluno')).toBeInTheDocument()
+  })
+
+  it('permanece na etapa correta quando guard sem requireOnboarded combina com status', async () => {
+    loginAs('client')
+    mockClient('ONBOARDING_PROFILE')
+    renderGuard({ initialPath: '/client/onboarding', guardPath: '/client/onboarding' })
+    expect(await screen.findByText('conteudo protegido')).toBeInTheDocument()
+  })
+
+  it('redireciona etapa errada para a etapa correta quando guard sem requireOnboarded', async () => {
+    loginAs('client')
+    mockClient('ONBOARDING_HEALTH')
+    renderGuard({ initialPath: '/client/onboarding', guardPath: '/client/onboarding' })
+    expect(await screen.findByText('saude aluno')).toBeInTheDocument()
+  })
+
+  it('redireciona aluno ACTIVE para /client quando está em etapa de onboarding', async () => {
+    loginAs('client')
+    mockClient('ACTIVE')
+    renderGuard({ initialPath: '/client/onboarding', guardPath: '/client/onboarding' })
+    expect(await screen.findByText('home aluno')).toBeInTheDocument()
+  })
+
+  it('encerra sessão e redireciona para login em erro 401 do /clients/me', async () => {
+    loginAs('client')
+    mockClientError(401)
+    renderGuard({ requireOnboarded: true })
+    expect(await screen.findByText('login aluno')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(useSessionStore.getState().sessions.client).toBeUndefined()
+    })
+  })
+
+  it('em erro genérico com requireOnboarded, redireciona para onboarding', async () => {
+    loginAs('client')
+    mockClientError(500)
+    renderGuard({ requireOnboarded: true })
+    expect(await screen.findByText('onboarding aluno')).toBeInTheDocument()
+  })
+
+  it('em erro genérico sem requireOnboarded, renderiza children como fallback', async () => {
+    loginAs('client')
+    mockClientError(500)
+    renderGuard({ initialPath: '/client/onboarding', guardPath: '/client/onboarding' })
+    expect(await screen.findByText('conteudo protegido')).toBeInTheDocument()
   })
 })

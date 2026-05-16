@@ -9,7 +9,6 @@ interface CoachSession {
 
 interface ClientSession {
   token: string
-  onboarded: boolean
 }
 
 interface Sessions {
@@ -31,7 +30,6 @@ interface SessionStore {
   endSession: (role: Role) => void
   endActiveSession: () => void
   setActiveRole: (role: Role) => void
-  markClientOnboarded: () => void
 }
 
 export const useSessionStore = create<SessionStore>()(
@@ -43,12 +41,11 @@ export const useSessionStore = create<SessionStore>()(
       startSession: (role, token) => {
         set((state) => {
           if (role === 'client') {
-            const previous = state.sessions.client
             return {
               activeRole: 'client',
               sessions: {
                 ...state.sessions,
-                client: { token, onboarded: previous?.onboarded ?? false },
+                client: { token },
               },
             }
           }
@@ -77,16 +74,6 @@ export const useSessionStore = create<SessionStore>()(
         set((state) => {
           if (!state.sessions[role]) return state
           return { activeRole: role }
-        })
-      },
-
-      markClientOnboarded: () => {
-        set((state) => {
-          const client = state.sessions.client
-          if (!client) return state
-          return {
-            sessions: { ...state.sessions, client: { ...client, onboarded: true } },
-          }
         })
       },
     }),
