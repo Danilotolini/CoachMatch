@@ -35,6 +35,18 @@ Sempre `pnpm`, nunca `npm`/`yarn`.
 - **Estilos**: Tailwind utilities no JSX. Evitar CSS modules/styled-components.
 - **Path alias**: `@/` → `client/src/` (configurado em `tsconfig.app.json` e `vite.config.ts`).
 
+## Roteamento
+
+Usamos **`react-router` v7**. Para rotas internas, prefira sempre as APIs do router em vez de `window.location`:
+
+- Navegação imperativa → `useNavigate()` + `navigate(path, { replace })` no lugar de `window.location.href`/`replace`.
+- Redirect declarativo (ex.: guards) → `<Navigate to="..." replace />`.
+- Links internos → `<Link to="...">` no lugar de `<a href="...">`.
+- Ler path → `useLocation()` no lugar de `window.location.pathname`.
+- Ler/atualizar query → `useSearchParams()` no lugar de `new URLSearchParams(window.location.search)`.
+
+`window.location` continua válido para o que o router não cobre: URLs externas (Cognito hosted UI), `window.location.origin` para montar callbacks absolutos do OAuth, `window.location.reload()`, e código fora de componentes React (ex.: `lib/cognito.ts`, stores).
+
 ## Auth / Sessão
 
 Sessão por papel (`Role = 'coach' | 'client'`) persistida em `localStorage` via zustand (`coachmatch:session`). **Múltiplas sessões coexistem; apenas uma é ativa.**
