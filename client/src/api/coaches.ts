@@ -1,8 +1,22 @@
 import { apiGet, apiPost, apiPut } from '@/lib/http'
-import type { Coach, CoachUpdatePayload } from '@/types/api'
+import type { Coach, CoachSearchFilters, CoachSearchResponse, CoachUpdatePayload } from '@/types/api'
 
 export function fetchCoachMe(): Promise<Coach> {
   return apiGet<Coach>('/coaches/me')
+}
+
+export function searchCoaches(filters: CoachSearchFilters = {}): Promise<CoachSearchResponse> {
+  return apiGet<CoachSearchResponse>('/coaches', {
+    q: filters.q,
+    'specialties[]': filters.specialties,
+    address: filters.address,
+    priceMin: filters.priceMin,
+    priceMax: filters.priceMax,
+    availableOn: filters.availableOn,
+    sort: filters.sort ?? 'rating',
+    page: filters.page ?? 1,
+    limit: filters.limit ?? 12,
+  })
 }
 
 export function updateCoachMe(payload: CoachUpdatePayload): Promise<Coach> {

@@ -12,13 +12,20 @@ export class ApiError extends Error {
   }
 }
 
-type QueryParams = Record<string, string | number | undefined>
+type QueryParamValue = string | number | readonly (string | number)[] | undefined
+type QueryParams = Record<string, QueryParamValue>
 
 function buildUrl(path: string, params?: QueryParams): string {
   const url = new URL(`${env.apiBaseUrl}${path}`)
   if (params) {
     for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined) url.searchParams.set(key, String(value))
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          url.searchParams.append(key, String(item))
+        }
+      } else if (value !== undefined) {
+        url.searchParams.set(key, String(value))
+      }
     }
   }
   return url.toString()
