@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { exchangeCodeForTokens, getLoginUrl, getLogoutUrl, logout } from './cognito'
 import { server } from '@/mocks/server'
-import { setToken, getToken } from '@/lib/auth'
+import { getToken } from '@/lib/auth'
+import { loginAs } from '@/test/session'
+import { getSessionToken, useSessionStore } from '@/stores/sessionStore'
 
 const ORIGINAL_LOCATION = window.location
 const LOCATION_PROTOTYPE = Object.getPrototypeOf(ORIGINAL_LOCATION) as object | null
@@ -12,6 +14,7 @@ function mockLocation(overrides: Partial<Location>) {
 }
 
 beforeEach(() => {
+  vi.stubEnv('VITE_API_MOCKING', 'disabled')
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
@@ -26,23 +29,25 @@ afterEach(() => {
     value: mockLocation({}),
   })
   sessionStorage.clear()
+  vi.unstubAllEnvs()
   vi.restoreAllMocks()
 })
 
 describe('getLogoutUrl', () => {
   it('monta URL de logout com client_id e logout_uri', () => {
-    const url = getLogoutUrl('/bye')
+    const url = getLogoutUrl('coach', '/bye')
     expect(url).toContain('test.auth.us-east-1.amazoncognito.com/logout?')
     expect(url).toContain('client_id=test-client-id')
     expect(url).toContain('logout_uri=http%3A%2F%2Fapp.test%2Fbye')
   })
 
-  it('usa "/" como default', () => {
-    expect(getLogoutUrl()).toContain('logout_uri=http%3A%2F%2Fapp.test')
+  it('usa a página de login do papel como returnPath default', () => {
+    expect(getLogoutUrl('coach')).toContain('logout_uri=http%3A%2F%2Fapp.test%2Fcoach%2Flogin')
+    expect(getLogoutUrl('client')).toContain('logout_uri=http%3A%2F%2Fapp.test%2Fclient%2Flogin')
   })
 
   it('monta URL de logout para o app client de aluno', () => {
-    const url = getLogoutUrl('/', 'student')
+    const url = getLogoutUrl('client', '/')
     expect(url).toContain('/logout?')
     expect(url).toContain('client_id=3rjn45koljliioocd5usijdv9s')
     expect(url).toContain('logout_uri=http%3A%2F%2Fapp.test')
@@ -50,18 +55,38 @@ describe('getLogoutUrl', () => {
 })
 
 describe('logout', () => {
-  it('limpa token e redireciona para URL de logout do Cognito', () => {
-    setToken('abc')
-    logout('/bye')
+  it('limpa sessão do papel e redireciona para URL de logout do Cognito', () => {
+    loginAs('coach', 'abc')
+    logout('coach', '/bye')
     expect(getToken()).toBeNull()
     expect(window.location.href).toContain('/logout')
     expect(window.location.href).toContain('logout_uri=http%3A%2F%2Fapp.test%2Fbye')
+  })
+
+  it('preserva sessão de outro papel ao deslogar', () => {
+    loginAs('client', 'aluno-token')
+    loginAs('coach', 'coach-token')
+    logout('coach', '/bye')
+    // sessão do aluno permanece disponível para reativação
+    expect(getToken()).toBeNull()
+    expect(getSessionToken('client')).toBe('aluno-token')
+    useSessionStore.getState().setActiveRole('client')
+    expect(getToken()).toBe('aluno-token')
+  })
+
+  it('em mock mode, redireciona pro returnPath sem chamar o Cognito', () => {
+    vi.stubEnv('VITE_API_MOCKING', 'enabled')
+    loginAs('coach', 'abc')
+    logout('coach', '/bye')
+    expect(getToken()).toBeNull()
+    expect(window.location.href).toBe('/bye')
+    expect(window.location.href).not.toContain('/logout?')
   })
 })
 
 describe('getLoginUrl', () => {
   it('grava PKCE verifier + state e retorna URL de authorize', async () => {
-    const raw = await getLoginUrl()
+    const raw = await getLoginUrl('coach')
     const [base, query] = raw.split('?')
     const params = new URLSearchParams(query)
 
@@ -81,7 +106,7 @@ describe('getLoginUrl', () => {
   })
 
   it('usa redirect e chaves PKCE de aluno', async () => {
-    const raw = await getLoginUrl('student')
+    const raw = await getLoginUrl('client')
     const [, query] = raw.split('?')
     const params = new URLSearchParams(query)
 
@@ -111,7 +136,7 @@ describe('exchangeCodeForTokens', () => {
       ),
     )
 
-    const tokens = await exchangeCodeForTokens('code-abc', 'xyz')
+    const tokens = await exchangeCodeForTokens('code-abc', 'xyz', 'coach')
     expect(tokens.id_token).toBe('id-1')
     expect(tokens.refresh_token).toBe('ref-1')
 
@@ -122,12 +147,16 @@ describe('exchangeCodeForTokens', () => {
 
   it('rejeita quando state não confere', async () => {
     seedSession('xyz', 'verifier-123')
-    await expect(exchangeCodeForTokens('code-abc', 'outro')).rejects.toThrow(/Estado inválido/i)
+    await expect(exchangeCodeForTokens('code-abc', 'outro', 'coach')).rejects.toThrow(
+      /Estado inválido/i,
+    )
   })
 
   it('rejeita quando não há verifier salvo', async () => {
     sessionStorage.setItem('cognito_coach_oauth_state', 'xyz')
-    await expect(exchangeCodeForTokens('code-abc', 'xyz')).rejects.toThrow(/Sessão de login/i)
+    await expect(exchangeCodeForTokens('code-abc', 'xyz', 'coach')).rejects.toThrow(
+      /Sessão de login/i,
+    )
   })
 
   it('propaga error_description do Cognito quando token endpoint falha', async () => {
@@ -141,14 +170,14 @@ describe('exchangeCodeForTokens', () => {
       ),
     )
 
-    await expect(exchangeCodeForTokens('code-abc', 'xyz')).rejects.toThrow('code expirado')
+    await expect(exchangeCodeForTokens('code-abc', 'xyz', 'coach')).rejects.toThrow('code expirado')
   })
 
   it('rejeita quando a resposta tem formato inválido', async () => {
     seedSession('xyz', 'verifier-123')
     server.use(http.post('*/oauth2/token', () => HttpResponse.json({ id_token: 'só-isso' })))
 
-    await expect(exchangeCodeForTokens('code-abc', 'xyz')).rejects.toThrow(
+    await expect(exchangeCodeForTokens('code-abc', 'xyz', 'coach')).rejects.toThrow(
       /Resposta de autenticação inválida/i,
     )
   })
@@ -169,7 +198,7 @@ describe('exchangeCodeForTokens', () => {
       }),
     )
 
-    const tokens = await exchangeCodeForTokens('code-abc', 'xyz', 'student')
+    const tokens = await exchangeCodeForTokens('code-abc', 'xyz', 'client')
 
     expect(tokens.id_token).toBe('student-id')
     expect(body).toContain('client_id=3rjn45koljliioocd5usijdv9s')

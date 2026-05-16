@@ -8,6 +8,7 @@ import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
 import { initialCoach } from '@/mocks/fixtures'
 import { getToken } from '@/lib/auth'
+import { useSessionStore } from '@/stores/sessionStore'
 import type { Coach } from '@/types/api'
 
 const ORIGINAL_LOCATION = window.location
@@ -36,6 +37,7 @@ function renderPage(audience: 'coach' | 'client' = 'coach') {
           <Route path={callbackPath} element={<CognitoCallbackPage audience={audience} />} />
           <Route path="/coach/onboarding" element={<div>onboarding page</div>} />
           <Route path="/client/onboarding" element={<div>onboarding aluno page</div>} />
+          <Route path="/client" element={<div>home aluno page</div>} />
           <Route path="/coach/pending-review" element={<div>analise page</div>} />
           <Route path="/coach" element={<div>dashboard page</div>} />
           <Route path="/coach/rejected" element={<div>reprovado page</div>} />
@@ -113,7 +115,7 @@ describe('CognitoCallbackPage', () => {
     expect(await screen.findByText('onboarding page')).toBeInTheDocument()
   })
 
-  it('troca code como cliente e redireciona direto para onboarding de cliente', async () => {
+  it('troca code como cliente e redireciona para onboarding quando ainda não onboarded', async () => {
     setLocationSearch('?code=abc&state=xyz')
     const exchangeSpy = vi.spyOn(cognito, 'exchangeCodeForTokens').mockResolvedValue({
       id_token: 'student-id-token-123',
@@ -125,7 +127,26 @@ describe('CognitoCallbackPage', () => {
 
     expect(await screen.findByText('onboarding aluno page')).toBeInTheDocument()
     expect(getToken()).toBe('student-id-token-123')
-    expect(exchangeSpy).toHaveBeenCalledWith('abc', 'xyz', 'student')
+    expect(exchangeSpy).toHaveBeenCalledWith('abc', 'xyz', 'client')
+  })
+
+  it('redireciona aluno direto para /client quando já onboarded', async () => {
+    setLocationSearch('?code=abc&state=xyz')
+    // simula sessão anterior do aluno com onboarded preservado
+    useSessionStore.setState({
+      activeRole: null,
+      sessions: { client: { token: 'old', onboarded: true } },
+    })
+    vi.spyOn(cognito, 'exchangeCodeForTokens').mockResolvedValue({
+      id_token: 'novo-token',
+      access_token: 'acc',
+      expires_in: 3600,
+    })
+
+    renderPage('client')
+
+    expect(await screen.findByText('home aluno page')).toBeInTheDocument()
+    expect(getToken()).toBe('novo-token')
   })
 
   it('mostra erro quando exchangeCodeForTokens falha', async () => {

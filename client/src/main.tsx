@@ -8,8 +8,12 @@ import './index.css'
 
 async function enableMocking() {
   if (!import.meta.env.DEV || import.meta.env.VITE_API_MOCKING !== 'enabled') return
-  const { worker } = await import('@/mocks/browser')
+  const [{ worker }, { installMockSession }] = await Promise.all([
+    import('@/mocks/browser'),
+    import('@/mocks/auth'),
+  ])
   await worker.start({ onUnhandledRequest: 'bypass' })
+  installMockSession()
 }
 
 import WelcomePage from '@/pages/WelcomePage'
@@ -33,9 +37,9 @@ const router = createBrowserRouter([
     children: [
       { path: '/', element: <WelcomePage /> },
       { path: '/rotas', element: <RoutesTestPage /> },
-      { path: '/coach/login', element: <LoginPage /> },
+      { path: '/coach/login', element: <LoginPage audience="coach" /> },
       { path: '/client/login', element: <LoginPage audience="client" /> },
-      { path: '/auth/cognito/callback', element: <CognitoCallbackPage /> },
+      { path: '/auth/cognito/callback', element: <CognitoCallbackPage audience="coach" /> },
       {
         path: '/auth/cognito/student/callback',
         element: <CognitoCallbackPage audience="client" />,
