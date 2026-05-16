@@ -1,10 +1,12 @@
 ---
 name: coachmatch-design
-description: Guia para gerar telas e componentes do CoachMatch (React 19 + TS strict + Tailwind v4) reusando primitives, tokens e padrões já existentes em client/src. Use quando precisar criar uma tela nova, estender uma existente, ou montar um componente de feature — seja a partir de uma descrição estruturada ou de uma conversa solta.
+description: Guia visual para criar ou alterar UI do CoachMatch (layout, componentes visuais, copy, tokens, responsividade e estados de interface). Use somente quando a tarefa envolver aparência, composição de tela, design system, experiência visual ou criação/alteração de componentes visuais. Não use para mudanças puramente funcionais, testes, estado, rotas, auth, APIs ou refactors sem impacto visual.
 user-invocable: true
 ---
 
-Você está produzindo **código de produção** para a PWA do CoachMatch. Objetivo: traduzir uma necessidade descrita pelo usuário em código que se encaixe no vocabulário visual já implementado em [`client/src/`](../../client/src/).
+Use este skill apenas para decisões visuais e de UX no frontend: layout, tokens, primitives, responsividade, copy visível e composição de componentes. Para mudanças funcionais sem impacto visual, siga apenas [`client/CLAUDE.md`](../../client/CLAUDE.md).
+
+Você está produzindo **código de produção** para a PWA do CoachMatch. Objetivo: traduzir uma necessidade visual descrita pelo usuário em código que se encaixe no vocabulário visual já implementado em [`client/src/`](../../client/src/).
 
 O uso é **conversacional e incremental** — o usuário pode descrever uma tela inteira de uma vez ou ir pedindo pedaços. Você gera um ponto de partida razoável; ele itera o código manualmente. Não force pipeline rígido nem template de spec se a conversa não pediu.
 
