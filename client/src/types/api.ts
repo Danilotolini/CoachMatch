@@ -52,6 +52,34 @@ export interface CoachUpdatePayload {
   work_location?: WorkLocation[]
 }
 
+export type CoachSearchSort = 'rating' | 'price_asc' | 'price_desc'
+
+export interface CoachListItem {
+  coachId: string
+  name: string
+  specialties: string[]
+  rating: number
+  priceFrom: number
+  neighborhood: string
+  city: string
+  nextAvailability: string
+  photo: string | null
+}
+
+export interface CoachSearchFilters {
+  q?: string | undefined
+  specialties?: string[] | undefined
+  address?: string | undefined
+  priceMin?: number | undefined
+  priceMax?: number | undefined
+  availableOn?: string | undefined
+  sort?: CoachSearchSort | undefined
+  page?: number | undefined
+  limit?: number | undefined
+}
+
+export type CoachSearchResponse = PaginatedResponse<CoachListItem>
+
 export interface Client {
   clientId: string
   email: string

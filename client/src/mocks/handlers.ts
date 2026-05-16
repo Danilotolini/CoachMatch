@@ -5,6 +5,8 @@ import type {
   ClientProfilePayload,
   ClientStatus,
   Coach,
+  CoachListItem,
+  CoachSearchSort,
   CoachStatus,
   CoachVisibility,
   CoachUpdatePayload,
@@ -24,6 +26,141 @@ const wait = (ms: number) => (import.meta.env.MODE === 'test' ? Promise.resolve(
 const MOCK_S3_URL = 'https://mock-s3.local/upload'
 const MOCK_COACH_STORAGE_KEY = 'coachmatch:mock:coach'
 const MOCK_CLIENT_STORAGE_KEY = 'coachmatch:mock:client'
+
+const coachSearchFixtures: CoachListItem[] = [
+  {
+    coachId: 'coach_marcos',
+    name: 'Marcos Vieira',
+    specialties: ['Musculação', 'Hipertrofia'],
+    rating: 4.9,
+    priceFrom: 180,
+    neighborhood: 'Pinheiros',
+    city: 'São Paulo',
+    nextAvailability: 'Hoje às 18h',
+    photo: '/assets/images/onboarding-hero-mobile.png',
+  },
+  {
+    coachId: 'coach_julia',
+    name: 'Julia Ramos',
+    specialties: ['Funcional', 'Mobilidade'],
+    rating: 4.8,
+    priceFrom: 150,
+    neighborhood: 'Vila Madalena',
+    city: 'São Paulo',
+    nextAvailability: 'Amanhã cedo',
+    photo: null,
+  },
+  {
+    coachId: 'coach_rafael',
+    name: 'Rafael Souza',
+    specialties: ['Crossfit', 'Condicionamento'],
+    rating: 5,
+    priceFrom: 210,
+    neighborhood: 'Itaim Bibi',
+    city: 'São Paulo',
+    nextAvailability: 'Sábado às 10h',
+    photo: null,
+  },
+  {
+    coachId: 'coach_bia',
+    name: 'Bia Martins',
+    specialties: ['Reabilitação', 'Pilates'],
+    rating: 4.7,
+    priceFrom: 165,
+    neighborhood: 'Perdizes',
+    city: 'São Paulo',
+    nextAvailability: 'Segunda às 9h',
+    photo: null,
+  },
+  {
+    coachId: 'coach_caio',
+    name: 'Caio Lima',
+    specialties: ['Corrida', 'Performance'],
+    rating: 4.6,
+    priceFrom: 130,
+    neighborhood: 'Moema',
+    city: 'São Paulo',
+    nextAvailability: 'Hoje às 20h',
+    photo: null,
+  },
+  {
+    coachId: 'coach_larissa',
+    name: 'Larissa Nunes',
+    specialties: ['Yoga', 'Mobilidade'],
+    rating: 4.9,
+    priceFrom: 120,
+    neighborhood: 'Bela Vista',
+    city: 'São Paulo',
+    nextAvailability: 'Quinta às 7h',
+    photo: null,
+  },
+  {
+    coachId: 'coach_thiago',
+    name: 'Thiago Rocha',
+    specialties: ['Musculação', 'Emagrecimento'],
+    rating: 4.5,
+    priceFrom: 95,
+    neighborhood: 'Tatuapé',
+    city: 'São Paulo',
+    nextAvailability: 'Sexta às 17h',
+    photo: null,
+  },
+  {
+    coachId: 'coach_natalia',
+    name: 'Natália Alves',
+    specialties: ['Funcional', 'Gestantes'],
+    rating: 4.8,
+    priceFrom: 175,
+    neighborhood: 'Leblon',
+    city: 'Rio de Janeiro',
+    nextAvailability: 'Amanhã às 16h',
+    photo: null,
+  },
+  {
+    coachId: 'coach_andre',
+    name: 'André Ferreira',
+    specialties: ['Natação', 'Condicionamento'],
+    rating: 4.4,
+    priceFrom: 140,
+    neighborhood: 'Botafogo',
+    city: 'Rio de Janeiro',
+    nextAvailability: 'Terça às 8h',
+    photo: null,
+  },
+  {
+    coachId: 'coach_manu',
+    name: 'Manu Costa',
+    specialties: ['Dança', 'Funcional'],
+    rating: 4.7,
+    priceFrom: 110,
+    neighborhood: 'Boa Viagem',
+    city: 'Recife',
+    nextAvailability: 'Hoje às 19h',
+    photo: null,
+  },
+  {
+    coachId: 'coach_gustavo',
+    name: 'Gustavo Melo',
+    specialties: ['Lutas', 'Boxe'],
+    rating: 4.6,
+    priceFrom: 155,
+    neighborhood: 'Casa Forte',
+    city: 'Recife',
+    nextAvailability: 'Sábado às 11h',
+    photo: null,
+  },
+  {
+    coachId: 'coach_priscila',
+    name: 'Priscila Duarte',
+    specialties: ['Reabilitação', 'Mobilidade'],
+    rating: 4.95,
+    priceFrom: 220,
+    neighborhood: 'Jardins',
+    city: 'São Paulo',
+    nextAvailability: 'Quarta às 14h',
+    photo: null,
+  },
+]
 
 function buildInitialCoach(): Coach {
   return {
@@ -137,6 +274,28 @@ function matchesExact(haystack: string, needle: string | null): boolean {
   return haystack.toLowerCase() === needle.toLowerCase()
 }
 
+function normalizeText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function getArrayParam(url: URL, key: string): string[] {
+  return [...url.searchParams.getAll(key), ...url.searchParams.getAll(key.replace('[]', ''))]
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim())
+    .filter(Boolean)
+}
+
+function sortCoachResults(items: CoachListItem[], sort: CoachSearchSort): CoachListItem[] {
+  return [...items].sort((a, b) => {
+    if (sort === 'price_asc') return a.priceFrom - b.priceFrom
+    if (sort === 'price_desc') return b.priceFrom - a.priceFrom
+    return b.rating - a.rating
+  })
+}
+
 function nowIso(): string {
   return new Date().toISOString()
 }
@@ -167,6 +326,48 @@ export const handlers = [
   http.get('*/coaches/me', async () => {
     await wait(200)
     return HttpResponse.json<Coach>(state.coach)
+  }),
+
+  http.get('*/coaches', async ({ request }) => {
+    await wait(180)
+    const url = new URL(request.url)
+    const query = url.searchParams.get('q')
+    const specialtiesFilter = getArrayParam(url, 'specialties[]')
+    const address = url.searchParams.get('address')
+    const priceMin = url.searchParams.get('priceMin')
+    const priceMax = url.searchParams.get('priceMax')
+    const availableOn = url.searchParams.get('availableOn')
+    const page = getNumberParam(url, 'page', 1)
+    const limit = getNumberParam(url, 'limit', 12)
+    const sort = (url.searchParams.get('sort') ?? 'rating') as CoachSearchSort
+
+    const filtered = coachSearchFixtures.filter((coach) => {
+      const searchable = normalizeText(
+        [coach.name, coach.city, coach.neighborhood, ...coach.specialties].join(' '),
+      )
+      const matchesQuery = !query || searchable.includes(normalizeText(query))
+      const matchesSpecialty =
+        specialtiesFilter.length === 0 ||
+        specialtiesFilter.some((item) =>
+          coach.specialties.some((specialty) => normalizeText(specialty).includes(normalizeText(item))),
+        )
+      const matchesAddress =
+        !address ||
+        normalizeText(`${coach.neighborhood} ${coach.city}`).includes(normalizeText(address))
+      const matchesMin = !priceMin || coach.priceFrom >= Number(priceMin)
+      const matchesMax = !priceMax || coach.priceFrom <= Number(priceMax)
+      const matchesAvailability = !availableOn || coach.nextAvailability.length > 0
+      return (
+        matchesQuery &&
+        matchesSpecialty &&
+        matchesAddress &&
+        matchesMin &&
+        matchesMax &&
+        matchesAvailability
+      )
+    })
+
+    return HttpResponse.json(paginate(sortCoachResults(filtered, sort), page, limit))
   }),
 
   http.put('*/coaches/me', async ({ request }) => {
