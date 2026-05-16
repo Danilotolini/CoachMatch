@@ -9,8 +9,6 @@ function DevToolsFab() {
   return (
     <Link
       to="/dev"
-      target="_blank"
-      rel="noreferrer"
       aria-label="Abrir painel dev"
       title="Painel dev"
       className="fixed right-3 bottom-18 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-on-primary-fixed shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-all hover:brightness-105 active:scale-95"

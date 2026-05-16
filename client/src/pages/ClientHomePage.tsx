@@ -86,7 +86,7 @@ export default function ClientHomePage() {
   const firstName = useMemo(() => user.name?.split(' ')[0] ?? 'aluno', [user.name])
 
   function handleLogout() {
-    logout('client')
+    logout('client', '/')
   }
 
   return (
