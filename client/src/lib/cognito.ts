@@ -1,14 +1,18 @@
 import { env } from '@/lib/env'
-import { clearToken } from '@/lib/auth'
+import { type Role, useSessionStore } from '@/stores/sessionStore'
 
-export type CognitoAudience = 'coach' | 'student'
+type ExternalAudience = 'coach' | 'student'
 
-function pkceKey(audience: CognitoAudience): string {
-  return `cognito_${audience}_pkce_verifier`
+function externalAudience(role: Role): ExternalAudience {
+  return role === 'client' ? 'student' : 'coach'
 }
 
-function stateKey(audience: CognitoAudience): string {
-  return `cognito_${audience}_oauth_state`
+function pkceKey(role: Role): string {
+  return `cognito_${externalAudience(role)}_pkce_verifier`
+}
+
+function stateKey(role: Role): string {
+  return `cognito_${externalAudience(role)}_oauth_state`
 }
 
 interface CognitoClientConfig {
@@ -18,18 +22,18 @@ interface CognitoClientConfig {
   redirectUri: string
 }
 
-function redirectUri(audience: CognitoAudience): string {
-  if (audience === 'student') return `${window.location.origin}/auth/cognito/student/callback`
+function redirectUri(role: Role): string {
+  if (role === 'client') return `${window.location.origin}/auth/cognito/student/callback`
   return `${window.location.origin}/auth/cognito/callback`
 }
 
-function clientConfig(audience: CognitoAudience): CognitoClientConfig {
-  if (audience === 'student') {
+function clientConfig(role: Role): CognitoClientConfig {
+  if (role === 'client') {
     return {
       clientId: env.cognitoStudentClientId,
       clientSecret: null,
       domain: env.cognitoStudentDomain,
-      redirectUri: redirectUri(audience),
+      redirectUri: redirectUri(role),
     }
   }
 
@@ -37,8 +41,12 @@ function clientConfig(audience: CognitoAudience): CognitoClientConfig {
     clientId: env.cognitoClientId,
     clientSecret: env.cognitoClientSecret,
     domain: env.cognitoDomain,
-    redirectUri: redirectUri(audience),
+    redirectUri: redirectUri(role),
   }
+}
+
+function defaultReturnPath(role: Role): string {
+  return role === 'client' ? '/client/login' : '/coach/login'
 }
 
 function logoutUri(returnPath: string): string {
@@ -46,8 +54,8 @@ function logoutUri(returnPath: string): string {
   return `${window.location.origin}${returnPath}`
 }
 
-export function getLogoutUrl(returnPath = '/', audience: CognitoAudience = 'coach'): string {
-  const config = clientConfig(audience)
+export function getLogoutUrl(role: Role, returnPath: string = defaultReturnPath(role)): string {
+  const config = clientConfig(role)
   const params = new URLSearchParams({
     client_id: config.clientId,
     logout_uri: logoutUri(returnPath),
@@ -55,12 +63,16 @@ export function getLogoutUrl(returnPath = '/', audience: CognitoAudience = 'coac
   return `${config.domain}/logout?${params.toString()}`
 }
 
-// Limpa token local e redireciona para o /logout do Cognito Hosted UI,
-// que encerra a sessão lá e devolve o usuário ao logout_uri configurado.
-// O logout_uri precisa estar na lista "Allowed sign-out URLs" do App Client.
-export function logout(returnPath = '/', audience: CognitoAudience = 'coach'): void {
-  clearToken()
-  window.location.href = getLogoutUrl(returnPath, audience)
+// Limpa apenas a sessão do papel atual e redireciona para o /logout do
+// Cognito Hosted UI, que encerra a sessão lá e devolve o usuário à tela
+// de login do mesmo papel. Sessões de outros papéis permanecem ativas.
+export function logout(role: Role, returnPath: string = defaultReturnPath(role)): void {
+  useSessionStore.getState().endSession(role)
+  if (import.meta.env.VITE_API_MOCKING === 'enabled') {
+    window.location.href = returnPath
+    return
+  }
+  window.location.href = getLogoutUrl(role, returnPath)
 }
 
 function base64UrlEncode(buffer: ArrayBuffer): string {
@@ -80,14 +92,14 @@ async function sha256(input: string): Promise<ArrayBuffer> {
   return crypto.subtle.digest('SHA-256', new TextEncoder().encode(input))
 }
 
-export async function getLoginUrl(audience: CognitoAudience = 'coach'): Promise<string> {
-  const config = clientConfig(audience)
+export async function getLoginUrl(role: Role): Promise<string> {
+  const config = clientConfig(role)
   const verifier = randomBase64Url(32)
   const challenge = base64UrlEncode(await sha256(verifier))
   const state = randomBase64Url(16)
 
-  sessionStorage.setItem(pkceKey(audience), verifier)
-  sessionStorage.setItem(stateKey(audience), state)
+  sessionStorage.setItem(pkceKey(role), verifier)
+  sessionStorage.setItem(stateKey(role), state)
 
   const params = new URLSearchParams({
     client_id: config.clientId,
@@ -150,13 +162,13 @@ function parseTokenResponse(value: unknown): TokenResponse {
 export async function exchangeCodeForTokens(
   code: string,
   state: string | null,
-  audience: CognitoAudience = 'coach',
+  role: Role,
 ): Promise<TokenResponse> {
-  const config = clientConfig(audience)
-  const expectedState = sessionStorage.getItem(stateKey(audience))
-  const verifier = sessionStorage.getItem(pkceKey(audience))
-  sessionStorage.removeItem(stateKey(audience))
-  sessionStorage.removeItem(pkceKey(audience))
+  const config = clientConfig(role)
+  const expectedState = sessionStorage.getItem(stateKey(role))
+  const verifier = sessionStorage.getItem(pkceKey(role))
+  sessionStorage.removeItem(stateKey(role))
+  sessionStorage.removeItem(pkceKey(role))
 
   if (!expectedState || expectedState !== state) {
     throw new Error('Estado inválido. Reinicie o login.')

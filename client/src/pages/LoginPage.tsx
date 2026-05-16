@@ -1,18 +1,30 @@
 import { useEffect, useState } from 'react'
-import { type AppAudience, toCognitoAudience } from '@/lib/audience'
+import { type Role, useSessionStore } from '@/stores/sessionStore'
 import { getLoginUrl } from '@/lib/cognito'
 
 interface LoginPageProps {
-  audience?: AppAudience
+  audience: Role
 }
 
-export default function LoginPage({ audience = 'coach' }: LoginPageProps) {
+export default function LoginPage({ audience }: LoginPageProps) {
   const [loginUrl, setLoginUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const hasSession = useSessionStore((state) => !!state.sessions[audience]?.token)
+  const clientOnboarded = useSessionStore((state) => state.sessions.client?.onboarded ?? false)
+  const setActiveRole = useSessionStore((state) => state.setActiveRole)
+
   useEffect(() => {
+    if (hasSession) {
+      setActiveRole(audience)
+      const target =
+        audience === 'client' ? (clientOnboarded ? '/client' : '/client/onboarding') : '/coach'
+      window.location.replace(target)
+      return
+    }
+
     let cancelled = false
-    getLoginUrl(toCognitoAudience(audience))
+    getLoginUrl(audience)
       .then((url) => {
         if (cancelled) return
         setLoginUrl(url)
@@ -26,7 +38,7 @@ export default function LoginPage({ audience = 'coach' }: LoginPageProps) {
     return () => {
       cancelled = true
     }
-  }, [audience])
+  }, [audience, hasSession, clientOnboarded, setActiveRole])
 
   if (error) {
     return (
