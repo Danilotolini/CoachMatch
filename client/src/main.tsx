@@ -20,12 +20,12 @@ import WelcomePage from '@/pages/WelcomePage'
 import LoginPage from '@/pages/LoginPage'
 import RoutesTestPage from '@/pages/RoutesTestPage'
 import CognitoCallbackPage from '@/pages/CognitoCallbackPage'
-import OnboardingPage from '@/pages/OnboardingPage'
+import CoachOnboardingPage from '@/pages/CoachOnboardingPage'
 import ClientOnboardingPage from '@/pages/ClientOnboardingPage'
 import ClientHealthFormPage from '@/pages/ClientHealthFormPage'
-import PendingReviewPage from '@/pages/PendingReviewPage'
-import RejectedPage from '@/pages/RejectedPage'
-import DashboardPage from '@/pages/DashboardPage'
+import CoachPendingReviewPage from '@/pages/CoachPendingReviewPage'
+import CoachRejectedPage from '@/pages/CoachRejectedPage'
+import CoachDashboardPage from '@/pages/CoachDashboardPage'
 import ClientHomePage from '@/pages/ClientHomePage'
 import PaymentPage from '@/pages/PaymentPage'
 import { RouteGuard } from '@/components/RouteGuard'
@@ -51,7 +51,7 @@ const router = createBrowserRouter([
         path: '/coach/onboarding',
         element: (
           <RouteGuard allow={['PENDING_PROFILE']}>
-            <OnboardingPage />
+            <CoachOnboardingPage />
           </RouteGuard>
         ),
       },
@@ -59,7 +59,7 @@ const router = createBrowserRouter([
         path: '/coach/pending-review',
         element: (
           <RouteGuard allow={['PROFILE_REVIEW']}>
-            <PendingReviewPage />
+            <CoachPendingReviewPage />
           </RouteGuard>
         ),
       },
@@ -67,7 +67,7 @@ const router = createBrowserRouter([
         path: '/coach/rejected',
         element: (
           <RouteGuard allow={['REJECTED', 'INACTIVE']}>
-            <RejectedPage />
+            <CoachRejectedPage />
           </RouteGuard>
         ),
       },
@@ -75,7 +75,7 @@ const router = createBrowserRouter([
         path: '/coach',
         element: (
           <RouteGuard allow={['APPROVED', 'ACTIVE']}>
-            <DashboardPage />
+            <CoachDashboardPage />
           </RouteGuard>
         ),
       },

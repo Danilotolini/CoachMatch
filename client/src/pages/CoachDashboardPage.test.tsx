@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import DashboardPage from './DashboardPage'
+import CoachDashboardPage from './CoachDashboardPage'
 import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
 import { initialCoach } from '@/mocks/fixtures'
@@ -14,7 +14,7 @@ function renderPage() {
   const { wrapper: Wrapper } = createWrapper()
   return render(
     <Wrapper>
-      <DashboardPage />
+      <CoachDashboardPage />
     </Wrapper>,
   )
 }
@@ -27,7 +27,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('DashboardPage', () => {
+describe('CoachDashboardPage', () => {
   it('mostra o primeiro nome do coach', async () => {
     server.use(
       http.get('*/coaches/me', () =>

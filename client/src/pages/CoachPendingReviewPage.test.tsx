@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import PendingReviewPage from './PendingReviewPage'
+import CoachPendingReviewPage from './CoachPendingReviewPage'
 import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
 import * as cognito from '@/lib/cognito'
@@ -11,7 +11,7 @@ function renderPage() {
   const { wrapper: Wrapper } = createWrapper()
   return render(
     <Wrapper>
-      <PendingReviewPage />
+      <CoachPendingReviewPage />
     </Wrapper>,
   )
 }
@@ -20,7 +20,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('PendingReviewPage', () => {
+describe('CoachPendingReviewPage', () => {
   it('renderiza título e steps de progresso', () => {
     renderPage()
     expect(screen.getByRole('heading', { name: /Perfil em análise/i })).toBeInTheDocument()

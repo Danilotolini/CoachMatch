@@ -7,7 +7,7 @@ import { logout } from '@/lib/cognito'
  * - Desktop (lg+): 3-col shell — sticky 240px side rail (logo + nav + logout),
  *   main feed (max-w-3xl), sticky 320px aside (approved banner + profile card).
  */
-export default function DashboardPage() {
+export default function CoachDashboardPage() {
   const { data } = useCoachMe()
 
   const profile = data?.profile

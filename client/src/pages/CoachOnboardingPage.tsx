@@ -40,7 +40,7 @@ function statusToRoute(status: Coach['status']): string {
   }
 }
 
-export default function OnboardingPage() {
+export default function CoachOnboardingPage() {
   const navigate = useNavigate()
   const authUser = getAuthUser()
   const updateCoach = useUpdateCoachMe()

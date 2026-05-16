@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import RejectedPage from './RejectedPage'
+import CoachRejectedPage from './CoachRejectedPage'
 
-describe('RejectedPage', () => {
+describe('CoachRejectedPage', () => {
   it('renderiza título e link de voltar', () => {
     render(
       <MemoryRouter>
-        <RejectedPage />
+        <CoachRejectedPage />
       </MemoryRouter>,
     )
 
