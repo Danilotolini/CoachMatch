@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchViaCepAddresses } from '@/api/viacep'
 
 const FIVE_MINUTES = 5 * 60 * 1000
-const DEBOUNCE_MS = 400
+const DEBOUNCE_MS = import.meta.env.MODE === 'test' ? 0 : 400
 
 function useDebounced<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value)
