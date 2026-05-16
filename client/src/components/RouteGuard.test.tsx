@@ -43,7 +43,7 @@ describe('RouteGuard', () => {
 
   it('renderiza children quando status do coach está em allow', async () => {
     loginAs('coach')
-    renderGuard(['PENDING_PROFILE'])
+    renderGuard(['ONBOARDING_PROFILE'])
     expect(await screen.findByText('conteúdo protegido')).toBeInTheDocument()
   })
 
@@ -54,7 +54,7 @@ describe('RouteGuard', () => {
         HttpResponse.json<Coach>({ ...initialCoach, status: 'APPROVED' }),
       ),
     )
-    renderGuard(['PENDING_PROFILE'])
+    renderGuard(['ONBOARDING_PROFILE'])
     expect(await screen.findByText('dashboard page')).toBeInTheDocument()
   })
 
@@ -63,12 +63,12 @@ describe('RouteGuard', () => {
     server.use(
       http.get('*/coaches/me', () => HttpResponse.json({ error: 'unauthorized' }, { status: 401 })),
     )
-    renderGuard(['PENDING_PROFILE'])
+    renderGuard(['ONBOARDING_PROFILE'])
     expect(await screen.findByText('login page')).toBeInTheDocument()
     expect(getToken()).toBeNull()
   })
 
-  it('em 404 redireciona para onboarding quando PENDING_PROFILE não está em allow', async () => {
+  it('em 404 redireciona para onboarding quando ONBOARDING_PROFILE não está em allow', async () => {
     loginAs('coach')
     server.use(
       http.get('*/coaches/me', () => HttpResponse.json({ error: 'not found' }, { status: 404 })),
@@ -77,18 +77,18 @@ describe('RouteGuard', () => {
     expect(await screen.findByText('onboarding page')).toBeInTheDocument()
   })
 
-  it('em 404 renderiza children quando PENDING_PROFILE está em allow', async () => {
+  it('em 404 renderiza children quando ONBOARDING_PROFILE está em allow', async () => {
     loginAs('coach')
     server.use(
       http.get('*/coaches/me', () => HttpResponse.json({ error: 'not found' }, { status: 404 })),
     )
-    renderGuard(['PENDING_PROFILE'])
+    renderGuard(['ONBOARDING_PROFILE'])
     expect(await screen.findByText('conteúdo protegido')).toBeInTheDocument()
   })
 
   it('mostra spinner enquanto carrega', () => {
     loginAs('coach')
-    const { container } = renderGuard(['PENDING_PROFILE'])
+    const { container } = renderGuard(['ONBOARDING_PROFILE'])
     expect(container.querySelector('.animate-spin')).not.toBeNull()
   })
 })

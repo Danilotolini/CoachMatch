@@ -27,13 +27,11 @@ const FALLBACK_SPECIALTIES: Specialty[] = [
 
 function statusToRoute(status: Coach['status']): string {
   switch (status) {
-    case 'PROFILE_REVIEW':
+    case 'PENDING_REVIEW':
       return '/coach/pending-review'
     case 'APPROVED':
-    case 'ACTIVE':
       return '/coach'
     case 'REJECTED':
-    case 'INACTIVE':
       return '/coach/rejected'
     default:
       return '/coach/onboarding'

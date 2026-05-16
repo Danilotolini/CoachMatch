@@ -21,7 +21,7 @@ describe('useCoachMe', () => {
     })
 
     expect(result.current.data?.email).toBe('mock@coachmatch.app')
-    expect(result.current.data?.status).toBe('PENDING_PROFILE')
+    expect(result.current.data?.status).toBe('ONBOARDING_PROFILE')
   })
 
   it('fica idle sem token', () => {
@@ -70,7 +70,7 @@ describe('useUpdateCoachMe', () => {
 })
 
 describe('useSubmitCoachForReview', () => {
-  it('muda o status para PROFILE_REVIEW e atualiza o cache', async () => {
+  it('muda o status para PENDING_REVIEW e atualiza o cache', async () => {
     const { wrapper, queryClient } = createWrapper()
     const { result } = renderHook(() => useSubmitCoachForReview(), { wrapper })
 
@@ -79,7 +79,7 @@ describe('useSubmitCoachForReview', () => {
     })
 
     const cached = queryClient.getQueryData<Coach>(['coachMe'])
-    expect(cached?.status).toBe('PROFILE_REVIEW')
+    expect(cached?.status).toBe('PENDING_REVIEW')
   })
 
   it('propaga erro 409 quando o estado atual não permite submissão', async () => {
