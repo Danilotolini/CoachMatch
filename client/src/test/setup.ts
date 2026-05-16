@@ -9,6 +9,7 @@ vi.stubEnv('VITE_COGNITO_CLIENT_ID', 'test-client-id')
 vi.stubEnv('VITE_COGNITO_DOMAIN', 'test.auth.us-east-1.amazoncognito.com')
 
 const { server } = await import('@/mocks/server')
+const { useSessionStore } = await import('@/stores/sessionStore')
 
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' })
@@ -18,6 +19,7 @@ afterEach(() => {
   cleanup()
   server.resetHandlers()
   localStorage.clear()
+  useSessionStore.setState({ activeRole: null, sessions: {} })
 })
 
 afterAll(() => {

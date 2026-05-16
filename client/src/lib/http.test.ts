@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { ApiError, apiGet, apiPost, apiPut } from './http'
 import { server } from '@/mocks/server'
-import { SESSION_EXPIRED_EVENT, setToken } from '@/lib/auth'
+import { SESSION_EXPIRED_EVENT, getToken } from '@/lib/auth'
+import { loginAs } from '@/test/session'
+import { getSessionToken } from '@/stores/sessionStore'
 
 function encodeJwt(payload: Record<string, unknown>): string {
   const base64 = btoa(JSON.stringify(payload))
@@ -53,7 +55,7 @@ describe('apiGet', () => {
   })
 
   it('inclui Authorization Bearer quando há token', async () => {
-    setToken('jwt-abc')
+    loginAs('coach', 'jwt-abc')
     let receivedAuth: string | null = null
     server.use(
       http.get('http://api.test/secure', ({ request }) => {
@@ -94,7 +96,7 @@ describe('apiGet', () => {
 
   it('limpa token e notifica sessão expirada em 401', async () => {
     const listener = vi.fn()
-    setToken('jwt-abc')
+    loginAs('coach', 'jwt-abc')
     window.addEventListener(SESSION_EXPIRED_EVENT, listener)
     server.use(
       http.get('http://api.test/secure', () =>
@@ -103,7 +105,7 @@ describe('apiGet', () => {
     )
 
     await expect(apiGet('/secure')).rejects.toMatchObject({ status: 401 })
-    expect(localStorage.getItem('idToken')).toBeNull()
+    expect(getToken()).toBeNull()
     expect(listener).toHaveBeenCalledTimes(1)
     expect((listener.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
       reason: 'unauthorized',
@@ -112,10 +114,25 @@ describe('apiGet', () => {
     window.removeEventListener(SESSION_EXPIRED_EVENT, listener)
   })
 
+  it('limpa apenas a sessão ativa em 401', async () => {
+    loginAs('coach', 'coach-token')
+    loginAs('client', 'client-token')
+    server.use(
+      http.get('http://api.test/secure', () =>
+        HttpResponse.json({ error: 'unauthorized' }, { status: 401 }),
+      ),
+    )
+
+    await expect(apiGet('/secure')).rejects.toMatchObject({ status: 401 })
+    expect(getToken()).toBeNull()
+    expect(getSessionToken('client')).toBeNull()
+    expect(getSessionToken('coach')).toBe('coach-token')
+  })
+
   it('não chama API quando token local já expirou', async () => {
     const listener = vi.fn()
     const requestSpy = vi.fn()
-    setToken(encodeJwt({ exp: Math.floor(Date.now() / 1000) - 1 }))
+    loginAs('coach', encodeJwt({ exp: Math.floor(Date.now() / 1000) - 1 }))
     window.addEventListener(SESSION_EXPIRED_EVENT, listener)
     server.use(
       http.get('http://api.test/secure', () => {
@@ -126,7 +143,7 @@ describe('apiGet', () => {
 
     await expect(apiGet('/secure')).rejects.toMatchObject({ status: 401 })
     expect(requestSpy).not.toHaveBeenCalled()
-    expect(localStorage.getItem('idToken')).toBeNull()
+    expect(getToken()).toBeNull()
     expect((listener.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
       reason: 'expired',
       status: 401,
