@@ -3,6 +3,8 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import ClientHealthFormPage from './ClientHealthFormPage'
+import { loginAs } from '@/test/session'
+import { useSessionStore } from '@/stores/sessionStore'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -58,6 +60,7 @@ describe('ClientHealthFormPage', () => {
   })
 
   it('navega para a home do aluno quando o formulário é válido', async () => {
+    loginAs('client')
     renderPage()
 
     await answerAllParq('Não')
@@ -72,6 +75,7 @@ describe('ClientHealthFormPage', () => {
     await waitFor(() => {
       expect(screen.getByText('home aluno page')).toBeInTheDocument()
     })
+    expect(useSessionStore.getState().sessions.client?.onboarded).toBe(true)
   })
 
   it('volta para a etapa anterior ao clicar em Voltar', async () => {

@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { Card } from '@/components/ui/Card'
 import { getAuthUser } from '@/lib/auth'
-import { toCognitoAudience } from '@/lib/audience'
 import { logout } from '@/lib/cognito'
 
 interface Coach {
@@ -74,8 +73,6 @@ const RECENT_COACHES: RecentCoach[] = [
   },
 ]
 
-const CATEGORIES = ['Musculacao', 'Funcional', 'Crossfit', 'Corrida', 'Pilates', 'Yoga']
-
 const CLIENT_NAV_ITEMS = [
   { label: 'Inicio', icon: 'home', active: true },
   { label: 'Buscar', icon: 'search' },
@@ -89,7 +86,7 @@ export default function ClientHomePage() {
   const firstName = useMemo(() => user.name?.split(' ')[0] ?? 'aluno', [user.name])
 
   function handleLogout() {
-    logout('/', toCognitoAudience('client'))
+    logout('client')
   }
 
   return (
@@ -105,7 +102,6 @@ export default function ClientHomePage() {
             <NextSessionCard />
             <CoachRail />
             <ContinueExploring />
-            <CategoryChips />
           </section>
 
           <aside className="hidden border-l border-outline-variant/10 bg-surface-container-low/30 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-80 lg:shrink-0 lg:flex-col lg:gap-6 lg:overflow-y-auto lg:px-6 lg:py-8 xl:w-96">
@@ -166,10 +162,9 @@ function SearchPanel() {
         </span>
         <span className="material-symbols-outlined text-[20px] text-primary">tune</span>
       </button>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <FilterPill icon="pin_drop" label="Pinheiros" />
         <FilterPill icon="fitness_center" label="Musculacao" />
-        <FilterPill icon="schedule" label="Hoje" />
       </div>
     </section>
   )
@@ -190,7 +185,7 @@ function FilterPill({ icon, label }: { icon: string; label: string }) {
 function NextSessionCard() {
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader title="Proxima sessao" action="Chat" icon="chat" />
+      <SectionHeader title="Próxima sessão" action="Chat" icon="chat" />
       <Card className="overflow-hidden p-0">
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary-fixed">
@@ -292,29 +287,6 @@ function ContinueExploring() {
               </span>
             </div>
           </Card>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function CategoryChips() {
-  return (
-    <section className="flex flex-col gap-4">
-      <SectionHeader title="Modalidades" />
-      <div className="flex flex-wrap gap-2">
-        {CATEGORIES.map((category, index) => (
-          <button
-            key={category}
-            type="button"
-            className={`rounded-full border px-4 py-2 font-label text-sm font-medium transition-all active:scale-95 ${
-              index === 0
-                ? 'border-primary bg-primary text-on-primary-fixed'
-                : 'border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:border-primary/40 hover:text-on-surface'
-            }`}
-          >
-            {category}
-          </button>
         ))}
       </div>
     </section>

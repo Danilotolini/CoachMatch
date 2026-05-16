@@ -3,8 +3,8 @@ import { act, renderHook } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { useSuggestGym } from './useSuggestGym'
 import { server } from '@/mocks/server'
-import { setToken } from '@/lib/auth'
 import { createWrapper } from '@/test/createWrapper'
+import { loginAs } from '@/test/session'
 
 const payload = {
   name: 'Studio Z',
@@ -16,7 +16,7 @@ const payload = {
 }
 
 beforeEach(() => {
-  setToken('fake-jwt')
+  loginAs('coach')
 })
 
 describe('useSuggestGym', () => {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ProgressHeader } from '@/components/layout/ProgressHeader'
+import { useSessionStore } from '@/stores/sessionStore'
 
 type Answer = 'YES' | 'NO'
 
@@ -80,6 +81,7 @@ export default function ClientHealthFormPage() {
     ) {
       return
     }
+    useSessionStore.getState().markClientOnboarded()
     void navigate('/client')
   }
 

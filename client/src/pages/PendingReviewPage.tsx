@@ -18,7 +18,7 @@ export default function PendingReviewPage() {
   })
 
   function handleLogout() {
-    logout()
+    logout('coach')
   }
 
   return (

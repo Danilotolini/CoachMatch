@@ -3,11 +3,11 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { useSpecialties } from './useSpecialties'
 import { server } from '@/mocks/server'
-import { setToken } from '@/lib/auth'
 import { createWrapper } from '@/test/createWrapper'
+import { clearAllSessions, loginAs } from '@/test/session'
 
 beforeEach(() => {
-  setToken('fake-jwt')
+  loginAs('coach')
 })
 
 describe('useSpecialties', () => {
@@ -24,7 +24,7 @@ describe('useSpecialties', () => {
   })
 
   it('fica desabilitada (não dispara query) quando não há token', () => {
-    localStorage.clear()
+    clearAllSessions()
     const { wrapper } = createWrapper()
     const { result } = renderHook(() => useSpecialties(), { wrapper })
 

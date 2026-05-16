@@ -4,11 +4,11 @@ import { http, HttpResponse } from 'msw'
 import { useCoachMe, useSubmitCoachForReview, useUpdateCoachMe } from './useCoachMe'
 import type { Coach } from '@/types/api'
 import { server } from '@/mocks/server'
-import { setToken } from '@/lib/auth'
 import { createWrapper } from '@/test/createWrapper'
+import { clearAllSessions, loginAs } from '@/test/session'
 
 beforeEach(() => {
-  setToken('fake-jwt')
+  loginAs('coach')
 })
 
 describe('useCoachMe', () => {
@@ -25,7 +25,7 @@ describe('useCoachMe', () => {
   })
 
   it('fica idle sem token', () => {
-    localStorage.clear()
+    clearAllSessions()
     const { wrapper } = createWrapper()
     const { result } = renderHook(() => useCoachMe(), { wrapper })
 
