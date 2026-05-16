@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import ClientHomePage from './ClientHomePage'
 import * as cognito from '@/lib/cognito'
+import { createWrapper } from '@/test/createWrapper'
 import { loginAs } from '@/test/session'
 
 function base64Url(value: string) {
@@ -17,11 +19,22 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+function renderClientHome(initialEntries = ['/client']) {
+  const { wrapper: QueryWrapper } = createWrapper()
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <QueryWrapper>
+        <ClientHomePage />
+      </QueryWrapper>
+    </MemoryRouter>,
+  )
+}
+
 describe('ClientHomePage', () => {
   it('mostra o primeiro nome do aluno autenticado', () => {
     loginAs('client', makeIdToken({ name: 'Ana Paula', email: 'ana@example.com' }))
 
-    render(<ClientHomePage />)
+    renderClientHome()
 
     expect(screen.getByRole('heading', { name: 'Oi, Ana' })).toBeInTheDocument()
   })
@@ -29,19 +42,19 @@ describe('ClientHomePage', () => {
   it('usa fallback "aluno" quando token não tem nome', () => {
     loginAs('client', makeIdToken({ email: 'sem-nome@example.com' }))
 
-    render(<ClientHomePage />)
+    renderClientHome()
 
     expect(screen.getByRole('heading', { name: 'Oi, aluno' })).toBeInTheDocument()
   })
 
-  it('renderiza cards e navegação principais da home', () => {
+  it('renderiza cards e navegação principais da home', async () => {
     loginAs('client', makeIdToken({ given_name: 'Joao', family_name: 'Silva' }))
 
-    render(<ClientHomePage />)
+    renderClientHome()
 
     expect(screen.getByText('Próxima sessão')).toBeInTheDocument()
-    expect(screen.getByText('Marcos Vieira')).toBeInTheDocument()
-    expect(screen.getByText('Julia Ramos')).toBeInTheDocument()
+    expect(await screen.findByText('Marcos Vieira')).toBeInTheDocument()
+    expect(await screen.findByText('Priscila Duarte')).toBeInTheDocument()
     expect(screen.getAllByText('Buscar')).toHaveLength(2)
     expect(screen.getAllByText('Perfil')).toHaveLength(2)
   })
@@ -50,7 +63,7 @@ describe('ClientHomePage', () => {
     const logoutSpy = vi.spyOn(cognito, 'logout').mockImplementation(() => undefined)
     loginAs('client', makeIdToken({ name: 'Ana Paula' }))
 
-    render(<ClientHomePage />)
+    renderClientHome()
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Sair' })[0])
 
