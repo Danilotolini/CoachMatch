@@ -1,19 +1,11 @@
 import { useMemo } from 'react'
+import { useNavigate } from 'react-router'
+import { CoachCard as SharedCoachCard } from '@/components/coach/CoachCard'
+import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNavigation'
 import { Card } from '@/components/ui/Card'
+import { useCoachSearch } from '@/hooks/useCoachSearch'
 import { getAuthUser } from '@/lib/auth'
 import { logout } from '@/lib/cognito'
-
-interface Coach {
-  id: number
-  name: string
-  specialty: string
-  rating: string
-  price: string
-  location: string
-  availability: string
-  tone: string
-  image: string | null
-}
 
 interface RecentCoach {
   id: number
@@ -21,42 +13,6 @@ interface RecentCoach {
   note: string
   icon: string
 }
-
-const COACHES: Coach[] = [
-  {
-    id: 1,
-    name: 'Marcos Vieira',
-    specialty: 'Musculacao',
-    rating: '4.9',
-    price: 'R$ 180',
-    location: 'Pinheiros',
-    availability: 'Hoje as 18h',
-    tone: 'from-primary/40 via-surface-container-high to-surface-container-low',
-    image: '/assets/images/onboarding-hero-mobile.png',
-  },
-  {
-    id: 2,
-    name: 'Julia Ramos',
-    specialty: 'Funcional',
-    rating: '4.8',
-    price: 'R$ 150',
-    location: 'Vila Madalena',
-    availability: 'Amanha cedo',
-    tone: 'from-tertiary/35 via-surface-container-high to-surface-container-low',
-    image: null,
-  },
-  {
-    id: 3,
-    name: 'Rafael Souza',
-    specialty: 'Crossfit',
-    rating: '5.0',
-    price: 'R$ 210',
-    location: 'Itaim Bibi',
-    availability: 'Sabado as 10h',
-    tone: 'from-secondary/30 via-surface-container-high to-surface-container-low',
-    image: null,
-  },
-]
 
 const RECENT_COACHES: RecentCoach[] = [
   {
@@ -71,14 +27,6 @@ const RECENT_COACHES: RecentCoach[] = [
     note: 'Corrida de rua com treino no parque',
     icon: 'history',
   },
-]
-
-const CLIENT_NAV_ITEMS = [
-  { label: 'Inicio', icon: 'home', active: true },
-  { label: 'Buscar', icon: 'search' },
-  { label: 'Agenda', icon: 'event' },
-  { label: 'Favoritos', icon: 'favorite' },
-  { label: 'Perfil', icon: 'person' },
 ]
 
 export default function ClientHomePage() {
@@ -148,10 +96,15 @@ function ClientTopBar({ firstName, onLogout }: { firstName: string; onLogout: ()
 }
 
 function SearchPanel() {
+  const navigate = useNavigate()
+
   return (
     <section className="flex flex-col gap-3 pt-2 lg:pt-0">
       <button
         type="button"
+        onClick={() => {
+          void navigate('/client/search')
+        }}
         className="flex w-full items-center gap-3 rounded-full border border-outline-variant/20 bg-surface-container-highest px-4 py-3 text-left transition-colors hover:border-primary/40"
       >
         <span className="material-symbols-outlined text-[20px] text-on-surface-variant">
@@ -163,17 +116,26 @@ function SearchPanel() {
         <span className="material-symbols-outlined text-[20px] text-primary">tune</span>
       </button>
       <div className="grid grid-cols-2 gap-2">
-        <FilterPill icon="pin_drop" label="Pinheiros" />
-        <FilterPill icon="fitness_center" label="Musculacao" />
+        <FilterPill icon="pin_drop" label="Pinheiros" to="/client/search?n=Pinheiros" />
+        <FilterPill
+          icon="fitness_center"
+          label="Musculação"
+          to="/client/search?specialties=Muscula%C3%A7%C3%A3o"
+        />
       </div>
     </section>
   )
 }
 
-function FilterPill({ icon, label }: { icon: string; label: string }) {
+function FilterPill({ icon, label, to }: { icon: string; label: string; to: string }) {
+  const navigate = useNavigate()
+
   return (
     <button
       type="button"
+      onClick={() => {
+        void navigate(to)
+      }}
       className="flex min-w-0 items-center justify-center gap-1 rounded-lg bg-surface-container-low px-2 py-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
     >
       <span className="material-symbols-outlined text-[16px]">{icon}</span>
@@ -216,54 +178,43 @@ function NextSessionCard() {
 }
 
 function CoachRail() {
+  const navigate = useNavigate()
+  const { data, isLoading } = useCoachSearch({ limit: 3, sort: 'rating' })
+  const coaches = data?.data ?? []
+
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader title="Recomendados pra voce" action="Ver todos" icon="arrow_forward" />
+      <SectionHeader
+        title="Recomendados pra você"
+        action="Ver todos"
+        icon="arrow_forward"
+        onAction={() => {
+          void navigate('/client/search?sort=rating')
+        }}
+      />
       <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 md:-mx-10 md:px-10 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0">
-        {COACHES.map((coach) => (
-          <CoachCard key={coach.id} coach={coach} />
-        ))}
+        {isLoading
+          ? Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-72 w-[76vw] max-w-70 shrink-0 animate-pulse rounded-xl bg-surface-container-low md:w-62.5 lg:w-auto lg:max-w-none"
+              />
+            ))
+          : coaches.map((coach) => (
+              <div key={coach.coachId} className="w-[76vw] max-w-70 shrink-0 snap-start md:w-62.5 lg:w-auto lg:max-w-none">
+                <SharedCoachCard
+                  name={coach.name}
+                  specialties={coach.specialties.join(' · ')}
+                  rating={coach.rating.toFixed(1)}
+                  price={coach.priceFrom}
+                  {...(coach.photo ? { image: coach.photo } : {})}
+                  location={`${coach.neighborhood}, ${coach.city}`}
+                  availability={coach.nextAvailability}
+                />
+              </div>
+            ))}
       </div>
     </section>
-  )
-}
-
-function CoachCard({ coach }: { coach: Coach }) {
-  return (
-    <button
-      type="button"
-      className="group w-[76vw] max-w-70 shrink-0 snap-start overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low text-left transition-all hover:border-primary/35 hover:bg-surface-container md:w-62.5 lg:w-auto lg:max-w-none"
-    >
-      <div className={`relative h-40 overflow-hidden bg-linear-to-br ${coach.tone}`}>
-        {coach.image ? (
-          <img src={coach.image} alt="" className="h-full w-full object-cover opacity-90" />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <span className="material-symbols-outlined text-[64px] text-primary/70">exercise</span>
-          </div>
-        )}
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-black/80 to-transparent" />
-        <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 font-label text-xs font-semibold text-on-surface backdrop-blur">
-          <span className="material-symbols-outlined text-[15px] text-tertiary">star</span>
-          {coach.rating}
-        </span>
-      </div>
-      <div className="flex flex-col gap-3 p-4">
-        <div>
-          <h3 className="font-headline text-lg font-semibold tracking-tight">{coach.name}</h3>
-          <p className="font-label text-xs font-bold text-on-surface-variant uppercase">
-            {coach.specialty} · {coach.location}
-          </p>
-        </div>
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <span className="font-headline text-lg font-bold text-primary">{coach.price}</span>
-            <span className="font-label text-xs text-on-surface-variant"> / sessao</span>
-          </div>
-          <span className="font-label text-xs text-on-surface-variant">{coach.availability}</span>
-        </div>
-      </div>
-    </button>
   )
 }
 
@@ -359,13 +310,24 @@ function AgendaPreview() {
   )
 }
 
-function SectionHeader({ title, action, icon }: { title: string; action?: string; icon?: string }) {
+function SectionHeader({
+  title,
+  action,
+  icon,
+  onAction,
+}: {
+  title: string
+  action?: string
+  icon?: string
+  onAction?: () => void
+}) {
   return (
     <div className="flex items-center justify-between gap-4">
       <h2 className="font-headline text-xl font-semibold tracking-tight">{title}</h2>
       {action ? (
         <button
           type="button"
+          onClick={onAction}
           className="inline-flex items-center gap-1 font-label text-sm font-medium text-primary transition-colors hover:underline"
         >
           {action}
@@ -373,67 +335,5 @@ function SectionHeader({ title, action, icon }: { title: string; action?: string
         </button>
       ) : null}
     </div>
-  )
-}
-
-function ClientSideNav({ onLogout }: { onLogout: () => void }) {
-  return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-outline-variant/10 bg-surface-container-low/40 px-5 py-8 lg:flex">
-      <div className="mb-10 px-2 font-headline text-xl font-black tracking-tight text-primary uppercase">
-        CoachMatch
-      </div>
-      <ul className="flex flex-1 flex-col gap-1">
-        {CLIENT_NAV_ITEMS.map((item) => (
-          <li key={item.label}>
-            <button
-              type="button"
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
-                item.active
-                  ? 'bg-surface-container-high text-primary'
-                  : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-              <span className="font-label text-sm font-medium">{item.label}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        onClick={onLogout}
-        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
-      >
-        <span className="material-symbols-outlined text-[20px]">logout</span>
-        <span className="font-label text-sm font-medium">Sair</span>
-      </button>
-    </aside>
-  )
-}
-
-function ClientBottomNav() {
-  return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-outline-variant/10 bg-surface-container-low/95 backdrop-blur lg:hidden">
-      <ul
-        className="grid grid-cols-5 px-1 pt-2"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
-      >
-        {CLIENT_NAV_ITEMS.map((item) => (
-          <li key={item.label}>
-            <button
-              type="button"
-              className={`flex w-full min-w-0 flex-col items-center gap-1 rounded-lg px-1 py-2 transition-colors ${
-                item.active ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
-              <span className="max-w-full truncate font-label text-[10px] font-medium">
-                {item.label}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </nav>
   )
 }
