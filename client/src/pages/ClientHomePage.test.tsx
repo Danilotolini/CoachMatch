@@ -54,6 +54,6 @@ describe('ClientHomePage', () => {
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Sair' })[0])
 
-    expect(logoutSpy).toHaveBeenCalledWith('client')
+    expect(logoutSpy).toHaveBeenCalledWith('client', '/')
   })
 })

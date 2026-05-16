@@ -1,23 +1,19 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { SESSION_EXPIRED_EVENT, type SessionExpiredDetail } from '@/lib/auth'
-
-function loginPathForCurrentRoute(): string {
-  const path = window.location.pathname
-  if (path.startsWith('/client')) return '/client/login'
-  return '/coach/login'
-}
 
 export function SessionExpiredRedirect() {
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
 
   useEffect(() => {
     function handleSessionExpired(event: Event) {
       const detail = (event as CustomEvent<SessionExpiredDetail>).detail
+      const loginPath = location.pathname.startsWith('/client') ? '/client/login' : '/coach/login'
       queryClient.clear()
-      void navigate(loginPathForCurrentRoute(), {
+      void navigate(loginPath, {
         replace: true,
         state: { sessionExpired: detail.reason },
       })
@@ -27,7 +23,7 @@ export function SessionExpiredRedirect() {
     return () => {
       window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
     }
-  }, [navigate, queryClient])
+  }, [location.pathname, navigate, queryClient])
 
   return null
 }

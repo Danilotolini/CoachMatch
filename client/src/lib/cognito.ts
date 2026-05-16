@@ -45,8 +45,8 @@ function clientConfig(role: Role): CognitoClientConfig {
   }
 }
 
-function defaultReturnPath(role: Role): string {
-  return role === 'client' ? '/client/login' : '/coach/login'
+function defaultReturnPath(): string {
+  return '/'
 }
 
 function logoutUri(returnPath: string): string {
@@ -54,7 +54,7 @@ function logoutUri(returnPath: string): string {
   return `${window.location.origin}${returnPath}`
 }
 
-export function getLogoutUrl(role: Role, returnPath: string = defaultReturnPath(role)): string {
+export function getLogoutUrl(role: Role, returnPath: string = defaultReturnPath()): string {
   const config = clientConfig(role)
   const params = new URLSearchParams({
     client_id: config.clientId,
@@ -66,12 +66,14 @@ export function getLogoutUrl(role: Role, returnPath: string = defaultReturnPath(
 // Limpa apenas a sessão do papel atual e redireciona para o /logout do
 // Cognito Hosted UI, que encerra a sessão lá e devolve o usuário à tela
 // de login do mesmo papel. Sessões de outros papéis permanecem ativas.
-export function logout(role: Role, returnPath: string = defaultReturnPath(role)): void {
-  useSessionStore.getState().endSession(role)
+export function logout(role: Role, returnPath: string = defaultReturnPath()): void {
   if (import.meta.env.DEV && import.meta.env.VITE_API_MOCKING === 'enabled') {
-    window.location.href = returnPath
+    useSessionStore.persist.clearStorage()
+    window.location.replace(returnPath)
     return
   }
+
+  useSessionStore.getState().endSession(role)
   window.location.href = getLogoutUrl(role, returnPath)
 }
 

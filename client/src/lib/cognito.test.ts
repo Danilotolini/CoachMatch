@@ -6,11 +6,23 @@ import { getToken } from '@/lib/auth'
 import { loginAs } from '@/test/session'
 import { getSessionToken, useSessionStore } from '@/stores/sessionStore'
 
-const ORIGINAL_LOCATION = window.location
-const LOCATION_PROTOTYPE = Object.getPrototypeOf(ORIGINAL_LOCATION) as object | null
-
-function mockLocation(overrides: Partial<Location>) {
-  return Object.assign(Object.create(LOCATION_PROTOTYPE) as Location, ORIGINAL_LOCATION, overrides)
+function mockLocation(overrides: Partial<Location>): Location {
+  const base = {
+    origin: 'http://app.test',
+    href: 'http://app.test/',
+    pathname: '/',
+    search: '',
+    hash: '',
+    host: 'app.test',
+    hostname: 'app.test',
+    port: '',
+    protocol: 'http:',
+    assign: () => undefined,
+    replace: () => undefined,
+    reload: () => undefined,
+    toString: () => 'http://app.test/',
+  }
+  return { ...base, ...overrides } as unknown as Location
 }
 
 beforeEach(() => {
@@ -41,9 +53,9 @@ describe('getLogoutUrl', () => {
     expect(url).toContain('logout_uri=http%3A%2F%2Fapp.test%2Fbye')
   })
 
-  it('usa a página de login do papel como returnPath default', () => {
-    expect(getLogoutUrl('coach')).toContain('logout_uri=http%3A%2F%2Fapp.test%2Fcoach%2Flogin')
-    expect(getLogoutUrl('client')).toContain('logout_uri=http%3A%2F%2Fapp.test%2Fclient%2Flogin')
+  it('usa a welcome como returnPath default', () => {
+    expect(getLogoutUrl('coach')).toContain('logout_uri=http%3A%2F%2Fapp.test')
+    expect(getLogoutUrl('client')).toContain('logout_uri=http%3A%2F%2Fapp.test')
   })
 
   it('monta URL de logout para o app client de aluno', () => {
@@ -75,12 +87,34 @@ describe('logout', () => {
   })
 
   it('em mock mode, redireciona pro returnPath sem chamar o Cognito', () => {
+    const replace = vi.fn()
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: mockLocation({ origin: 'http://app.test', href: 'http://app.test/', replace }),
+    })
     vi.stubEnv('VITE_API_MOCKING', 'enabled')
     loginAs('coach', 'abc')
     logout('coach', '/bye')
-    expect(getToken()).toBeNull()
-    expect(window.location.href).toBe('/bye')
+    expect(getToken()).toBe('abc')
+    expect(localStorage.getItem('coachmatch:session')).toBeNull()
+    expect(replace).toHaveBeenCalledWith('/bye')
     expect(window.location.href).not.toContain('/logout?')
+  })
+
+  it('em mock mode, redireciona para a welcome por default', () => {
+    const replace = vi.fn()
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: mockLocation({ origin: 'http://app.test', href: 'http://app.test/', replace }),
+    })
+    vi.stubEnv('VITE_API_MOCKING', 'enabled')
+    loginAs('client', 'abc')
+    logout('client')
+    expect(getToken()).toBe('abc')
+    expect(localStorage.getItem('coachmatch:session')).toBeNull()
+    expect(replace).toHaveBeenCalledWith('/')
   })
 })
 
