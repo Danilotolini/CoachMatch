@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import ClientHealthFormPage from './ClientHealthFormPage'
 import { loginAs } from '@/test/session'
-import { useSessionStore } from '@/stores/sessionStore'
+import { createWrapper } from '@/test/createWrapper'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -12,15 +12,18 @@ afterEach(() => {
 
 function renderPage(initialEntries = ['/client/health']) {
   vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+  const { wrapper: QueryWrapper } = createWrapper()
 
   return render(
-    <MemoryRouter initialEntries={initialEntries} initialIndex={initialEntries.length - 1}>
-      <Routes>
-        <Route path="/client/onboarding" element={<div>onboarding aluno page</div>} />
-        <Route path="/client/health" element={<ClientHealthFormPage />} />
-        <Route path="/client" element={<div>home aluno page</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryWrapper>
+      <MemoryRouter initialEntries={initialEntries} initialIndex={initialEntries.length - 1}>
+        <Routes>
+          <Route path="/client/onboarding" element={<div>onboarding aluno page</div>} />
+          <Route path="/client/health" element={<ClientHealthFormPage />} />
+          <Route path="/client" element={<div>home aluno page</div>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryWrapper>,
   )
 }
 
@@ -75,7 +78,6 @@ describe('ClientHealthFormPage', () => {
     await waitFor(() => {
       expect(screen.getByText('home aluno page')).toBeInTheDocument()
     })
-    expect(useSessionStore.getState().sessions.client?.onboarded).toBe(true)
   })
 
   it('volta para a etapa anterior ao clicar em Voltar', async () => {

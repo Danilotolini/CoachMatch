@@ -5,7 +5,8 @@ const NOW = '2026-04-18T10:00:00Z'
 export const initialCoach: Coach = {
   coachId: 'mock-coach-id',
   email: 'mock@coachmatch.app',
-  status: 'PENDING_PROFILE',
+  status: 'ONBOARDING_PROFILE',
+  visibility: 'VISIBLE',
   profile: {
     name: '',
     phone: null,

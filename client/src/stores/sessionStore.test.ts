@@ -57,20 +57,12 @@ describe('sessionStore', () => {
     expect(getSessionToken('coach')).toBe('coach-token')
   })
 
-  it('preserva onboarded do aluno ao renovar sessão', () => {
+  it('guarda apenas o token do aluno na sessão local', () => {
     useSessionStore.getState().startSession('client', 'old-token')
-    useSessionStore.getState().markClientOnboarded()
     useSessionStore.getState().startSession('client', 'new-token')
 
     expect(useSessionStore.getState().sessions.client).toEqual({
       token: 'new-token',
-      onboarded: true,
     })
-  })
-
-  it('não marca onboarded sem sessão de aluno', () => {
-    useSessionStore.getState().markClientOnboarded()
-
-    expect(useSessionStore.getState().sessions.client).toBeUndefined()
   })
 })

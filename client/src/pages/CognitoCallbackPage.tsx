@@ -1,24 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { exchangeCodeForTokens } from '@/lib/cognito'
 import { type Role, useSessionStore } from '@/stores/sessionStore'
+import { fetchClientMe } from '@/api/clients'
 import { fetchCoachMe } from '@/api/coaches'
 import { ApiError } from '@/lib/http'
-import type { CoachStatus } from '@/types/api'
+import type { ClientStatus, CoachStatus } from '@/types/api'
 
 function statusRoute(status: CoachStatus): string {
   switch (status) {
-    case 'PENDING_PROFILE':
+    case 'ONBOARDING_PROFILE':
       return '/coach/onboarding'
-    case 'PROFILE_REVIEW':
+    case 'PENDING_REVIEW':
       return '/coach/pending-review'
     case 'APPROVED':
-    case 'ACTIVE':
       return '/coach'
     case 'REJECTED':
-    case 'INACTIVE':
       return '/coach/rejected'
+  }
+}
+
+function clientStatusRoute(status: ClientStatus): string {
+  switch (status) {
+    case 'ONBOARDING_PROFILE':
+      return '/client/onboarding'
+    case 'ONBOARDING_HEALTH':
+      return '/client/health'
+    case 'ACTIVE':
+      return '/client'
   }
 }
 
@@ -28,16 +38,16 @@ interface CognitoCallbackPageProps {
 
 export default function CognitoCallbackPage({ audience }: CognitoCallbackPageProps) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const [error, setError] = useState<string | null>(null)
   // Prevents double-invocation in React StrictMode (dev only)
   const handled = useRef(false)
 
-  const params = new URLSearchParams(window.location.search)
-  const code = params.get('code')
-  const state = params.get('state')
-  const errorParam = params.get('error')
-  const errorDesc = params.get('error_description')
+  const code = searchParams.get('code')
+  const state = searchParams.get('state')
+  const errorParam = searchParams.get('error')
+  const errorDesc = searchParams.get('error_description')
   const urlError = errorParam
     ? (errorDesc ?? errorParam)
     : !code
@@ -58,8 +68,19 @@ export default function CognitoCallbackPage({ audience }: CognitoCallbackPagePro
         window.history.replaceState({}, '', window.location.pathname)
 
         if (audience === 'client') {
-          const onboarded = store.sessions.client?.onboarded ?? false
-          void navigate(onboarded ? '/client' : '/client/onboarding', { replace: true })
+          try {
+            const client = await fetchClientMe()
+            queryClient.setQueryData(['clientMe'], client)
+            void navigate(clientStatusRoute(client.status), { replace: true })
+          } catch (err) {
+            const is404 = err instanceof ApiError && err.status === 404
+            const isNetwork = err instanceof TypeError
+            if (is404 || isNetwork) {
+              void navigate('/client/onboarding', { replace: true })
+            } else {
+              throw err
+            }
+          }
           return
         }
 
@@ -95,12 +116,12 @@ export default function CognitoCallbackPage({ audience }: CognitoCallbackPagePro
             Erro na autenticação
           </h1>
           <p className="text-on-surface-variant text-sm mb-6">{displayedError}</p>
-          <a
-            href={audience === 'client' ? '/client/login' : '/coach/login'}
+          <Link
+            to={audience === 'client' ? '/client/login' : '/coach/login'}
             className="text-primary font-bold hover:underline"
           >
             Tentar novamente
-          </a>
+          </Link>
         </div>
       </main>
     )

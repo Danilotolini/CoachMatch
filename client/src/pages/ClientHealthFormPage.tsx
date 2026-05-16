@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ProgressHeader } from '@/components/layout/ProgressHeader'
-import { useSessionStore } from '@/stores/sessionStore'
+import { useSubmitClientHealth } from '@/hooks/useClientMe'
 
 type Answer = 'YES' | 'NO'
 
@@ -47,6 +47,7 @@ const INITIAL_ANSWERS: Record<string, Answer | null> = PARQ.reduce<Record<string
 
 export default function ClientHealthFormPage() {
   const navigate = useNavigate()
+  const submitHealth = useSubmitClientHealth()
   const [form, setForm] = useState<FormState>({
     answers: INITIAL_ANSWERS,
     notes: '',
@@ -81,8 +82,19 @@ export default function ClientHealthFormPage() {
     ) {
       return
     }
-    useSessionStore.getState().markClientOnboarded()
-    void navigate('/client')
+    submitHealth.mutate(
+      {
+        answers: form.answers as Record<string, Answer>,
+        notes: form.notes,
+        lgpdConsent: form.lgpdConsent,
+        medicalDisclaimer: form.medicalDisclaimer,
+      },
+      {
+        onSuccess: () => {
+          void navigate('/client')
+        },
+      },
+    )
   }
 
   return (

@@ -8,22 +8,12 @@ import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
 import { initialCoach } from '@/mocks/fixtures'
 import { getToken } from '@/lib/auth'
-import { useSessionStore } from '@/stores/sessionStore'
-import type { Coach } from '@/types/api'
+import type { Client, Coach } from '@/types/api'
 
-const ORIGINAL_LOCATION = window.location
-const LOCATION_PROTOTYPE = Object.getPrototypeOf(ORIGINAL_LOCATION) as object | null
-
-function mockLocation(overrides: Partial<Location>) {
-  return Object.assign(Object.create(LOCATION_PROTOTYPE) as Location, ORIGINAL_LOCATION, overrides)
-}
+let currentSearch = ''
 
 function setLocationSearch(search: string) {
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    writable: true,
-    value: mockLocation({ pathname: '/auth/cognito/callback', search }),
-  })
+  currentSearch = search
 }
 
 function renderPage(audience: 'coach' | 'client' = 'coach') {
@@ -32,7 +22,7 @@ function renderPage(audience: 'coach' | 'client' = 'coach') {
   const { wrapper: QueryWrapper } = createWrapper()
   return render(
     <QueryWrapper>
-      <MemoryRouter initialEntries={[callbackPath]}>
+      <MemoryRouter initialEntries={[`${callbackPath}${currentSearch}`]}>
         <Routes>
           <Route path={callbackPath} element={<CognitoCallbackPage audience={audience} />} />
           <Route path="/coach/onboarding" element={<div>onboarding page</div>} />
@@ -48,15 +38,11 @@ function renderPage(audience: 'coach' | 'client' = 'coach') {
 }
 
 beforeEach(() => {
+  currentSearch = ''
   vi.spyOn(window.history, 'replaceState').mockImplementation(() => undefined)
 })
 
 afterEach(() => {
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    writable: true,
-    value: mockLocation({}),
-  })
   vi.restoreAllMocks()
 })
 
@@ -132,16 +118,22 @@ describe('CognitoCallbackPage', () => {
 
   it('redireciona aluno direto para /client quando já onboarded', async () => {
     setLocationSearch('?code=abc&state=xyz')
-    // simula sessão anterior do aluno com onboarded preservado
-    useSessionStore.setState({
-      activeRole: null,
-      sessions: { client: { token: 'old', onboarded: true } },
-    })
     vi.spyOn(cognito, 'exchangeCodeForTokens').mockResolvedValue({
       id_token: 'novo-token',
       access_token: 'acc',
       expires_in: 3600,
     })
+    server.use(
+      http.get('*/clients/me', () =>
+        HttpResponse.json<Client>({
+          clientId: 'client_demo',
+          email: 'aluno@coachmatch.app',
+          status: 'ACTIVE',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        }),
+      ),
+    )
 
     renderPage('client')
 

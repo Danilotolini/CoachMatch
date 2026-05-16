@@ -8,12 +8,8 @@ import './index.css'
 
 async function enableMocking() {
   if (!import.meta.env.DEV || import.meta.env.VITE_API_MOCKING !== 'enabled') return
-  const [{ worker }, { installMockSession }] = await Promise.all([
-    import('@/mocks/browser'),
-    import('@/mocks/auth'),
-  ])
+  const { worker } = await import('@/mocks/browser')
   await worker.start({ onUnhandledRequest: 'bypass' })
-  installMockSession()
 }
 
 import WelcomePage from '@/pages/WelcomePage'
@@ -78,7 +74,7 @@ const router = createBrowserRouter([
       {
         path: '/client',
         element: (
-          <ClientRouteGuard>
+          <ClientRouteGuard requireOnboarded>
             <ClientHomePage />
           </ClientRouteGuard>
         ),
@@ -86,7 +82,7 @@ const router = createBrowserRouter([
       {
         path: '/coach/onboarding',
         element: (
-          <RouteGuard allow={['PENDING_PROFILE']}>
+          <RouteGuard allow={['ONBOARDING_PROFILE']}>
             <CoachOnboardingPage />
           </RouteGuard>
         ),
@@ -94,7 +90,7 @@ const router = createBrowserRouter([
       {
         path: '/coach/pending-review',
         element: (
-          <RouteGuard allow={['PROFILE_REVIEW']}>
+          <RouteGuard allow={['PENDING_REVIEW']}>
             <CoachPendingReviewPage />
           </RouteGuard>
         ),
@@ -102,7 +98,7 @@ const router = createBrowserRouter([
       {
         path: '/coach/rejected',
         element: (
-          <RouteGuard allow={['REJECTED', 'INACTIVE']}>
+          <RouteGuard allow={['REJECTED']}>
             <CoachRejectedPage />
           </RouteGuard>
         ),
@@ -110,7 +106,7 @@ const router = createBrowserRouter([
       {
         path: '/coach',
         element: (
-          <RouteGuard allow={['APPROVED', 'ACTIVE']}>
+          <RouteGuard allow={['APPROVED']}>
             <CoachDashboardPage />
           </RouteGuard>
         ),

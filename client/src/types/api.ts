@@ -1,10 +1,8 @@
-export type CoachStatus =
-  | 'PENDING_PROFILE'
-  | 'PROFILE_REVIEW'
-  | 'APPROVED'
-  | 'REJECTED'
-  | 'ACTIVE'
-  | 'INACTIVE'
+export type CoachStatus = 'ONBOARDING_PROFILE' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+
+export type CoachVisibility = 'VISIBLE' | 'INVISIBLE'
+
+export type ClientStatus = 'ONBOARDING_PROFILE' | 'ONBOARDING_HEALTH' | 'ACTIVE'
 
 export interface Coordinates {
   lat: number
@@ -42,6 +40,7 @@ export interface Coach {
   coachId: string
   email: string
   status: CoachStatus
+  visibility: CoachVisibility
   profile: CoachProfile
   work_location: WorkLocation[]
   createdAt: string
@@ -51,6 +50,32 @@ export interface Coach {
 export interface CoachUpdatePayload {
   profile?: Partial<CoachProfile>
   work_location?: WorkLocation[]
+}
+
+export interface Client {
+  clientId: string
+  email: string
+  status: ClientStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ClientProfilePayload {
+  phone: string
+  birthDate: string
+  gender: 'F' | 'M' | 'NB' | 'NA'
+  cep: string
+  city: string
+  state: string
+  radius: 5 | 10 | 20
+  goal: 'WEIGHT_LOSS' | 'HYPERTROPHY' | 'CONDITIONING' | 'REHAB' | 'PERFORMANCE'
+}
+
+export interface ClientHealthPayload {
+  answers: Record<string, 'YES' | 'NO'>
+  notes: string
+  lgpdConsent: boolean
+  medicalDisclaimer: boolean
 }
 
 export interface Specialty {

@@ -5,15 +5,19 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { http, HttpResponse } from 'msw'
 import ClientOnboardingPage from './ClientOnboardingPage'
 import { server } from '@/mocks/server'
+import { createWrapper } from '@/test/createWrapper'
 
 function renderPage() {
+  const { wrapper: QueryWrapper } = createWrapper()
   return render(
-    <MemoryRouter initialEntries={['/client/onboarding']}>
-      <Routes>
-        <Route path="/client/onboarding" element={<ClientOnboardingPage />} />
-        <Route path="/client/health" element={<div>saude page</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryWrapper>
+      <MemoryRouter initialEntries={['/client/onboarding']}>
+        <Routes>
+          <Route path="/client/onboarding" element={<ClientOnboardingPage />} />
+          <Route path="/client/health" element={<div>saude page</div>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryWrapper>,
   )
 }
 
