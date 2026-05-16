@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/Button'
 import { env } from '@/lib/env'
 import { logout } from '@/lib/cognito'
 
+const IS_DEV = import.meta.env.DEV
+
 async function approveCoach(): Promise<void> {
   const res = await fetch(`${env.apiBaseUrl}/dev/approve-coach`, { method: 'POST' })
   if (!res.ok) throw new Error(`approve failed (${String(res.status)})`)
 }
 
-export default function CoachPendingReviewPage() {
+function DevApprovePanel() {
   const queryClient = useQueryClient()
   const approve = useMutation({
     mutationFn: approveCoach,
@@ -17,6 +19,33 @@ export default function CoachPendingReviewPage() {
     },
   })
 
+  return (
+    <div className="mt-8 rounded-xl border border-dashed border-outline-variant/40 bg-surface-container-low/40 p-6">
+      <p className="mb-3 text-xs font-bold tracking-widest text-on-surface-variant uppercase">
+        Modo desenvolvedor
+      </p>
+      <p className="mb-4 text-sm text-on-surface-variant">
+        Use o botão abaixo para simular a liberação do perfil.
+      </p>
+      <Button
+        type="button"
+        variant="primary"
+        loading={approve.isPending}
+        onClick={() => {
+          approve.mutate()
+        }}
+        icon="check"
+      >
+        APROVAR PERFIL
+      </Button>
+      {approve.isError ? (
+        <p className="mt-3 text-sm text-error">Falha ao aprovar. Tente novamente.</p>
+      ) : null}
+    </div>
+  )
+}
+
+export default function CoachPendingReviewPage() {
   function handleLogout() {
     logout('coach')
   }
@@ -62,28 +91,7 @@ export default function CoachPendingReviewPage() {
             </p>
           </div>
 
-          <div className="mt-8 rounded-xl border border-dashed border-outline-variant/40 bg-surface-container-low/40 p-6">
-            <p className="mb-3 text-xs font-bold tracking-widest text-on-surface-variant uppercase">
-              Modo desenvolvedor
-            </p>
-            <p className="mb-4 text-sm text-on-surface-variant">
-              Use o botão abaixo para simular a liberação do perfil.
-            </p>
-            <Button
-              type="button"
-              variant="primary"
-              loading={approve.isPending}
-              onClick={() => {
-                approve.mutate()
-              }}
-              icon="check"
-            >
-              APROVAR PERFIL
-            </Button>
-            {approve.isError ? (
-              <p className="mt-3 text-sm text-error">Falha ao aprovar. Tente novamente.</p>
-            ) : null}
-          </div>
+          {IS_DEV ? <DevApprovePanel /> : null}
         </div>
       </section>
     </main>

@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -18,7 +18,6 @@ async function enableMocking() {
 
 import WelcomePage from '@/pages/WelcomePage'
 import LoginPage from '@/pages/LoginPage'
-import RoutesTestPage from '@/pages/RoutesTestPage'
 import CognitoCallbackPage from '@/pages/CognitoCallbackPage'
 import CoachOnboardingPage from '@/pages/CoachOnboardingPage'
 import ClientOnboardingPage from '@/pages/ClientOnboardingPage'
@@ -31,12 +30,27 @@ import PaymentPage from '@/pages/PaymentPage'
 import { RouteGuard } from '@/components/RouteGuard'
 import { AppShell } from '@/components/AppShell'
 
+function getDevRoutes() {
+  if (!import.meta.env.DEV) return []
+  const DevToolsPage = lazy(() => import('@/pages/DevToolsPage'))
+  return [
+    {
+      path: '/dev',
+      element: (
+        <Suspense fallback={null}>
+          <DevToolsPage />
+        </Suspense>
+      ),
+    },
+  ]
+}
+
 const router = createBrowserRouter([
   {
     element: <AppShell />,
     children: [
       { path: '/', element: <WelcomePage /> },
-      { path: '/rotas', element: <RoutesTestPage /> },
+      ...getDevRoutes(),
       { path: '/coach/login', element: <LoginPage audience="coach" /> },
       { path: '/client/login', element: <LoginPage audience="client" /> },
       { path: '/auth/cognito/callback', element: <CognitoCallbackPage audience="coach" /> },

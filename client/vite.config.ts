@@ -1,8 +1,21 @@
+import { rm } from 'node:fs/promises'
 import { fileURLToPath, URL } from 'node:url'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+
+function removeDevOnlyPublicAssets() {
+  return {
+    name: 'remove-dev-only-public-assets',
+    apply: 'build' as const,
+    closeBundle: async () => {
+      await rm(fileURLToPath(new URL('./dist/mockServiceWorker.js', import.meta.url)), {
+        force: true,
+      })
+    },
+  }
+}
 
 export default defineConfig({
   test: {
@@ -43,6 +56,7 @@ export default defineConfig({
 
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        globIgnores: ['**/mockServiceWorker.js'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
       },
@@ -54,5 +68,6 @@ export default defineConfig({
         type: 'module',
       },
     }),
+    removeDevOnlyPublicAssets(),
   ],
 })
