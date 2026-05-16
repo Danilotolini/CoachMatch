@@ -28,6 +28,7 @@ import CoachDashboardPage from '@/pages/CoachDashboardPage'
 import ClientHomePage from '@/pages/ClientHomePage'
 import PaymentPage from '@/pages/PaymentPage'
 import { RouteGuard } from '@/components/RouteGuard'
+import { ClientRouteGuard } from '@/components/ClientRouteGuard'
 import { AppShell } from '@/components/AppShell'
 
 function getDevRoutes() {
@@ -58,9 +59,30 @@ const router = createBrowserRouter([
         path: '/auth/cognito/student/callback',
         element: <CognitoCallbackPage audience="client" />,
       },
-      { path: '/client/onboarding', element: <ClientOnboardingPage /> },
-      { path: '/client/health', element: <ClientHealthFormPage /> },
-      { path: '/client', element: <ClientHomePage /> },
+      {
+        path: '/client/onboarding',
+        element: (
+          <ClientRouteGuard>
+            <ClientOnboardingPage />
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/client/health',
+        element: (
+          <ClientRouteGuard>
+            <ClientHealthFormPage />
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/client',
+        element: (
+          <ClientRouteGuard>
+            <ClientHomePage />
+          </ClientRouteGuard>
+        ),
+      },
       {
         path: '/coach/onboarding',
         element: (
