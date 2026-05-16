@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useGyms } from './useGyms'
-import { setToken } from '@/lib/auth'
 import { createWrapper } from '@/test/createWrapper'
+import { clearAllSessions, loginAs } from '@/test/session'
 
 beforeEach(() => {
-  setToken('fake-jwt')
+  loginAs('coach')
 })
 
 describe('useGyms', () => {
@@ -21,7 +21,7 @@ describe('useGyms', () => {
   })
 
   it('fica idle sem token', () => {
-    localStorage.clear()
+    clearAllSessions()
     const { wrapper } = createWrapper()
     const { result } = renderHook(() => useGyms(), { wrapper })
 

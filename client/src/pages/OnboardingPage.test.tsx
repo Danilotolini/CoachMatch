@@ -6,7 +6,7 @@ import { http, HttpResponse } from 'msw'
 import OnboardingPage from './OnboardingPage'
 import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
-import { setToken } from '@/lib/auth'
+import { loginAs } from '@/test/session'
 import { useOnboardingStore } from '@/stores/onboardingStore'
 import { initialCoach } from '@/mocks/fixtures'
 import type { Coach } from '@/types/api'
@@ -26,7 +26,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
-  setToken('fake-jwt')
+  loginAs('coach')
   useOnboardingStore.getState().reset()
 })
 

@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ClientHomePage from './ClientHomePage'
-import { setToken } from '@/lib/auth'
 import * as cognito from '@/lib/cognito'
+import { loginAs } from '@/test/session'
 
 function base64Url(value: string) {
   return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
@@ -19,7 +19,7 @@ afterEach(() => {
 
 describe('ClientHomePage', () => {
   it('mostra o primeiro nome do aluno autenticado', () => {
-    setToken(makeIdToken({ name: 'Ana Paula', email: 'ana@example.com' }))
+    loginAs('client', makeIdToken({ name: 'Ana Paula', email: 'ana@example.com' }))
 
     render(<ClientHomePage />)
 
@@ -27,7 +27,7 @@ describe('ClientHomePage', () => {
   })
 
   it('usa fallback "aluno" quando token não tem nome', () => {
-    setToken(makeIdToken({ email: 'sem-nome@example.com' }))
+    loginAs('client', makeIdToken({ email: 'sem-nome@example.com' }))
 
     render(<ClientHomePage />)
 
@@ -35,11 +35,11 @@ describe('ClientHomePage', () => {
   })
 
   it('renderiza cards e navegação principais da home', () => {
-    setToken(makeIdToken({ given_name: 'Joao', family_name: 'Silva' }))
+    loginAs('client', makeIdToken({ given_name: 'Joao', family_name: 'Silva' }))
 
     render(<ClientHomePage />)
 
-    expect(screen.getByText('Proxima sessao')).toBeInTheDocument()
+    expect(screen.getByText('Próxima sessão')).toBeInTheDocument()
     expect(screen.getByText('Marcos Vieira')).toBeInTheDocument()
     expect(screen.getByText('Julia Ramos')).toBeInTheDocument()
     expect(screen.getAllByText('Buscar')).toHaveLength(2)
@@ -48,12 +48,12 @@ describe('ClientHomePage', () => {
 
   it('chama logout de aluno ao clicar em Sair', async () => {
     const logoutSpy = vi.spyOn(cognito, 'logout').mockImplementation(() => undefined)
-    setToken(makeIdToken({ name: 'Ana Paula' }))
+    loginAs('client', makeIdToken({ name: 'Ana Paula' }))
 
     render(<ClientHomePage />)
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Sair' })[0])
 
-    expect(logoutSpy).toHaveBeenCalledWith('/', 'student')
+    expect(logoutSpy).toHaveBeenCalledWith('client')
   })
 })

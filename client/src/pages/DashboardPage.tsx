@@ -24,7 +24,7 @@ export default function DashboardPage() {
     : String(gymsCount)
 
   function handleLogout() {
-    logout()
+    logout('coach')
   }
 
   return (

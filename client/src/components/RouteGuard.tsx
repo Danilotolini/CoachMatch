@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router'
 import { useCoachMe } from '@/hooks/useCoachMe'
-import { getToken, clearToken } from '@/lib/auth'
+import { getToken } from '@/lib/auth'
+import { useSessionStore } from '@/stores/sessionStore'
 import { ApiError } from '@/lib/http'
 import type { CoachStatus } from '@/types/api'
 
@@ -37,7 +38,7 @@ export function RouteGuard({ allow, children }: RouteGuardProps) {
 
   if (isError) {
     if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-      clearToken()
+      useSessionStore.getState().endSession('coach')
       return <Navigate to="/coach/login" replace />
     }
     // 404 ou falha de rede (CORS, offline): assume perfil ainda não criado

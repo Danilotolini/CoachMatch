@@ -3,8 +3,8 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { useVideoUpload } from './useVideoUpload'
 import { server } from '@/mocks/server'
-import { setToken } from '@/lib/auth'
 import { createWrapper } from '@/test/createWrapper'
+import { loginAs } from '@/test/session'
 
 const MOCK_S3_URL = 'https://mock-s3.local/upload'
 
@@ -13,7 +13,7 @@ function makeFile(name = 'video.mp4'): File {
 }
 
 beforeEach(() => {
-  setToken('fake-jwt')
+  loginAs('coach')
 })
 
 describe('useVideoUpload', () => {

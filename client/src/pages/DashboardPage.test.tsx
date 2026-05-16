@@ -5,8 +5,8 @@ import { http, HttpResponse } from 'msw'
 import DashboardPage from './DashboardPage'
 import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
-import { setToken } from '@/lib/auth'
 import { initialCoach } from '@/mocks/fixtures'
+import { loginAs } from '@/test/session'
 import * as cognito from '@/lib/cognito'
 import type { Coach } from '@/types/api'
 
@@ -20,7 +20,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
-  setToken('fake-jwt')
+  loginAs('coach')
 })
 
 afterEach(() => {
