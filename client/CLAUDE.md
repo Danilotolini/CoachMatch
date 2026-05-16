@@ -35,6 +35,26 @@ Sempre `pnpm`, nunca `npm`/`yarn`.
 - **Estilos**: Tailwind utilities no JSX. Evitar CSS modules/styled-components.
 - **Path alias**: `@/` → `client/src/` (configurado em `tsconfig.app.json` e `vite.config.ts`).
 
+## Auth / Sessão
+
+Sessão por papel (`Role = 'coach' | 'client'`) persistida em `localStorage` via zustand (`coachmatch:session`). **Múltiplas sessões coexistem; apenas uma é ativa.**
+
+- `stores/sessionStore.ts` — fonte da verdade. Forma: `{ activeRole: Role | null, sessions: { coach?: { token }, client?: { token, onboarded } } }`. Ações: `startSession(role, token)`, `endSession(role)`, `endActiveSession()`, `setActiveRole(role)`, `markClientOnboarded()`.
+- `lib/auth.ts` — só helpers de token (`getToken`, `getAuthUser`, `isTokenExpired`, `notifySessionExpired`). `getToken()` lê o token do papel ativo. **Não existe `setToken`/`clearToken`** — sempre passe pelo store.
+- `lib/cognito.ts` — `getLoginUrl(role)`, `getLogoutUrl(role)`, `exchangeCodeForTokens(code, state, role)`, `logout(role)`. **`role` é obrigatório em toda função** (sem defaults). O mapeamento interno `'client' → 'student'` (nome da audience na Cognito) é privado.
+
+### Regras
+
+- Nunca chamar `setToken`/`clearToken` (não existem). Use `startSession` no callback do Cognito e `endSession`/`logout(role)` ao deslogar.
+- `logout(role)` limpa **só** a sessão daquele papel. Se o outro papel tem sessão guardada, ele continua autenticado — entrar em `/{role}/login` promove a sessão e redireciona pra dashboard.
+- `onboarded` do aluno vive em `sessions.client.onboarded`, preservado entre logins. Não criar flag global.
+- Adicionar um novo papel (ex.: `'admin'`) = estender `Role` + definir a interface da session + atualizar `sessionsWithout` em `stores/sessionStore.ts`. `cognito.ts` precisa de config (env + redirect) pra esse papel.
+
+### Testes
+
+- `test/session.ts` expõe `loginAs(role, token?)` e `clearAllSessions()`.
+- `test/setup.ts` reseta `useSessionStore` no `afterEach` automaticamente.
+
 ## Mobile-first & PWA
 
 - Viewport alvo: 390×844 (iPhone 14/15). Testar antes de escalar com `md:`/`lg:`.

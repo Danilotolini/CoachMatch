@@ -32,6 +32,25 @@ pnpm format        # prettier --write src
 pnpm format:check  # prettier --check src
 ```
 
+## Autenticação e sessão
+
+A aplicação suporta dois papéis — **treinador** (`coach`) e **aluno** (`client`) — cada um com seu próprio user pool na Amazon Cognito. As duas sessões podem coexistir no mesmo navegador, mas só uma fica ativa por vez.
+
+### Como funciona
+
+- Cada papel tem suas rotas (`/coach/...`, `/client/...`) e sua tela de login (`/coach/login`, `/client/login`).
+- O login segue o fluxo OAuth + PKCE do Cognito. Ao voltar do callback, o token vai pro store de sessão (`stores/sessionStore.ts`) marcado pelo papel.
+- O `getToken()` da aplicação retorna o token do papel **ativo**. Quando você entra em `/coach/login` ou `/client/login`, esse papel passa a ser o ativo.
+
+### Logout e alternância de papel
+
+`logout(role)` limpa **somente** a sessão daquele papel — a sessão do outro papel, se houver, permanece guardada. Na prática isso significa que o ciclo abaixo funciona sem precisar relogar:
+
+1. Você está logado como `coach`, clica em "Sair" → sessão do coach é apagada, navegador volta para `/coach/login`.
+2. Acessa `/client/login` → o app reconhece a sessão de aluno persistida e te leva direto pra `/client`.
+
+Isso facilita testar interações coach ↔ aluno: faça login uma vez em cada papel e alterne pela URL.
+
 ## Deploy
 
 O site é hospedado em S3 e servido via CloudFront.
