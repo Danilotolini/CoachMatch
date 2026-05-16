@@ -93,10 +93,10 @@ describe('CoachOnboardingPage', () => {
       coordinates: { lat: 0, lng: 0 },
     })
 
-    // mock para submitForReview retornar PROFILE_REVIEW
+    // mock para submitForReview retornar PENDING_REVIEW
     server.use(
       http.post('*/coaches/me/submit-for-review', () =>
-        HttpResponse.json<Coach>({ ...initialCoach, status: 'PROFILE_REVIEW' }),
+        HttpResponse.json<Coach>({ ...initialCoach, status: 'PENDING_REVIEW' }),
       ),
     )
 
