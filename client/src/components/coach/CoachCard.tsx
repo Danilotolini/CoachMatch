@@ -6,10 +6,21 @@ interface CoachCardProps {
   image?: string
   rating?: string | number
   price?: string | number
+  location?: string
+  availability?: string
   onClick?: () => void
 }
 
-export function CoachCard({ name, specialties, image, rating, price, onClick }: CoachCardProps) {
+export function CoachCard({
+  name,
+  specialties,
+  image,
+  rating,
+  price,
+  location,
+  availability,
+  onClick,
+}: CoachCardProps) {
   return (
     <button
       type="button"
@@ -18,7 +29,11 @@ export function CoachCard({ name, specialties, image, rating, price, onClick }: 
     >
       <div
         className="relative h-40 bg-surface-container"
-        style={image ? { backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+        style={
+          image
+            ? { backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : undefined
+        }
       >
         {!image && (
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(244,255,198,0.18),transparent_60%)]" />
@@ -35,10 +50,23 @@ export function CoachCard({ name, specialties, image, rating, price, onClick }: 
         <div className="mt-1 font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
           {specialties}
         </div>
+        {location ? (
+          <div className="mt-2 flex items-center gap-1.5 font-body text-xs text-on-surface-variant">
+            <span className="material-symbols-outlined text-[16px] text-primary">pin_drop</span>
+            <span className="truncate">{location}</span>
+          </div>
+        ) : null}
         {price !== undefined && (
-          <div className="mt-2.5 flex items-baseline gap-1">
-            <span className="font-headline font-bold text-lg text-primary">R$ {price}</span>
-            <span className="text-on-surface-variant text-[11px]">/ sessão</span>
+          <div className="mt-2.5 flex items-end justify-between gap-3">
+            <div className="flex items-baseline gap-1">
+              <span className="font-headline font-bold text-lg text-primary">R$ {price}</span>
+              <span className="text-on-surface-variant text-[11px]">/ sessão</span>
+            </div>
+            {availability ? (
+              <span className="min-w-0 truncate text-right font-label text-[11px] text-on-surface-variant">
+                {availability}
+              </span>
+            ) : null}
           </div>
         )}
       </div>
