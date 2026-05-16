@@ -75,6 +75,7 @@ Português pt-BR, direto e confiante. Glossário de domínio em [`../.agents/ski
 - **Conteúdo visível em pt-BR:** use `Aluno`, `Treinador` e `Sessão`.
 - **Código e rotas locais:** use `client` para aluno e `coach` para treinador.
 - Rotas locais seguem o padrão `/client/...` e `/coach/...` com segmentos em inglês, por exemplo `/client/onboarding`, `/client/health`, `/coach/login`, `/coach/pending-review`.
+- Páginas específicas de papel também carregam o prefixo no nome do arquivo/componente: `ClientHomePage`, `ClientOnboardingPage`, `CoachDashboardPage`, `CoachOnboardingPage`, `CoachPendingReviewPage`, `CoachRejectedPage`.
 - Não trocar rotas externas, callbacks de OAuth/Cognito ou endpoints de API só para alinhar naming local.
 
 ## Padrões rápidos

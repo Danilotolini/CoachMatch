@@ -8,7 +8,7 @@ async function approveCoach(): Promise<void> {
   if (!res.ok) throw new Error(`approve failed (${String(res.status)})`)
 }
 
-export default function PendingReviewPage() {
+export default function CoachPendingReviewPage() {
   const queryClient = useQueryClient()
   const approve = useMutation({
     mutationFn: approveCoach,

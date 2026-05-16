@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { http, HttpResponse } from 'msw'
-import OnboardingPage from './OnboardingPage'
+import CoachOnboardingPage from './CoachOnboardingPage'
 import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
 import { loginAs } from '@/test/session'
@@ -17,7 +17,7 @@ function renderPage() {
     <QueryWrapper>
       <MemoryRouter initialEntries={['/coach/onboarding']}>
         <Routes>
-          <Route path="/coach/onboarding" element={<OnboardingPage />} />
+          <Route path="/coach/onboarding" element={<CoachOnboardingPage />} />
           <Route path="/coach/pending-review" element={<div>analise page</div>} />
         </Routes>
       </MemoryRouter>
@@ -34,7 +34,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('OnboardingPage', () => {
+describe('CoachOnboardingPage', () => {
   it('renderiza as quatro seções principais', () => {
     renderPage()
     expect(screen.getByRole('heading', { name: 'Identidade' })).toBeInTheDocument()

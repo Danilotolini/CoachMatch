@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 
-export default function RejectedPage() {
+export default function CoachRejectedPage() {
   return (
     <main className="min-h-dvh flex flex-col items-center justify-center gap-4 p-8">
       <h1 className="font-headline text-3xl font-bold">Reprovado</h1>
