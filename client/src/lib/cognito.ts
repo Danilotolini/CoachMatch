@@ -68,7 +68,7 @@ export function getLogoutUrl(role: Role, returnPath: string = defaultReturnPath(
 // de login do mesmo papel. Sessões de outros papéis permanecem ativas.
 export function logout(role: Role, returnPath: string = defaultReturnPath(role)): void {
   useSessionStore.getState().endSession(role)
-  if (import.meta.env.VITE_API_MOCKING === 'enabled') {
+  if (import.meta.env.DEV && import.meta.env.VITE_API_MOCKING === 'enabled') {
     window.location.href = returnPath
     return
   }
