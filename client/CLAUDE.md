@@ -47,6 +47,7 @@ Sessão por papel (`Role = 'coach' | 'client'`) persistida em `localStorage` via
 
 - Nunca chamar `setToken`/`clearToken` (não existem). Use `startSession` no callback do Cognito e `endSession`/`logout(role)` ao deslogar.
 - `logout(role)` limpa **só** a sessão daquele papel. Se o outro papel tem sessão guardada, ele continua autenticado — entrar em `/{role}/login` promove a sessão e redireciona pra dashboard.
+- Toda página interna nova de papel deve entrar no router protegida pelo guard correspondente. Para aluno (`/client/...`), use `ClientRouteGuard`; para treinador (`/coach/...`), use `RouteGuard` com os status permitidos. Não exponha páginas internas apenas adicionando a rota crua no `main.tsx`.
 - `onboarded` do aluno vive em `sessions.client.onboarded`, preservado entre logins. Não criar flag global.
 - Adicionar um novo papel (ex.: `'admin'`) = estender `Role` + definir a interface da session + atualizar `sessionsWithout` em `stores/sessionStore.ts`. `cognito.ts` precisa de config (env + redirect) pra esse papel.
 
