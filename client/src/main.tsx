@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools' 
 import { queryClient } from '@/lib/queryClient'
 import './index.css'
 
@@ -19,7 +19,8 @@ import CognitoCallbackPage from '@/pages/CognitoCallbackPage'
 import OnboardingPage from '@/pages/OnboardingPage'
 import PendingReviewPage from '@/pages/PendingReviewPage'
 import RejectedPage from '@/pages/RejectedPage'
-import DashboardPage from '@/pages/DashboardPage'
+import DashboardPage from '@/pages/DashboardPage' 
+import PaymentPage from '@/pages/PaymentPage'
 import { RouteGuard } from '@/components/RouteGuard'
 
 const router = createBrowserRouter([
@@ -56,6 +57,14 @@ const router = createBrowserRouter([
     element: (
       <RouteGuard allow={['APPROVED']}>
         <DashboardPage />
+      </RouteGuard>
+    ),
+  }, 
+  {
+    path: '/pagamento/:sessionId',
+    element: (
+      <RouteGuard allow={['APPROVED']}>
+        <PaymentPage />
       </RouteGuard>
     ),
   },
