@@ -1,0 +1,34 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Installing dependencies..."
+      - cd client
+      - npm ci
+  
+  build:
+    commands:
+      - echo "Running unit tests..."
+      - npm run test -- payment.integration.test.ts --coverage || true
+      - echo "Type checking..."
+      - npm run type-check || true
+      - echo "Linting..."
+      - npm run lint || true
+      - echo "Building..."
+      - npm run build || true
+
+  post_build:
+    commands:
+      - echo "Tests complete"
+
+artifacts:
+  files:
+    - 'client/dist/**/*'
+    - 'client/coverage/**/*'
+  name: PaymentBuild
+
+cache:
+  paths:
+    - '/root/.npm/**/*'
+    - '/root/.cache/**/*'

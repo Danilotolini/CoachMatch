@@ -71,3 +71,39 @@ export interface UploadUrlResponse {
     fields: Record<string, string>
   }
 }
+
+export type PaymentStatus = 'approved' | 'refused' | 'pending'
+export type PaymentMethod = 'credit_card' | 'pix'
+
+export interface CardInfo {
+  number: string
+  holder: string
+  expiryMonth: string
+  expiryYear: string
+  cvv: string
+}
+
+export interface PaymentPayload {
+  sessionId: string
+  method: PaymentMethod
+  card?: CardInfo
+  amount: number
+  coachId: string
+  studentId: string
+}
+
+export interface Transaction {
+  transactionId: string
+  sessionId: string
+  coachId: string
+  studentId: string
+  method: PaymentMethod
+  amount: number
+  status: PaymentStatus
+  cardLastFour?: string
+  split?: {
+    platformFee: number
+    coachAmount: number
+  }
+  createdAt: string
+}

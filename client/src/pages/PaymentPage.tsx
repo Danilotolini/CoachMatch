@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { ProgressHeader } from '@/components/layout/ProgressHeader'
+import { useCreatePayment } from '@/hooks/useCreatePayment'
+import { useCoachMe } from '@/hooks/useCoachMe'
+import type { PaymentMethod, PaymentStatus, CardInfo } from '@/types/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type PaymentMethod = 'credit_card' | 'pix'
 
 type CardStatus = 'idle' | 'loading' | 'approved' | 'refused' | 'pending'
 
@@ -62,6 +64,7 @@ const MOCK_SESSION = {
   amount:      18000,
   platformFee: 1800,
   coachAmount: 16200,
+  sessionId:   'session_mock_001',  // Session ID for mock
 }
 
 // ─── Componentes internos ─────────────────────────────────────────────────────
@@ -433,26 +436,70 @@ function CardPanel({ onSubmit, loading }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PaymentPage() {
+  const params = useParams<{ sessionId?: string }>()
+  const { data: coach } = useCoachMe()
+  const createPaymentMutation = useCreatePayment()
+  
   const [method, setMethod] = useState<PaymentMethod>('pix')
   const [cardStatus, setCardStatus] = useState<CardStatus>('idle')
+  const [error, setError] = useState<string | null>(null)
 
-  async function handleCardSubmit(card: CardForm) {
+  const isLoading = createPaymentMutation.isPending
+
+  function handleCardSubmit(card: CardForm) {
+    setError(null)
     setCardStatus('loading')
-    await new Promise(r => setTimeout(r, 1800))
-    const clean = card.number.replace(/\s/g, '')
-    if (clean === '4222222222222222') setCardStatus('refused')
-    else if (clean === '4333333333333333') setCardStatus('pending')
-    else setCardStatus('approved')
+    
+    const cardInfo: CardInfo = {
+      number: card.number,
+      holder: card.holder,
+      expiryMonth: card.expiryMonth,
+      expiryYear: card.expiryYear,
+      cvv: card.cvv,
+    }
+
+    createPaymentMutation.mutate({
+      sessionId: params.sessionId || MOCK_SESSION.sessionId,
+      method: 'credit_card',
+      card: cardInfo,
+      amount: MOCK_SESSION.amount,
+      coachId: coach?.email || 'coach_mock',
+      studentId: coach?.email || 'student_mock',
+    }, {
+      onSuccess: (result) => {
+        setCardStatus(result.status)
+      },
+      onError: (err) => {
+        setError(err instanceof Error ? err.message : 'Erro ao processar pagamento')
+        setCardStatus('idle')
+      },
+    })
   }
 
-  async function handlePixConfirm() {
+  function handlePixConfirm() {
+    setError(null)
     setCardStatus('loading')
-    await new Promise(r => setTimeout(r, 1200))
-    setCardStatus('approved')
+    
+    createPaymentMutation.mutate({
+      sessionId: params.sessionId || MOCK_SESSION.sessionId,
+      method: 'pix',
+      amount: MOCK_SESSION.amount,
+      coachId: coach?.email || 'coach_mock',
+      studentId: coach?.email || 'student_mock',
+    }, {
+      onSuccess: (result) => {
+        setCardStatus(result.status)
+      },
+      onError: (err) => {
+        setError(err instanceof Error ? err.message : 'Erro ao processar PIX')
+        setCardStatus('idle')
+      },
+    })
   }
 
   function handleRetry() {
     setCardStatus('idle')
+    setError(null)
   }
 
   const showResult = cardStatus === 'approved' || cardStatus === 'refused' || cardStatus === 'pending'
@@ -474,6 +521,13 @@ export default function PaymentPage() {
             Pagamento seguro e criptografado.
           </p>
         </div>
+
+        {error && (
+          <div className="bg-error/10 border border-error/30 rounded-lg p-4 flex gap-3">
+            <span className="material-symbols-outlined text-error flex-shrink-0 mt-0.5">error</span>
+            <p className="font-body text-sm text-error">{error}</p>
+          </div>
+        )}
 
         {showResult ? (
           <PaymentResult
@@ -574,12 +628,12 @@ export default function PaymentPage() {
                 <PixPanel
                   amount={MOCK_SESSION.amount}
                   onConfirm={handlePixConfirm}
-                  loading={cardStatus === 'loading'}
+                  loading={isLoading}
                 />
               ) : (
                 <CardPanel
                   onSubmit={handleCardSubmit}
-                  loading={cardStatus === 'loading'}
+                  loading={isLoading}
                 />
               )}
             </Section>
