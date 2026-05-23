@@ -65,7 +65,9 @@ async function refundPayment(req, res) {
     );
     return res.status(200).json(result);
   } catch (err) {
-    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
     return handleError(res, err, 'refundPayment');
   }
 }
