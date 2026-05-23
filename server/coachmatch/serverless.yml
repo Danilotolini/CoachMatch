@@ -29,6 +29,16 @@ provider:
   profile: JoaoAdm
   timeout: 30
   name: aws
+  
+  httpApi:
+    authorizers:
+      cognitoAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
+        audience:
+          - 76hul7797npfkmpoju0mbghti7
+
   stage: ${self:custom.config.stage}
   region: ${self:custom.config.region}
   iam:
@@ -41,8 +51,17 @@ provider:
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
 
-          
 functions:
+
+  userUpdate:
+    handler: src/api-coach-update/userUpdate.handler
+    events:
+      - httpApi:
+          path: /coaches/me
+          method: PUT
+          authorizer:
+            name: cognitoAuthorizer
+
   userPostConfirmation:
     handler: src/api-coach-create/userPostConfirmation.handler
     environment:
@@ -86,3 +105,5 @@ custom:
       port: 8000
       inMemory: true
       migrate: true  # cria as tabelas automaticamente
+  serverless-offline:
+    ignoreJWTSignature: true
