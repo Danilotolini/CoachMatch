@@ -3,20 +3,25 @@ version: 0.2
 phases:
   pre_build:
     commands:
+      - echo "Installing Node.js v20..."
+      - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+      - apt-get install -y nodejs
+      - echo "Installing pnpm@10..."
+      - npm install -g pnpm@10
       - echo "Installing dependencies..."
       - cd client
-      - npm ci
+      - pnpm install --frozen-lockfile
   
   build:
     commands:
       - echo "Running unit tests..."
-      - npm run test -- payment.integration.test.ts --coverage || true
+      - pnpm run test -- payment.integration.test.ts --coverage || true
       - echo "Type checking..."
-      - npm run type-check || true
+      - pnpm run type-check || true
       - echo "Linting..."
-      - npm run lint || true
+      - pnpm run lint || true
       - echo "Building..."
-      - npm run build || true
+      - pnpm run build || true
 
   post_build:
     commands:
@@ -30,5 +35,5 @@ artifacts:
 
 cache:
   paths:
-    - '/root/.npm/**/*'
+    - '/root/.pnpm-store/**/*'
     - '/root/.cache/**/*'
