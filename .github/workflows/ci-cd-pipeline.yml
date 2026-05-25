@@ -1,4 +1,4 @@
-name: 🚀 CI/CD Pipeline — Full Stack
+name: CI/CD Pipeline - Full Stack
 
 on:
   push:
@@ -17,12 +17,12 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
   # STAGE 1: ANALYSIS & LINTING
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
 
   lint:
-    name: 🔍 Lint & Code Quality
+    name: Lint & Code Quality
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,34 +30,34 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 📦 Setup pnpm
+      - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: 📦 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: 📚 Install dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🔨 Lint (ESLint)
+      - name: Lint (ESLint)
         run: pnpm run lint --format json --output-file lint-results.json || true
         continue-on-error: true
 
-      - name: 📝 Type Check (TypeScript)
+      - name: Type Check (TypeScript)
         run: pnpm run type-check
         continue-on-error: true
 
-      - name: 💾 Upload lint results
+      - name: Upload lint results
         if: always()
         uses: actions/upload-artifact@v3
         with:
@@ -65,42 +65,42 @@ jobs:
           path: lint-results.json
           retention-days: 5
 
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
   # STAGE 2: SECURITY SCANNING
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
 
   security:
-    name: 🔐 Security Scan
+    name: Security Scan
     runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📦 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: 🔓 Run npm audit
+      - name: Run npm audit
         run: npm audit --audit-level=moderate || true
         continue-on-error: true
 
-      - name: 🛡️ Dependency check (Snyk)
+      - name: Dependency check (Snyk)
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
   # STAGE 3: UNIT & INTEGRATION TESTS
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
 
   test-backend:
-    name: 🧪 Backend Tests
+    name: Backend Tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -113,31 +113,31 @@ jobs:
           - 8000:8000
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
+      - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: 📦 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: 📚 Install dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🧪 Run backend tests
+      - name: Run backend tests
         run: pnpm run test:backend --coverage
         env:
           AWS_REGION: us-east-1
           DYNAMODB_ENDPOINT: http://localhost:8000
         continue-on-error: true
 
-      - name: 📊 Upload coverage (Backend)
+      - name: Upload coverage (Backend)
         if: always()
         uses: codecov/codecov-action@v3
         with:
@@ -147,35 +147,35 @@ jobs:
           fail_ci_if_error: false
 
   test-frontend:
-    name: 🎨 Frontend Tests
+    name: Frontend Tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
       checks: write
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
+      - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: 📦 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: 📚 Install dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🧪 Run frontend tests
+      - name: Run frontend tests
         run: pnpm run test:frontend --coverage
         continue-on-error: true
 
-      - name: 📊 Upload coverage (Frontend)
+      - name: Upload coverage (Frontend)
         if: always()
         uses: codecov/codecov-action@v3
         with:
@@ -184,12 +184,12 @@ jobs:
           name: frontend-coverage
           fail_ci_if_error: false
 
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
   # STAGE 4: BUILD VERIFICATION
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
 
   build:
-    name: 🏗️ Build Check
+    name: Build Check
     needs: [lint, test-backend, test-frontend]
     runs-on: ubuntu-latest
     if: always()
@@ -198,29 +198,29 @@ jobs:
       packages: write
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
+      - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: 📦 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: 📚 Install dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🏗️ Build Client
+      - name: Build Client
         run: pnpm run build:client
         env:
           VITE_API_URL: ${{ secrets.API_URL || 'http://localhost:3000' }}
 
-      - name: 💾 Upload build artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         if: success()
         with:
@@ -228,16 +228,16 @@ jobs:
           path: client/dist
           retention-days: 7
 
-      - name: 🏗️ Build Backend Lambda
+      - name: Build Backend Lambda
         run: pnpm run build:backend || true
         continue-on-error: true
 
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
   # STAGE 5: E2E TESTS (Optional - só em PR ou push em main)
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
 
   e2e:
-    name: 🌐 E2E Tests
+    name: E2E Tests
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
@@ -246,22 +246,22 @@ jobs:
       checks: write
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📦 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: 🌐 Run E2E tests (Playwright)
+      - name: Run E2E tests (Playwright)
         run: npx playwright test --reporter=html || true
         continue-on-error: true
 
-      - name: 💾 Upload E2E report
+      - name: Upload E2E report
         if: always()
         uses: actions/upload-artifact@v3
         with:
@@ -269,31 +269,31 @@ jobs:
           path: playwright-report/
           retention-days: 5
 
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
   # STAGE 6: QUALITY GATE
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
 
   quality-gate:
-    name: ✅ Quality Gate
+    name: Quality Gate
     needs: [lint, test-backend, test-frontend, build, security]
     runs-on: ubuntu-latest
     if: always()
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📋 Check required checks
+      - name: Check required checks
         run: |
           echo "::group::Quality Gate Summary"
-          echo "✓ Lint: ${{ needs.lint.result }}"
-          echo "✓ Backend Tests: ${{ needs.test-backend.result }}"
-          echo "✓ Frontend Tests: ${{ needs.test-frontend.result }}"
-          echo "✓ Build: ${{ needs.build.result }}"
-          echo "✓ Security: ${{ needs.security.result }}"
+          echo " Lint: ${{ needs.lint.result }}"
+          echo " Backend Tests: ${{ needs.test-backend.result }}"
+          echo " Frontend Tests: ${{ needs.test-frontend.result }}"
+          echo " Build: ${{ needs.build.result }}"
+          echo " Security: ${{ needs.security.result }}"
           echo "::endgroup::"
 
-      - name: 🚫 Fail if critical checks failed
+      - name: Fail if critical checks failed
         if: |
           needs.lint.result == 'failure' ||
           needs.test-backend.result == 'failure' ||
@@ -301,15 +301,15 @@ jobs:
           needs.build.result == 'failure'
         run: exit 1
 
-      - name: ✅ All checks passed!
-        run: echo "✓ Pipeline passed all quality gates"
+      - name: All checks passed!
+        run: echo " Pipeline passed all quality gates"
 
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
   # STAGE 7: DEPLOYMENT (Main branch only)
-  # ═══════════════════════════════════════════════════════════════════════════
+  # 
 
   deploy-staging:
-    name: 🚀 Deploy to Staging
+    name: Deploy to Staging
     needs: quality-gate
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
@@ -322,35 +322,35 @@ jobs:
       url: https://staging.coachmatch.dev
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔑 Configure AWS credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: 📦 Download build artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v3
         with:
           name: client-build
           path: client/dist
 
-      - name: 🚀 Deploy to S3 (Staging)
+      - name: Deploy to S3 (Staging)
         run: |
           aws s3 sync client/dist s3://coachmatch-staging/ --delete
           aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_STAGING_ID }} --paths "/*"
 
-      - name: 🔔 Notify Slack
+      - name: Notify Slack
         if: always()
         uses: slackapi/slack-github-action@v1
         with:
           webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           payload: |
             {
-              "text": "🚀 Staging deployment ${{ job.status }}",
+              "text": " Staging deployment ${{ job.status }}",
               "blocks": [
                 {
                   "type": "section",
@@ -363,7 +363,7 @@ jobs:
             }
 
   deploy-production:
-    name: 🚀 Deploy to Production
+    name: Deploy to Production
     needs: quality-gate
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -376,28 +376,28 @@ jobs:
       url: https://coachmatch.app
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔑 Configure AWS credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: 📦 Download build artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v3
         with:
           name: client-build
           path: client/dist
 
-      - name: 🚀 Deploy to S3 (Production)
+      - name: Deploy to S3 (Production)
         run: |
           aws s3 sync client/dist s3://coachmatch-prod/ --delete
           aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_PROD_ID }} --paths "/*"
 
-      - name: 🏷️ Create GitHub Release
+      - name: Create GitHub Release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -409,18 +409,18 @@ jobs:
             - Commit: ${{ github.sha }}
             - Author: ${{ github.actor }}
             
-            ## Deployed to Production ✅
+            ## Deployed to Production 
           draft: false
           prerelease: false
 
-      - name: 🔔 Notify Slack
+      - name: Notify Slack
         if: always()
         uses: slackapi/slack-github-action@v1
         with:
           webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           payload: |
             {
-              "text": "🚀 Production deployment ${{ job.status }} - v${{ github.run_number }}",
+              "text": " Production deployment ${{ job.status }} - v${{ github.run_number }}",
               "blocks": [
                 {
                   "type": "section",
