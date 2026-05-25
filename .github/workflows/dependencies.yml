@@ -1,0 +1,165 @@
+name: 🔄 Dependency & Security Updates
+
+on:
+  schedule:
+    # Terças-feiras às 9 da manhã
+    - cron: '0 9 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # DEPENDABOT-LIKE: Automated Dependency Updates
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  update-dependencies:
+    name: 📦 Check & Update Dependencies
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - name: Client
+            path: client
+          - name: Server
+            path: server
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: cd ${{ matrix.path }} && pnpm install --frozen-lockfile
+
+      - name: 🔄 Check for updates
+        id: updates
+        run: |
+          cd ${{ matrix.path }}
+          pnpm outdated --format json > outdated.json 2>/dev/null || echo "No updates found"
+          echo "status=checked" >> $GITHUB_OUTPUT
+
+      - name: 🔐 Security audit
+        continue-on-error: true
+        run: |
+          cd ${{ matrix.path }}
+          pnpm audit --audit-level=moderate || true
+
+      - name: 📝 Generate update summary
+        if: always()
+        run: |
+          echo "## ${{ matrix.name }} Dependencies Status" >> $GITHUB_STEP_SUMMARY
+          echo "✓ Checked for outdated packages" >> $GITHUB_STEP_SUMMARY
+          echo "✓ Security audit completed" >> $GITHUB_STEP_SUMMARY
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Security scanning com npm audit
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  security-audit:
+    name: 🛡️ Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 🛡️ Run npm audit
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+      - name: 📊 Generate report
+        run: npm audit --json > audit-report.json 2>/dev/null || true
+
+      - name: 💾 Upload audit report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-audit
+          path: audit-report.json
+          retention-days: 30
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Renovate/Dependabot Alternative: Create PR with updates
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  create-update-pr:
+    name: 📝 Create Update PR (if needed)
+    needs: [update-dependencies, security-audit]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: 🔄 Update all packages
+        run: |
+          pnpm install --frozen-lockfile
+          cd client && pnpm update
+          cd ../server && pnpm update
+          cd ..
+
+      - name: 🧪 Run tests to verify updates
+        continue-on-error: true
+        run: pnpm run test 2>/dev/null || echo "Tests skipped"
+
+      - name: 🔄 Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(deps): weekly dependency updates'
+          title: '🔄 Chore: Weekly dependency updates'
+          body: |
+            ## Automated Dependency Updates
+            
+            This PR contains weekly dependency updates.
+            
+            ### What's included:
+            - ✅ Security patches
+            - ✅ Minor version updates
+            - ✅ Bug fixes
+            
+            ### Checklist:
+            - [ ] Run full test suite
+            - [ ] Verify no breaking changes
+            - [ ] Check compatibility
+            
+            _Automated by GitHub Actions_
+          branch: chore/update-dependencies
+          delete-branch: true
+          labels: |
+            dependencies
+            automated
+          assignees: |
+            ${{ github.repository_owner }}

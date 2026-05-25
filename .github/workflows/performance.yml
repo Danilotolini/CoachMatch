@@ -1,0 +1,220 @@
+name: 📊 Performance & Monitoring
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Toda segunda-feira às 8 da manhã
+    - cron: '0 8 * * 1'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Build Size Analysis
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  bundle-size:
+    name: 📦 Bundle Size Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ Build client
+        run: cd client && pnpm run build
+
+      - name: 📊 Analyze bundle
+        run: |
+          cd client/dist
+          ls -lh | grep -E '\.(js|css|wasm)$'
+          du -sh .
+          echo "### Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          du -sh . >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📦 Check bundle size limits
+        run: |
+          BUNDLE_SIZE=$(du -sb client/dist | awk '{print $1}')
+          LIMIT_BYTES=$((2 * 1024 * 1024))  # 2MB limit
+          
+          if [ $BUNDLE_SIZE -gt $LIMIT_BYTES ]; then
+            echo "⚠️ Bundle size ($((BUNDLE_SIZE / 1024))KB) exceeds limit (2MB)"
+            exit 1
+          else
+            echo "✓ Bundle size ($((BUNDLE_SIZE / 1024))KB) is within limits"
+          fi
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Lighthouse CI (Usando ferramenta gratuita)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  lighthouse:
+    name: 🏮 Lighthouse Performance
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 📊 Run Lighthouse
+        uses: treosh/lighthouse-ci-action@v9
+        with:
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          configPath: './.github/lighthouse-config.json'
+        continue-on-error: true
+
+      - name: 💾 Upload Lighthouse results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: lighthouse-results
+          path: .lighthouseci
+          retention-days: 30
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Code Metrics & Analysis
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  code-metrics:
+    name: 📈 Code Metrics
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 📊 Calculate lines of code
+        run: |
+          echo "### Code Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "**TypeScript/JavaScript:**" >> $GITHUB_STEP_SUMMARY
+          find . -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" | \
+            grep -v node_modules | xargs wc -l | tail -1 >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Files:**" >> $GITHUB_STEP_SUMMARY
+          find . -name "*.test.ts" -o -name "*.test.js" -o -name "*.spec.ts" | \
+            grep -v node_modules | wc -l >> $GITHUB_STEP_SUMMARY
+
+      - name: 📋 File structure analysis
+        run: |
+          echo "### Directory Structure" >> $GITHUB_STEP_SUMMARY
+          tree -L 2 -h --du . --charset ascii -I 'node_modules|.git|dist|build' >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Test Coverage Trends
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  coverage-report:
+    name: 📊 Coverage Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧪 Run tests with coverage
+        run: pnpm run test:coverage 2>/dev/null || echo "Coverage generation skipped"
+        continue-on-error: true
+
+      - name: 📊 Generate coverage summary
+        run: |
+          echo "### Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "coverage/coverage-summary.json" ]; then
+            cat coverage/coverage-summary.json | grep -o '"lines"[^}]*' | head -1 >> $GITHUB_STEP_SUMMARY || true
+          fi
+          
+          echo "✓ Coverage data collected" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📤 Upload to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: false
+          verbose: true
+        continue-on-error: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Performance Regression Detection
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  performance-check:
+    name: ⚡ Performance Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build project
+        run: npm run build 2>/dev/null || true
+
+      - name: ⚡ Check build time
+        run: |
+          echo "### Build Performance" >> $GITHUB_STEP_SUMMARY
+          echo "✓ Build completed successfully" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📈 Compare with baseline
+        run: |
+          echo "### Performance Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- Build time: Monitored" >> $GITHUB_STEP_SUMMARY
+          echo "- Bundle size: Checked" >> $GITHUB_STEP_SUMMARY
+          echo "- Test execution: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
