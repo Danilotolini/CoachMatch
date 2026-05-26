@@ -17,10 +17,6 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  # 
-  # STAGE 1: ANALYSIS & LINTING
-  # 
-
   lint:
     name: Lint & Code Quality
     runs-on: ubuntu-latest
@@ -30,44 +26,33 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: ${{ env.PNPM_VERSION }}
+          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22'
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
 
-      - name: Lint (ESLint)
-        run: pnpm run lint --format json --output-file lint-results.json || true
+      - run: pnpm run lint --format json --output-file lint-results.json || true
         continue-on-error: true
 
-      - name: Type Check (TypeScript)
-        run: pnpm run type-check || true
+      - run: pnpm run type-check || true
         continue-on-error: true
 
-      - name: Upload lint results
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: lint-results
           path: lint-results.json
           retention-days: 5
-
-  # 
-  # STAGE 2: SECURITY SCANNING
-  # 
 
   security:
     name: Security Scan
@@ -77,27 +62,19 @@ jobs:
       security-events: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22'
 
-      - name: Run npm audit
-        run: npm audit --audit-level=moderate || true
+      - run: npm audit --audit-level=moderate || true
         continue-on-error: true
 
-      - name: Dependency check (Snyk)
-        uses: snyk/actions/node@master
+      - uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
-
-  # 
-  # STAGE 3: UNIT & INTEGRATION TESTS
-  # 
 
   test-backend:
     name: Backend Tests
@@ -113,33 +90,29 @@ jobs:
           - 8000:8000
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: ${{ env.PNPM_VERSION }}
+          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22'
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - run: node --version && pnpm --version
 
-      - name: Run backend tests
-        run: pnpm run test:backend --coverage || true
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run test:backend --coverage || true
         env:
           AWS_REGION: us-east-1
           DYNAMODB_ENDPOINT: http://localhost:8000
         continue-on-error: true
 
-      - name: Upload coverage (Backend)
+      - uses: codecov/codecov-action@v3
         if: always()
-        uses: codecov/codecov-action@v3
         with:
           files: ./server/api-pagamentos/coverage/coverage-final.json
           flags: backend
@@ -154,39 +127,31 @@ jobs:
       checks: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: ${{ env.PNPM_VERSION }}
+          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22'
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - run: node --version && pnpm --version
 
-      - name: Run frontend tests
-        run: pnpm run test:frontend --coverage || true
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run test:frontend --coverage || true
         continue-on-error: true
 
-      - name: Upload coverage (Frontend)
+      - uses: codecov/codecov-action@v3
         if: always()
-        uses: codecov/codecov-action@v3
         with:
           files: ./client/coverage/coverage-final.json
           flags: frontend
           name: frontend-coverage
           fail_ci_if_error: false
-
-  # 
-  # STAGE 4: BUILD VERIFICATION
-  # 
 
   build:
     name: Build Check
@@ -198,43 +163,34 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: ${{ env.PNPM_VERSION }}
+          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22'
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - run: node --version && pnpm --version
 
-      - name: Build Client
-        run: cd client && pnpm run build
+      - run: pnpm install --frozen-lockfile
+
+      - run: cd client && pnpm run build
         env:
           VITE_API_URL: ${{ secrets.API_URL || 'http://localhost:3000' }}
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         if: success()
         with:
           name: client-build
           path: client/dist
           retention-days: 7
 
-      - name: Build Backend Lambda
-        run: pnpm run build:backend || true
+      - run: pnpm run build:backend || true
         continue-on-error: true
-
-  # 
-  # STAGE 5: E2E TESTS (Optional - só em PR ou push em main)
-  # 
 
   e2e:
     name: E2E Tests
@@ -246,37 +202,27 @@ jobs:
       checks: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v2
         with:
-          version: ${{ env.PNPM_VERSION }}
+          version: 10
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
 
-      - name: Run E2E tests (Playwright)
-        run: npx playwright test --reporter=html || true
+      - run: npx playwright test --reporter=html || true
         continue-on-error: true
 
-      - name: Upload E2E report
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: e2e-report
           path: playwright-report/
           retention-days: 5
-
-  # 
-  # STAGE 6: QUALITY GATE
-  # 
 
   quality-gate:
     name: Quality Gate
@@ -285,33 +231,24 @@ jobs:
     if: always()
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Check required checks
-        run: |
-          echo "::group::Quality Gate Summary"
-          echo " Lint: ${{ needs.lint.result }}"
-          echo " Backend Tests: ${{ needs.test-backend.result }}"
-          echo " Frontend Tests: ${{ needs.test-frontend.result }}"
-          echo " Build: ${{ needs.build.result }}"
-          echo " Security: ${{ needs.security.result }}"
-          echo "::endgroup::"
+      - run: |
+          echo "Quality Gate Summary"
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Backend Tests: ${{ needs.test-backend.result }}"
+          echo "Frontend Tests: ${{ needs.test-frontend.result }}"
+          echo "Build: ${{ needs.build.result }}"
+          echo "Security: ${{ needs.security.result }}"
 
-      - name: Fail if critical checks failed
-        if: |
+      - if: |
           needs.lint.result == 'failure' ||
           needs.test-backend.result == 'failure' ||
           needs.test-frontend.result == 'failure' ||
           needs.build.result == 'failure'
         run: exit 1
 
-      - name: All checks passed!
-        run: echo " Pipeline passed all quality gates"
-
-  # 
-  # STAGE 7: DEPLOYMENT (Main branch only)
-  # 
+      - run: echo "Pipeline passed all quality gates"
 
   deploy-staging:
     name: Deploy to Staging
@@ -327,112 +264,19 @@ jobs:
       url: https://staging.coachmatch.dev
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: client-build
           path: client/dist
 
-      - name: Deploy to S3 (Staging)
-        run: |
+      - run: |
           aws s3 sync client/dist s3://coachmatch-staging/ --delete
           aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_STAGING_ID }} --paths "/*"
-
-      - name: Notify Slack
-        if: always()
-        uses: slackapi/slack-github-action@v1
-        with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          payload: |
-            {
-              "text": " Staging deployment ${{ job.status }}",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Staging Deployment*\n*Status:* ${{ job.status }}\n*Ref:* ${{ github.ref }}\n*Commit:* ${{ github.sha }}"
-                  }
-                }
-              ]
-            }
-
-  deploy-production:
-    name: Deploy to Production
-    needs: quality-gate
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    permissions:
-      contents: read
-      deployments: write
-
-    environment:
-      name: production
-      url: https://coachmatch.app
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: client-build
-          path: client/dist
-
-      - name: Deploy to S3 (Production)
-        run: |
-          aws s3 sync client/dist s3://coachmatch-prod/ --delete
-          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_PROD_ID }} --paths "/*"
-
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
-          body: |
-            ## Changes
-            - Commit: ${{ github.sha }}
-            - Author: ${{ github.actor }}
-            
-            ## Deployed to Production 
-          draft: false
-          prerelease: false
-
-      - name: Notify Slack
-        if: always()
-        uses: slackapi/slack-github-action@v1
-        with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          payload: |
-            {
-              "text": " Production deployment ${{ job.status }} - v${{ github.run_number }}",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Production Deployment*\n*Status:* ${{ job.status }}\n*Version:* v${{ github.run_number }}\n*Commit:* ${{ github.sha }}"
-                  }
-                }
-              ]
-            }
