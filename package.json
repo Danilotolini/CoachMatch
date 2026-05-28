@@ -1,0 +1,15 @@
+{
+  "name": "coachmatch-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "CoachMatch Monorepo",
+  "pnpm": {
+    "workspaces": [
+      "client",
+      "server"
+    ]
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}
