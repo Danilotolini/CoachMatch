@@ -109,14 +109,14 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  // ─── Payment Handlers ──────────────────────────────────────────────────────
+  // Payment Handlers
 
   http.post('*/payments', async ({ request }) => {
     await delay(800)
     const payload = (await request.json()) as PaymentPayload
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     const transactionId = `txn_${Date.now()}`
 
-    // Determine payment status based on test card number
     let status: 'approved' | 'refused' | 'pending' = 'approved'
     if (payload.method === 'credit_card' && payload.card) {
       const cardNumber = payload.card.number.replace(/\s/g, '')
@@ -140,8 +140,8 @@ export const handlers = [
       method: payload.method,
       amount: payload.amount,
       status,
-      cardLastFour: payload.card ? payload.card.number.slice(-4) : undefined,
-      split,
+      ...(payload.card && { cardLastFour: payload.card.number.slice(-4) }),
+      ...(split && { split }),
       createdAt: new Date().toISOString(),
     }
 
@@ -164,7 +164,7 @@ export const handlers = [
     return HttpResponse.json<Transaction>(transaction)
   }),
 
-  http.post('*/payments/:transactionId/refund', async ({ params, request }) => {
+  http.post('*/payments/:transactionId/refund', async ({ params }) => {
     await delay(600)
     const { transactionId } = params
     const transaction = state.transactions.get(String(transactionId))
@@ -183,7 +183,7 @@ export const handlers = [
       )
     }
 
-    // Create refund transaction
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     const refundId = `refund_${Date.now()}`
     const refundTxn: Transaction = {
       transactionId: refundId,
@@ -193,13 +193,13 @@ export const handlers = [
       method: transaction.method,
       amount: -transaction.amount,
       status: 'approved',
-      cardLastFour: transaction.cardLastFour,
-      split: transaction.split
-        ? {
-            platformFee: -transaction.split.platformFee,
-            coachAmount: -transaction.split.coachAmount,
-          }
-        : undefined,
+      ...(transaction.cardLastFour !== undefined && { cardLastFour: transaction.cardLastFour }),
+      ...(transaction.split && {
+        split: {
+          platformFee: -transaction.split.platformFee,
+          coachAmount: -transaction.split.coachAmount,
+        },
+      }),
       createdAt: new Date().toISOString(),
     }
 

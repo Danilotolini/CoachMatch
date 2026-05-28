@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { ProgressHeader } from '@/components/layout/ProgressHeader'
 import { useCreatePayment } from '@/hooks/useCreatePayment'
 import { useCoachMe } from '@/hooks/useCoachMe'
-import type { PaymentMethod, PaymentStatus, CardInfo } from '@/types/api'
+import type { PaymentMethod, CardInfo } from '@/types/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -220,6 +220,7 @@ function PixPanel({ amount, onConfirm, loading }: {
             {Array.from({ length: 64 }).map((_, i) => (
               <div
                 key={i}
+                // eslint-disable-next-line react-hooks/purity
                 className={`rounded-sm ${Math.random() > 0.5 ? 'bg-on-surface' : 'bg-transparent'}`}
               />
             ))}
@@ -340,7 +341,7 @@ function CardPanel({ onSubmit, loading }: {
               inputMode="numeric"
               placeholder="0000 0000 0000 0000"
               value={form.number}
-              onChange={e => handleNumberChange(e.target.value)}
+              onChange={e => { handleNumberChange(e.target.value); }}
               hasError={!!errors.number}
             />
             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">
@@ -362,7 +363,7 @@ function CardPanel({ onSubmit, loading }: {
             type="text"
             placeholder="Como está no cartão"
             value={form.holder}
-            onChange={e => setForm(f => ({ ...f, holder: e.target.value.toUpperCase() }))}
+            onChange={e => { setForm(f => ({ ...f, holder: e.target.value.toUpperCase() })); }}
             hasError={!!errors.holder}
           />
           {errors.holder && <FieldError message={errors.holder} />}
@@ -377,7 +378,7 @@ function CardPanel({ onSubmit, loading }: {
               inputMode="numeric"
               placeholder="MM/AA"
               value={expiryDisplay}
-              onChange={e => handleExpiryChange(e.target.value)}
+              onChange={e => { handleExpiryChange(e.target.value); }}
               hasError={!!errors.expiry}
             />
             {errors.expiry && <FieldError message={errors.expiry} />}
@@ -391,7 +392,7 @@ function CardPanel({ onSubmit, loading }: {
                 placeholder="000"
                 maxLength={4}
                 value={form.cvv}
-                onChange={e => setForm(f => ({ ...f, cvv: e.target.value.replace(/\D/g, '') }))}
+                onChange={e => { setForm(f => ({ ...f, cvv: e.target.value.replace(/\D/g, '') })); }}
                 hasError={!!errors.cvv}
               />
               <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[18px]">
@@ -459,12 +460,12 @@ export default function PaymentPage() {
     }
 
     createPaymentMutation.mutate({
-      sessionId: params.sessionId || MOCK_SESSION.sessionId,
+      sessionId: params.sessionId ?? MOCK_SESSION.sessionId,
       method: 'credit_card',
       card: cardInfo,
       amount: MOCK_SESSION.amount,
-      coachId: coach?.email || 'coach_mock',
-      studentId: coach?.email || 'student_mock',
+      coachId: coach?.email ?? 'coach_mock',
+      studentId: coach?.email ?? 'student_mock',
     }, {
       onSuccess: (result) => {
         setCardStatus(result.status)
@@ -481,11 +482,11 @@ export default function PaymentPage() {
     setCardStatus('loading')
     
     createPaymentMutation.mutate({
-      sessionId: params.sessionId || MOCK_SESSION.sessionId,
+      sessionId: params.sessionId ?? MOCK_SESSION.sessionId,
       method: 'pix',
       amount: MOCK_SESSION.amount,
-      coachId: coach?.email || 'coach_mock',
-      studentId: coach?.email || 'student_mock',
+      coachId: coach?.email ?? 'coach_mock',
+      studentId: coach?.email ?? 'student_mock',
     }, {
       onSuccess: (result) => {
         setCardStatus(result.status)
@@ -531,7 +532,7 @@ export default function PaymentPage() {
 
         {showResult ? (
           <PaymentResult
-            status={cardStatus as 'approved' | 'refused' | 'pending'}
+            status={cardStatus}
             amount={MOCK_SESSION.amount}
             onRetry={handleRetry}
           />
@@ -599,7 +600,7 @@ export default function PaymentPage() {
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => setMethod(opt.id)}
+                    onClick={() => { setMethod(opt.id); }}
                     className={[
                       'rounded-xl p-4 border text-left transition-all',
                       method === opt.id
