@@ -1,11 +1,11 @@
 import type { InputHTMLAttributes } from 'react'
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix'> {
-  label?: string | undefined
-  error?: string | undefined
-  helpText?: string | undefined
-  icon?: string | undefined
-  prefix?: string | undefined
+  label?: string
+  error?: string
+  helpText?: string
+  icon?: string
+  prefix?: string
 }
 
 export function Input({

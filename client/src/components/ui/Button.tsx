@@ -29,7 +29,7 @@ export function Button({
   return (
     <button
       {...props}
-      disabled={(disabled ?? false) || loading}
+      disabled={disabled || loading}
       className={`${base} ${variants[variant]} ${className}`}
     >
       {loading ? (

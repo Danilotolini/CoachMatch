@@ -1,9 +1,0 @@
-packages:
-  - 'client'
-  - 'server'
-allowBuilds:
-  esbuild: false
-  msw: false
-  serverless: false
-  sharp: false
-  unrs-resolver: false

@@ -23,14 +23,14 @@ export default defineConfig({
       },
 
       manifest: {
-        name: 'CoachMatch',
-        short_name: 'CoachMatch',
-        description: 'Seu personal, sem adivinhação.',
+        name: 'Coach Match',
+        short_name: 'Coach Match',
+        description: 'Encontre o treino ideal',
         theme_color: '#F4FFC6',
       },
 
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
       },
