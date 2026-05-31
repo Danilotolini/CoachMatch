@@ -48,13 +48,20 @@ provider:
           Action:
             - dynamodb:PutItem
             - dynamodb:GetItem
+            - dynamodb:UpdateItem
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
 
 functions:
 
-  userUpdate:
-    handler: src/api-coach-update/userUpdate.handler
+  coach-update:
+    handler: src/api-coach-update/coach-update.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /coaches/me
