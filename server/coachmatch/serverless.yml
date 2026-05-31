@@ -1,0 +1,131 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: coachmatch
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: coachmatchapp
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: coachmatch
+
+
+
+stages:
+  dev:
+    params:
+      stage: ${self:custom.config.stage}
+      region: ${self:custom.config.region}
+  local:
+    params:
+      stage: ${self:custom.config.stage}
+      region: ${self:custom.config.region}
+      endpoint: ${self:custom.config.endpoint}
+      access_key_id: ${self:custom.config.accessKeyId}
+      secret_access: ${self:custom.config.secretAccessKey}
+
+plugins:
+  - serverless-dynamodb
+  - serverless-offline
+  
+
+provider:
+  profile: JoaoAdm
+  timeout: 30
+  name: aws
+  
+  httpApi:
+    authorizers:
+      cognitoAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
+        audience:
+          - 76hul7797npfkmpoju0mbghti7
+
+  stage: ${self:custom.config.stage}
+  region: ${self:custom.config.region}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+          Resource:
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
+
+functions:
+
+  gymPostHandler:
+    handler: src/api-gyms-post/gymPostHandler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /gyms
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
+
+  coach-update:
+    handler: src/api-coach-update/coach-update.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /coaches/me
+          method: PUT
+          authorizer:
+            name: cognitoAuthorizer
+
+  userPostConfirmation:
+    handler: src/api-coach-create/userPostConfirmation.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - cognitoUserPool:
+          pool: CoachAccess
+          trigger: PostConfirmation
+          existing: true
+
+
+resources: 
+  Conditions:
+    IsLocal: !Equals [ "${param:stage}", "local"]  
+  Resources:
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsLocal
+      Properties:
+        TableName: coaches
+        AttributeDefinitions:
+          - AttributeName: coachId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: coachId  
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+custom:
+  config: ${file(./config.yml)}
+  dynamodb:
+    stages:
+      - local
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true  # cria as tabelas automaticamente
+  serverless-offline:
+    ignoreJWTSignature: true

@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "region": "us-east-1",
+  "userPoolId": "us-east-1_example",
+  "userName": "test-user",
+  "triggerSource": "PostConfirmation_ConfirmSignUp",
+  "request": {
+    "userAttributes": {
+      "sub": "22242f73-d818-471e-826a-479b73b290f7",
+      "name": "name-teste",
+      "email": "user@example.com"
+    }
+  },
+  "response": {}
+}
