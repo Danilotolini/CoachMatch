@@ -120,3 +120,24 @@ A interface foi projetada para ser:
 - Forte tendência de “uberização” de serviços  
 - Alta demanda por personalização e performance  
 
+---
+
+## Modelo C4
+
+A arquitetura do CoachMatch está documentada no formato [C4 model](https://c4model.com/) usando a linguagem [Structurizr DSL](https://docs.structurizr.com/dsl). O arquivo fonte fica em [`docs/c4/workspace.dsl`](docs/c4/workspace.dsl).
+
+### Visualizar localmente com Docker
+
+Com [Docker](https://docs.docker.com/get-docker/) instalado, rode o [Structurizr local](https://docs.structurizr.com/local) montando a pasta `docs/c4` (que contém o `workspace.dsl`):
+
+```bash
+docker run --rm -it -p 8080:8080 \
+  -v "$(pwd)/docs/c4:/usr/local/structurizr" \
+  structurizr/structurizr local
+```
+
+Depois acesse **http://localhost:8080** no navegador. O Structurizr recarrega automaticamente ao salvar alterações no `workspace.dsl`.
+
+### Visualizar no editor online
+
+Também é possível visualizar/editar sem instalar nada, colando o conteúdo de [`docs/c4/workspace.dsl`](docs/c4/workspace.dsl) no [playground oficial do Structurizr](https://playground.structurizr.com/).

@@ -26,3 +26,8 @@ lerna-debug.log*
 
 # Environment
 *.local
+
+# Structurizr (gerado ao rodar o Structurizr local)
+docs/c4/.structurizr/
+docs/c4/workspace.json
+**/*.dsl.bak
