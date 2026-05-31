@@ -1,6 +1,6 @@
 import { ListTablesCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { DatabaseConnectionException } from "./exceptions/DatabaseConnectionException.js";
+import { DatabaseConnectionException } from "./api-coach-create/exceptions/DatabaseConnectionException.js";
 
 export const createClient = async () => {
   try {

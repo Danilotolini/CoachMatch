@@ -4,9 +4,7 @@ import {
   GetCommand,
   PutCommand,
 } from "@aws-sdk/lib-dynamodb";
-import coachSchema from "../validation/validation-coach.js";
-import insertCoach from "../repositories/coach-repository.js";
-import { createCoach } from "../services/createCoach.js";
+import { createCoach } from "../api-coach-create/service/createCoach.js";
 
 export const handler = async (event) =>{
   if(event?.request?.userAttributes){
