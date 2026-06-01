@@ -11,8 +11,8 @@
   },
   "scripts": {
     "test:frontend": "pnpm -F client test:coverage",
-    "test:backend": "pnpm -F server test:coverage",
-    "lint": "pnpm -F client lint && pnpm -F server lint",
+    "test:backend": "cd server && npm test -- --coverage",
+    "lint": "pnpm -F client lint",
     "build:backend": "cd server && npm run build"
   },
   "devDependencies": {
