@@ -31,3 +31,6 @@ lerna-debug.log*
 docs/c4/.structurizr/
 docs/c4/workspace.json
 **/*.dsl.bak
+
+# Coverage
+coverage/
