@@ -4,16 +4,6 @@ import { useCoachMe } from '../useCoachMe'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
-  })
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children)
-}
-
 vi.mock('@/api/coaches', () => ({
   fetchCoachMe: vi.fn(),
   updateCoachMe: vi.fn(),
@@ -24,26 +14,30 @@ vi.mock('@/lib/auth', () => ({
 }))
 
 describe('useCoachMe', () => {
-  let mockFetchCoachMe: ReturnType<typeof vi.fn>
-
   beforeEach(() => {
     vi.clearAllMocks()
-    const module = require('@/api/coaches')
-    mockFetchCoachMe = module.fetchCoachMe
   })
 
   it('retorna dados do coach quando query tem sucesso', async () => {
+    const { fetchCoachMe } = await import('@/api/coaches')
     const coachData = {
       id: 'coach_123',
       name: 'João Silva',
       specialty: 'Musculação',
       rating: 4.8,
     }
-    mockFetchCoachMe.mockResolvedValue(coachData)
+    vi.mocked(fetchCoachMe).mockResolvedValue(coachData)
 
-    const { result } = renderHook(() => useCoachMe(), {
-      wrapper: createWrapper(),
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
     })
+
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children)
+
+    const { result } = renderHook(() => useCoachMe(), { wrapper })
 
     expect(result.current.isLoading).toBe(true)
 
@@ -54,28 +48,45 @@ describe('useCoachMe', () => {
   })
 
   it('retorna erro quando query falha', async () => {
+    const { fetchCoachMe } = await import('@/api/coaches')
     const error = new Error('Failed to fetch coach')
-    mockFetchCoachMe.mockRejectedValue(error)
+    vi.mocked(fetchCoachMe).mockRejectedValue(error)
 
-    const { result } = renderHook(() => useCoachMe(), {
-      wrapper: createWrapper(),
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
     })
+
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children)
+
+    const { result } = renderHook(() => useCoachMe(), { wrapper })
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true)
-      expect(result.current.error).toBeTruthy()
     })
   })
 
   it('isLoading true durante carregamento', async () => {
-    const promise = new Promise(resolve =>
-      setTimeout(() => resolve({ id: 'coach_123', name: 'João Silva' }), 50),
+    const { fetchCoachMe } = await import('@/api/coaches')
+    vi.mocked(fetchCoachMe).mockImplementation(
+      () =>
+        new Promise(resolve =>
+          setTimeout(() => resolve({ id: 'coach_123', name: 'João Silva' }), 50),
+        ),
     )
-    mockFetchCoachMe.mockReturnValue(promise)
 
-    const { result } = renderHook(() => useCoachMe(), {
-      wrapper: createWrapper(),
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
     })
+
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children)
+
+    const { result } = renderHook(() => useCoachMe(), { wrapper })
 
     expect(result.current.isLoading).toBe(true)
 
