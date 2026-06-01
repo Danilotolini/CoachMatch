@@ -1,5 +1,5 @@
 import { UpdateCommand } from "@aws-sdk/lib-dynamodb"; 
-import { createClient } from "../../config.js";
+import { createClient } from "../../shared/config.js";
 
 const buildUpdateParams = (coachId, coach) => ({
   TableName: "coaches",
