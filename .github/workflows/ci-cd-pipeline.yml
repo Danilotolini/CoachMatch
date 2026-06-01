@@ -2,10 +2,21 @@ name: CI/CD Pipeline - Full Stack
 
 on:
   push:
-    branches: [main, develop, staging]
+    branches: [main, develop]
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Ambiente de deploy'
+        required: true
+        type: choice
+        options:
+          - develop
+          - production
+      confirm:
+        description: 'Digite CONFIRMAR para prosseguir'
+        required: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,11 +25,10 @@ concurrency:
 env:
   NODE_VERSION: '22'
   PNPM_VERSION: '10'
-  REGISTRY: ghcr.io
 
 jobs:
   lint:
-    name: Lint & Code Quality
+    name: Lint and Code Quality
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -101,8 +111,6 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
-      - run: node --version && pnpm --version
-
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm run test:backend --coverage || true
@@ -138,8 +146,6 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
-      - run: node --version && pnpm --version
-
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm run test:frontend --coverage || true
@@ -160,7 +166,6 @@ jobs:
     if: always()
     permissions:
       contents: read
-      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -173,8 +178,6 @@ jobs:
         with:
           node-version: '22'
           cache: 'pnpm'
-
-      - run: node --version && pnpm --version
 
       - run: pnpm install --frozen-lockfile
 
@@ -204,15 +207,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
       - uses: pnpm/action-setup@v2
         with:
           version: 10
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
       - run: pnpm install --frozen-lockfile
+
+      - run: npx playwright install --with-deps
 
       - run: npx playwright test --reporter=html || true
         continue-on-error: true
@@ -233,37 +239,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: |
-          echo "Quality Gate Summary"
-          echo "Lint: ${{ needs.lint.result }}"
-          echo "Backend Tests: ${{ needs.test-backend.result }}"
-          echo "Frontend Tests: ${{ needs.test-frontend.result }}"
-          echo "Build: ${{ needs.build.result }}"
-          echo "Security: ${{ needs.security.result }}"
+      - name: Avaliar resultado dos jobs
+        run: |
+          echo "### Quality Gate Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Tests | ${{ needs.test-backend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Tests | ${{ needs.test-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
 
-      - if: |
+      - name: Bloquear se algum job falhou
+        if: |
           needs.lint.result == 'failure' ||
           needs.test-backend.result == 'failure' ||
           needs.test-frontend.result == 'failure' ||
           needs.build.result == 'failure'
-        run: exit 1
+        run: |
+          echo "Pipeline bloqueado por falha em um ou mais jobs." >> $GITHUB_STEP_SUMMARY
+          exit 1
 
-      - run: echo "Pipeline passed all quality gates"
+      - run: echo "Pipeline passou por todos os quality gates"
 
-  deploy-staging:
-    name: Deploy to Staging
+  deploy:
+    name: Deploy Manual
     needs: quality-gate
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'CONFIRMAR'
     permissions:
       contents: read
       deployments: write
 
     environment:
-      name: staging
-      url: https://staging.coachmatch.dev
+      name: ${{ github.event.inputs.environment }}
 
     steps:
+      - name: Validar confirmacao
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "CONFIRMAR" ]; then
+            echo "Confirmacao invalida. Deploy cancelado."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - uses: aws-actions/configure-aws-credentials@v2
@@ -277,6 +295,22 @@ jobs:
           name: client-build
           path: client/dist
 
-      - run: |
-          aws s3 sync client/dist s3://coachmatch-staging/ --delete
-          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_STAGING_ID }} --paths "/*"
+      - name: Deploy para develop
+        if: github.event.inputs.environment == 'develop'
+        run: |
+          aws s3 sync client/dist s3://${{ secrets.S3_BUCKET_DEVELOP }}/ --delete
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DEVELOP_ID }} --paths "/*"
+          echo "Deploy realizado em develop" >> $GITHUB_STEP_SUMMARY
+
+      - name: Deploy para production
+        if: github.event.inputs.environment == 'production' && github.ref == 'refs/heads/main'
+        run: |
+          aws s3 sync client/dist s3://${{ secrets.S3_BUCKET_PRODUCTION }}/ --delete
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_PRODUCTION_ID }} --paths "/*"
+          echo "Deploy realizado em production" >> $GITHUB_STEP_SUMMARY
+
+      - name: Bloquear deploy de production fora da main
+        if: github.event.inputs.environment == 'production' && github.ref != 'refs/heads/main'
+        run: |
+          echo "Deploy de production so permitido a partir da branch main."
+          exit 1
