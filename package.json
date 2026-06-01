@@ -9,6 +9,12 @@
       "server"
     ]
   },
+  "scripts": {
+    "test:frontend": "pnpm -F client test:coverage",
+    "test:backend": "cd server && npm test -- --coverage",
+    "lint": "pnpm -F client lint",
+    "build:backend": "cd server && npm run build"
+  },
   "devDependencies": {
     "@playwright/test": "^1.60.0"
   }

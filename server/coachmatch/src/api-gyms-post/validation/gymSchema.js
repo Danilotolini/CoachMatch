@@ -1,5 +1,5 @@
-const Joi = require('joi');
- 
+import Joi from 'joi';
+
 export const gymSchema = Joi.object({
   name: Joi.string().required(),
   address: Joi.string().required(),
@@ -11,6 +11,3 @@ export const gymSchema = Joi.object({
     lng: Joi.number().min(-180).max(180).required(),
   }).required(),
 });
- 
-
- 

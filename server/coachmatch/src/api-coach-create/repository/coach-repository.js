@@ -1,6 +1,6 @@
 import { ListTablesCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { createClient } from "../../config.js";
+import { createClient } from "../../shared/config.js";
 import { DatabaseConnectionException } from "../exceptions/DatabaseConnectionException.js";
 
 const docClient = await createClient();

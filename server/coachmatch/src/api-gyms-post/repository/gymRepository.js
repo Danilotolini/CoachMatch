@@ -1,9 +1,10 @@
 import { PutCommand } from "@aws-sdk/lib-dynamodb";
+import { createClient } from "../../shared/config.js";
 
 const docClient = await createClient();
 
-const buildPostParams = (Attributes) => {
-  const gym = {
+const buildPostParams = (gym) => {
+  return {
     TableName: "gyms",
     Item: {
       name: gym.name,
@@ -12,18 +13,19 @@ const buildPostParams = (Attributes) => {
       state: gym.state,
       neighborhood: gym.neighborhood,
       coordinates: {
-        lat: gym.lat,
-        lng: gym.lng,
+        lat: gym.coordinates.lat,
+        lng: gym.coordinates.lng,
       },
     },
   };
 };
 
 
-export const insertSuggestGym = (gym) => {
+export const insertSuggestGym = async (gym) => {
     try {
-        const reponse = await docClient.send(new PutCommand(buildPostParams(gym)))
+        const response = await docClient.send(new PutCommand(buildPostParams(gym)));
+        return response;
     } catch (error) {
-        
+        throw error;
     }
 }
