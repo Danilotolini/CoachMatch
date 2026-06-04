@@ -1,6 +1,6 @@
 import { PutCommand } from "@aws-sdk/lib-dynamodb";
 import { v4 as uuidv4 } from 'uuid';
-import { createClient } from "../../config.js";
+import { createClient } from "../../shared/config.js"
 
 const docClient = await createClient();
 

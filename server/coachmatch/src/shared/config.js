@@ -1,6 +1,5 @@
 import { ListTablesCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { DatabaseConnectionException } from "./api-coach-create/exceptions/DatabaseConnectionException.js";
 
 export const createClient = async () => {
   try {
@@ -24,6 +23,6 @@ export const createClient = async () => {
     const docClient = DynamoDBDocumentClient.from(client);
     return docClient;
   } catch (err) {
-    throw new DatabaseConnectionException("Erro ao tentar conectar com o Banco de Dados",{cause:err});
+    throw new Error("Erro ao tentar conectar com o Banco de Dados",{cause:err});
   }
 };
