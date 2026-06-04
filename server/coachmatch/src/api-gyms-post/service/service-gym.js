@@ -1,5 +1,5 @@
-import { validateGym } from "../validation/validation.js";
 import { insertSuggestGym } from "../repository/gymRepository.js";
+import { validateGym } from "../validation/validation.js";
 
 export const registerSuggest = async (gym) => {
     if(isGymFieldsValid(gym)){
@@ -11,7 +11,9 @@ export const registerSuggest = async (gym) => {
 }
 
 function isGymFieldsValid(gym) {
+  console.log("body" + gym);
   const { error } = validateGym(gym);
+  console.log(error);
   if (error) {
     return false
   } else {

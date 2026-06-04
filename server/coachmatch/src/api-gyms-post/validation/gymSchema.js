@@ -1,5 +1,5 @@
 import Joi from 'joi';
-
+ 
 export const gymSchema = Joi.object({
   name: Joi.string().required(),
   address: Joi.string().required(),

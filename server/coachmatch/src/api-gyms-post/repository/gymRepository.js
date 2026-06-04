@@ -1,12 +1,15 @@
 import { PutCommand } from "@aws-sdk/lib-dynamodb";
-import { createClient } from "../../shared/config.js";
+import { v4 as uuidv4 } from 'uuid';
+import { createClient } from "../../config.js";
 
 const docClient = await createClient();
 
 const buildPostParams = (gym) => {
+  const id = uuidv4();
   return {
     TableName: "gyms",
     Item: {
+      gymId: id,
       name: gym.name,
       address: gym.address,
       city: gym.city,
