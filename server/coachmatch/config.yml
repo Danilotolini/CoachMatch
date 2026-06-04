@@ -5,9 +5,13 @@ local:
   endpoint: http://localhost:8000
   accessKeyId: fakeMyKeyId
   secretAccessKey: fakeSecretAccessKey
+  apiKey: xnxquux7rewk
+  apiSecret: 5r6k2r89855m464pvm9mx9c886s5mfx4nyts8vygyxy4sjzqzm8vcwbq743fzub3
 
 # Ambiente dev
 dev:
   stage: dev
   region: sa-east-1
   apiGatewayId: qht6965nv9 
+  apiKey: xnxquux7rewk
+  apiSecret: 5r6k2r89855m464pvm9mx9c886s5mfx4nyts8vygyxy4sjzqzm8vcwbq743fzub3

@@ -20,6 +20,8 @@ stages:
       stage: ${self:custom.config.dev.stage}
       region: ${self:custom.config.dev.region}
       apiGatewayId: ${self:custom.config.dev.apiGatewayId}
+      apiKey: ${self:custom.config.dev.apiKey}
+      apiSecret: ${self:custom.config.dev.apiSecret}
   # Stage local — serverless-offline + DynamoDB Local (nunca faz deploy na AWS)
   local:
     params:
@@ -28,6 +30,8 @@ stages:
       endpoint: ${self:custom.config.local.endpoint}
       access_key_id: ${self:custom.config.local.accessKeyId}
       secret_access: ${self:custom.config.local.secretAccessKey}
+      apiKey: ${self:custom.config.dev.apiKey}
+      apiSecret: ${self:custom.config.dev.apiSecret}
 
 plugins:
   - serverless-dynamodb
@@ -340,6 +344,187 @@ functions:
           path: /payments/{transactionId}/refund
           method: POST
           authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+  # --- Chat (Stream) -------------------------------------------------------
+  chatToken:
+    handler: src/api-chat/token.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/token
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/token
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatConversationCreate:
+    handler: src/api-chat/conversations.create
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatConversationList:
+    handler: src/api-chat/conversations.list
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatConversationUpdate:
+    handler: src/api-chat/conversations.update
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations/{id}
+          method: PATCH
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations/{id}
+          method: PATCH
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatConversationDelete:
+    handler: src/api-chat/conversations.remove
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations/{id}
+          method: DELETE
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations/{id}
+          method: DELETE
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatMessageSend:
+    handler: src/api-chat/messages.send
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations/{id}/messages
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations/{id}/messages
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatMessageList:
+    handler: src/api-chat/messages.list
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations/{id}/messages
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations/{id}/messages
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatMessageUpdate:
+    handler: src/api-chat/messages.update
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/messages/{id}
+          method: PATCH
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/messages/{id}
+          method: PATCH
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatMessageDelete:
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    handler: src/api-chat/messages.remove
+    events:
+      - httpApi:
+          path: /coach/chat/messages/{id}
+          method: DELETE
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/messages/{id}
+          method: DELETE
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
 
 resources:
   Conditions:
