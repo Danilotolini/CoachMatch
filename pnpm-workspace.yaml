@@ -5,6 +5,7 @@ resolutions:
   sharp: "^0.33.5"
   sharp-ico: "^0.1.5"
 allowBuilds:
+  stream-chat: true
   '@parcel/watcher': false
   esbuild: true
   msw: true

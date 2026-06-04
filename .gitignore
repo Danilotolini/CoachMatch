@@ -27,6 +27,9 @@ lerna-debug.log*
 
 # Environment
 *.local
+.env
+.env.*
+!.env.example
 
 # Structurizr (gerado ao rodar o Structurizr local)
 docs/c4/.structurizr/
