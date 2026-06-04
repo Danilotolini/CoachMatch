@@ -16,20 +16,24 @@ export const findCoachById = async (coachId) => {
   return result.Item ?? null;
 };
 
-export const updateCoach = async (coachId, { profile, work_location }) => {
+export const updateCoach = async (coachId, { profile, work_location, status }) => {
   const docClient = createClient();
+  const hasStatus = status !== undefined;
+
   await docClient.send(
     new UpdateCommand({
       TableName: TABLE,
       Key: { coachId },
-      UpdateExpression: 'SET #profile = :profile, #work_location = :work_location',
+      UpdateExpression: `SET #profile = :profile, #work_location = :work_location${hasStatus ? ', #status = :status' : ''}`,
       ExpressionAttributeNames: {
         '#profile': 'profile',
         '#work_location': 'work_location',
+        ...(hasStatus && { '#status': 'status' }),
       },
       ExpressionAttributeValues: {
         ':profile': profile,
         ':work_location': work_location,
+        ...(hasStatus && { ':status': status }),
       },
     })
   );

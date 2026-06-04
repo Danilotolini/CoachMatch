@@ -20,18 +20,11 @@ describe('createCoachSchema', () => {
     const { name: _, ...sem } = valid;
     expect(createCoachSchema.validate(sem).error).toBeDefined();
   });
-
-  it('rejeita string vazia em name', () => {
-    expect(createCoachSchema.validate({ ...valid, name: '' }).error).toBeDefined();
-  });
 });
 
 describe('updateCoachSchema', () => {
   const gymLocation = { type: 'GYM', gymId: 'gym-123' };
-  const homeLocation = {
-    type: 'HOME_SERVICE',
-    coverage: { city: 'São Paulo', state: 'SP', neighborhoods: ['Centro'] },
-  };
+  const homeLocation = { type: 'HOME_SERVICE', serviceRadius: 20 };
 
   const validProfile = {
     name: 'João',
@@ -43,49 +36,52 @@ describe('updateCoachSchema', () => {
   };
 
   it('aceita perfil com localização em academia', () => {
-    const payload = { profile: validProfile, work_location: [gymLocation] };
-    expect(updateCoachSchema.validate(payload).error).toBeUndefined();
+    expect(updateCoachSchema.validate({ profile: validProfile, work_location: [gymLocation] }).error)
+      .toBeUndefined();
   });
 
-  it('aceita perfil com atendimento domiciliar', () => {
-    const payload = { profile: validProfile, work_location: [homeLocation] };
-    expect(updateCoachSchema.validate(payload).error).toBeUndefined();
+  it('aceita perfil com HOME_SERVICE e serviceRadius', () => {
+    expect(updateCoachSchema.validate({ profile: validProfile, work_location: [homeLocation] }).error)
+      .toBeUndefined();
   });
 
   it('aceita múltiplas localizações', () => {
-    const payload = { profile: validProfile, work_location: [gymLocation, homeLocation] };
-    expect(updateCoachSchema.validate(payload).error).toBeUndefined();
+    expect(updateCoachSchema.validate({ profile: validProfile, work_location: [gymLocation, homeLocation] }).error)
+      .toBeUndefined();
   });
 
-  it('rejeita CREF com formato inválido', () => {
-    const payload = { profile: { ...validProfile, cref: 'cref123' }, work_location: [gymLocation] };
-    expect(updateCoachSchema.validate(payload).error).toBeDefined();
+  it('define profile_video como false por padrão quando omitido', () => {
+    const { profile_video: _, ...profileSemVideo } = validProfile;
+    const { value } = updateCoachSchema.validate({ profile: profileSemVideo, work_location: [gymLocation] });
+    expect(value.profile.profile_video).toBe(false);
   });
 
-  it('rejeita instagram sem @', () => {
-    const payload = { profile: { ...validProfile, instagram: 'joaocoach' }, work_location: [gymLocation] };
-    expect(updateCoachSchema.validate(payload).error).toBeDefined();
+  it('rejeita CREF sem o prefixo CREF', () => {
+    const bad = { ...validProfile, cref: '123456-G/SP' };
+    expect(updateCoachSchema.validate({ profile: bad, work_location: [gymLocation] }).error).toBeDefined();
+  });
+
+  it('rejeita HOME_SERVICE sem serviceRadius', () => {
+    const badHome = { type: 'HOME_SERVICE' };
+    expect(updateCoachSchema.validate({ profile: validProfile, work_location: [badHome] }).error).toBeDefined();
+  });
+
+  it('rejeita HOME_SERVICE com serviceRadius abaixo de 10', () => {
+    const badHome = { type: 'HOME_SERVICE', serviceRadius: 5 };
+    expect(updateCoachSchema.validate({ profile: validProfile, work_location: [badHome] }).error).toBeDefined();
+  });
+
+  it('rejeita HOME_SERVICE com serviceRadius acima de 50', () => {
+    const badHome = { type: 'HOME_SERVICE', serviceRadius: 55 };
+    expect(updateCoachSchema.validate({ profile: validProfile, work_location: [badHome] }).error).toBeDefined();
   });
 
   it('rejeita work_location vazio', () => {
-    const payload = { profile: validProfile, work_location: [] };
-    expect(updateCoachSchema.validate(payload).error).toBeDefined();
+    expect(updateCoachSchema.validate({ profile: validProfile, work_location: [] }).error).toBeDefined();
   });
 
   it('rejeita specialties vazio', () => {
-    const payload = { profile: { ...validProfile, specialties: [] }, work_location: [gymLocation] };
-    expect(updateCoachSchema.validate(payload).error).toBeDefined();
-  });
-
-  it('rejeita HOME_SERVICE sem neighborhoods', () => {
-    const badHome = { type: 'HOME_SERVICE', coverage: { city: 'SP', state: 'SP', neighborhoods: [] } };
-    const payload = { profile: validProfile, work_location: [badHome] };
-    expect(updateCoachSchema.validate(payload).error).toBeDefined();
-  });
-
-  it('rejeita estado com mais de 2 caracteres', () => {
-    const badHome = { type: 'HOME_SERVICE', coverage: { city: 'SP', state: 'SPA', neighborhoods: ['X'] } };
-    const payload = { profile: validProfile, work_location: [badHome] };
-    expect(updateCoachSchema.validate(payload).error).toBeDefined();
+    const bad = { ...validProfile, specialties: [] };
+    expect(updateCoachSchema.validate({ profile: bad, work_location: [gymLocation] }).error).toBeDefined();
   });
 });

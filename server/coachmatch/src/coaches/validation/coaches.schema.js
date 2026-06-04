@@ -12,7 +12,7 @@ const profileSchema = Joi.object({
   specialties: Joi.array().items(Joi.string()).min(1).required(),
   cref: Joi.string().pattern(/^CREF \d{6}-[A-Z]\/[A-Z]{2}$/).required(),
   instagram: Joi.string().pattern(/^@[\w.]+$/).required(),
-  profile_video: Joi.boolean().required(),
+  profile_video: Joi.boolean().default(false),
 });
 
 const gymLocationSchema = Joi.object({
@@ -20,13 +20,10 @@ const gymLocationSchema = Joi.object({
   gymId: Joi.string().required(),
 });
 
+// HOME_SERVICE usa raio em km (modelo do front-end)
 const homeServiceLocationSchema = Joi.object({
   type: Joi.string().valid('HOME_SERVICE').required(),
-  coverage: Joi.object({
-    city: Joi.string().required(),
-    state: Joi.string().length(2).uppercase().required(),
-    neighborhoods: Joi.array().items(Joi.string()).min(1).required(),
-  }).required(),
+  serviceRadius: Joi.number().integer().min(10).max(50).required(),
 });
 
 export const updateCoachSchema = Joi.object({

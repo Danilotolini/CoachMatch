@@ -54,23 +54,23 @@ provider:
 
 functions:
 
-  gymGetHandler:
-    handler: src/api-gyms-get/gymGetHandler.handler
+  gymGet:
+    handler: src/gyms/handlers/get.handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
       ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:acces_key_id,""}
-      SECRET_ACCESS_KEY: ${param:secret_access,""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /gyms
           method: GET
           authorizer:
             name: cognitoAuthorizer
-            
-  gymPostHandler:
-    handler: src/api-gyms-post/gymPostHandler.handler
+
+  gymSuggest:
+    handler: src/gyms/handlers/suggest.handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -84,8 +84,23 @@ functions:
           authorizer:
             name: cognitoAuthorizer
 
-  coach-update:
-    handler: src/api-coach-update/coach-update.handler
+  coachGetMe:
+    handler: src/coaches/handlers/get.handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /coaches/me
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  coachUpdateMe:
+    handler: src/coaches/handlers/update.handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -99,8 +114,8 @@ functions:
           authorizer:
             name: cognitoAuthorizer
 
-  userPostConfirmation:
-    handler: src/api-coach-create/userPostConfirmation.handler
+  coachCreate:
+    handler: src/coaches/handlers/create.handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}

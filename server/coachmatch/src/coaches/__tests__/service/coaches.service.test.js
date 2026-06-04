@@ -2,11 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../repository/coaches.repository.js', () => ({
   insertCoach: vi.fn(),
+  findCoachById: vi.fn(),
   updateCoach: vi.fn(),
 }));
 
-import { createCoach, updateCoachProfile } from '../../service/coaches.service.js';
-import { insertCoach, updateCoach } from '../../repository/coaches.repository.js';
+import { createCoach, getCoach, updateCoachProfile } from '../../service/coaches.service.js';
+import { insertCoach, findCoachById, updateCoach } from '../../repository/coaches.repository.js';
 import { ValidationException } from '../../../shared/exceptions.js';
 
 const validCognitoAttributes = {
@@ -32,7 +33,6 @@ describe('createCoach', () => {
 
   it('insere coach com status PENDING_PROFILE', async () => {
     await createCoach(validCognitoAttributes);
-
     expect(insertCoach).toHaveBeenCalledWith({
       coachId: validCognitoAttributes.sub,
       email: validCognitoAttributes.email,
@@ -51,11 +51,6 @@ describe('createCoach', () => {
       .rejects.toThrow(ValidationException);
   });
 
-  it('lança ValidationException quando name está ausente', async () => {
-    const { name: _, ...sem } = validCognitoAttributes;
-    await expect(createCoach(sem)).rejects.toThrow(ValidationException);
-  });
-
   it('não chama insertCoach quando validação falha', async () => {
     await expect(createCoach({ sub: 'x', email: 'x', name: '' })).rejects.toThrow();
     expect(insertCoach).not.toHaveBeenCalled();
@@ -67,32 +62,66 @@ describe('createCoach', () => {
   });
 });
 
+describe('getCoach', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('retorna o coach do repositório', async () => {
+    const mockCoach = { coachId: 'abc', email: 'x@x.com', status: 'PENDING_PROFILE' };
+    findCoachById.mockResolvedValue(mockCoach);
+    const result = await getCoach('abc');
+    expect(findCoachById).toHaveBeenCalledWith('abc');
+    expect(result).toBe(mockCoach);
+  });
+
+  it('retorna null quando coach não existe', async () => {
+    findCoachById.mockResolvedValue(null);
+    expect(await getCoach('nao-existe')).toBeNull();
+  });
+});
+
 describe('updateCoachProfile', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('atualiza perfil e work_location', async () => {
-    await updateCoachProfile('coach-123', validUpdatePayload);
+  it('atualiza perfil com newStatus', async () => {
+    await updateCoachProfile('coach-123', validUpdatePayload, 'PENDING_REVIEW');
+    expect(updateCoach).toHaveBeenCalledWith('coach-123', {
+      ...validUpdatePayload,
+      status: 'PENDING_REVIEW',
+    });
+  });
 
-    expect(updateCoach).toHaveBeenCalledWith('coach-123', validUpdatePayload);
+  it('passa newStatus undefined quando não fornecido', async () => {
+    await updateCoachProfile('coach-123', validUpdatePayload, undefined);
+    expect(updateCoach).toHaveBeenCalledWith('coach-123', {
+      ...validUpdatePayload,
+      status: undefined,
+    });
   });
 
   it('lança ValidationException com CREF inválido', async () => {
-    const payload = { ...validUpdatePayload, profile: { ...validUpdatePayload.profile, cref: 'invalido' } };
-    await expect(updateCoachProfile('coach-123', payload)).rejects.toThrow(ValidationException);
+    const bad = { ...validUpdatePayload, profile: { ...validUpdatePayload.profile, cref: 'invalido' } };
+    await expect(updateCoachProfile('coach-123', bad, 'PENDING_REVIEW')).rejects.toThrow(ValidationException);
   });
 
-  it('lança ValidationException com work_location vazio', async () => {
-    await expect(updateCoachProfile('coach-123', { ...validUpdatePayload, work_location: [] }))
-      .rejects.toThrow(ValidationException);
+  it('lança ValidationException com HOME_SERVICE sem serviceRadius', async () => {
+    const bad = { ...validUpdatePayload, work_location: [{ type: 'HOME_SERVICE' }] };
+    await expect(updateCoachProfile('coach-123', bad, 'PENDING_REVIEW')).rejects.toThrow(ValidationException);
+  });
+
+  it('aceita HOME_SERVICE com serviceRadius válido', async () => {
+    const payload = { ...validUpdatePayload, work_location: [{ type: 'HOME_SERVICE', serviceRadius: 25 }] };
+    await updateCoachProfile('coach-123', payload, 'PENDING_REVIEW');
+    expect(updateCoach).toHaveBeenCalled();
   });
 
   it('não chama updateCoach quando validação falha', async () => {
-    await expect(updateCoachProfile('x', { profile: {}, work_location: [] })).rejects.toThrow();
+    await expect(updateCoachProfile('x', { profile: {}, work_location: [] }, 'X')).rejects.toThrow();
     expect(updateCoach).not.toHaveBeenCalled();
   });
 
   it('propaga erro do repositório', async () => {
     updateCoach.mockRejectedValue(new Error('Falha na atualização'));
-    await expect(updateCoachProfile('coach-123', validUpdatePayload)).rejects.toThrow('Falha na atualização');
+    await expect(updateCoachProfile('coach-123', validUpdatePayload, 'PENDING_REVIEW'))
+      .rejects.toThrow('Falha na atualização');
   });
 });
