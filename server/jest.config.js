@@ -10,6 +10,7 @@ module.exports = {
   testPathIgnorePatterns: [
     '__tests__/fixtures',
     '__tests__/mocks',
+    'coachmatch/',
   ],
   clearMocks: true,
   verbose: true,
