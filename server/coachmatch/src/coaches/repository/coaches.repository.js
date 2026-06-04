@@ -1,0 +1,36 @@
+import { PutCommand, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { createClient } from '../../shared/config.js';
+
+const TABLE = 'coaches';
+
+export const insertCoach = async (item) => {
+  const docClient = createClient();
+  await docClient.send(new PutCommand({ TableName: TABLE, Item: item }));
+};
+
+export const findCoachById = async (coachId) => {
+  const docClient = createClient();
+  const result = await docClient.send(
+    new GetCommand({ TableName: TABLE, Key: { coachId } })
+  );
+  return result.Item ?? null;
+};
+
+export const updateCoach = async (coachId, { profile, work_location }) => {
+  const docClient = createClient();
+  await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE,
+      Key: { coachId },
+      UpdateExpression: 'SET #profile = :profile, #work_location = :work_location',
+      ExpressionAttributeNames: {
+        '#profile': 'profile',
+        '#work_location': 'work_location',
+      },
+      ExpressionAttributeValues: {
+        ':profile': profile,
+        ':work_location': work_location,
+      },
+    })
+  );
+};

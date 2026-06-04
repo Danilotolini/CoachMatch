@@ -1,28 +1,24 @@
-import { ListTablesCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { DatabaseConnectionException } from './exceptions.js';
 
-export const createClient = async () => {
+export const createClient = () => {
   try {
-    let client = null;
+    const clientConfig =
+      process.env.STAGE === 'local'
+        ? {
+            region: process.env.REGION,
+            endpoint: process.env.ENDPOINT,
+            credentials: {
+              accessKeyId: process.env.ACCESS_KEY_ID,
+              secretAccessKey: process.env.SECRET_ACCESS_KEY,
+            },
+          }
+        : { region: process.env.REGION };
 
-    if (process.env.STAGE === "local") {
-      client = new DynamoDBClient({
-        region: process.env.REGION,
-        endpoint: process.env.ENDPOINT,
-        credentials: {
-          accessKeyId: process.env.ACCESS_KEY_ID,
-          secretAccessKey: process.env.SECRET_ACCESS_KEY,
-        },
-      });
-    } else {
-      client = new DynamoDBClient({
-        region: process.env.REGION,
-      });
-    }
-
-    const docClient = DynamoDBDocumentClient.from(client);
-    return docClient;
+    const client = new DynamoDBClient(clientConfig);
+    return DynamoDBDocumentClient.from(client);
   } catch (err) {
-    throw new Error("Erro ao tentar conectar com o Banco de Dados",{cause:err});
+    throw new DatabaseConnectionException('Erro ao conectar com o banco de dados', { cause: err });
   }
 };
