@@ -70,7 +70,9 @@ describe('DevToolsPage', () => {
     const user = userEvent.setup()
     renderPage()
 
-    const clientCard = screen.getByRole('heading', { name: 'Aluno', level: 2 }).closest<HTMLElement>('div.p-5')
+    const clientCard = screen
+      .getByRole('heading', { name: 'Aluno', level: 2 })
+      .closest<HTMLElement>('div.p-5')
     if (!clientCard) throw new Error('Card do aluno nao encontrado')
     await user.click(within(clientCard).getByRole('button', { name: /reset/i }))
 
@@ -86,7 +88,9 @@ describe('DevToolsPage', () => {
     const user = userEvent.setup()
     renderPage()
 
-    const coachCard = screen.getByRole('heading', { name: 'Treinador', level: 2 }).closest<HTMLElement>('div.p-5')
+    const coachCard = screen
+      .getByRole('heading', { name: 'Treinador', level: 2 })
+      .closest<HTMLElement>('div.p-5')
     if (!coachCard) throw new Error('Card do treinador nao encontrado')
     await user.click(within(coachCard).getByRole('button', { name: /reset/i }))
 

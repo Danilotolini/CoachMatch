@@ -39,7 +39,12 @@ export function FilterSheet({ open, filters, onClose, onApply, onClear }: Filter
   )
 }
 
-function FilterSheetContent({ filters, onClose, onApply, onClear }: Omit<FilterSheetProps, 'open'>) {
+function FilterSheetContent({
+  filters,
+  onClose,
+  onApply,
+  onClear,
+}: Omit<FilterSheetProps, 'open'>) {
   const [draft, setDraft] = useState(filters)
   const { data: specialtiesData } = useSpecialties()
   const specialties = specialtiesData?.data ?? []
@@ -62,7 +67,9 @@ function FilterSheetContent({ filters, onClose, onApply, onClear }: Omit<FilterS
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
             <h2 className="font-headline text-xl font-semibold">Filtros</h2>
-            <p className="font-body text-sm text-on-surface-variant">Refine sua busca por treinador.</p>
+            <p className="font-body text-sm text-on-surface-variant">
+              Refine sua busca por treinador.
+            </p>
           </div>
           <button
             type="button"
@@ -76,12 +83,16 @@ function FilterSheetContent({ filters, onClose, onApply, onClear }: Omit<FilterS
 
         <div className="space-y-7">
           <section className="space-y-3">
-            <h3 className="font-label text-xs font-bold uppercase text-on-surface-variant">Localização</h3>
+            <h3 className="font-label text-xs font-bold uppercase text-on-surface-variant">
+              Localização
+            </h3>
             <label className="block">
               <span className="sr-only">Localização</span>
               <input
                 value={draft.address ?? ''}
-                onChange={(event) => { updateDraft({ address: event.target.value || undefined }); }}
+                onChange={(event) => {
+                  updateDraft({ address: event.target.value || undefined })
+                }}
                 placeholder="Localização"
                 className="w-full rounded-xl border-outline-variant/20 bg-surface-container-high px-4 py-3 font-body text-sm text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-primary/30"
               />
@@ -89,26 +100,34 @@ function FilterSheetContent({ filters, onClose, onApply, onClear }: Omit<FilterS
           </section>
 
           <section className="space-y-3">
-            <h3 className="font-label text-xs font-bold uppercase text-on-surface-variant">Modalidades</h3>
+            <h3 className="font-label text-xs font-bold uppercase text-on-surface-variant">
+              Modalidades
+            </h3>
             <div className="flex flex-wrap gap-2">
               {specialties.map((specialty) => (
                 <Chip
                   key={specialty.id}
                   label={specialty.label}
                   active={selectedSpecialties.includes(specialty.label)}
-                  onClick={() => { updateDraft({ specialties: toggleItem(selectedSpecialties, specialty.label) }); }}
+                  onClick={() => {
+                    updateDraft({ specialties: toggleItem(selectedSpecialties, specialty.label) })
+                  }}
                 />
               ))}
             </div>
           </section>
 
           <section className="space-y-3">
-            <h3 className="font-label text-xs font-bold uppercase text-on-surface-variant">Disponibilidade</h3>
+            <h3 className="font-label text-xs font-bold uppercase text-on-surface-variant">
+              Disponibilidade
+            </h3>
             <input
               type="date"
               min={todayISO()}
               value={draft.availableOn ?? ''}
-              onChange={(event) => { updateDraft({ availableOn: event.target.value || undefined }); }}
+              onChange={(event) => {
+                updateDraft({ availableOn: event.target.value || undefined })
+              }}
               className="w-full rounded-xl border-outline-variant/20 bg-surface-container-high px-4 py-3 font-body text-sm text-on-surface focus:border-primary focus:ring-primary/30"
             />
           </section>
@@ -118,7 +137,13 @@ function FilterSheetContent({ filters, onClose, onApply, onClear }: Omit<FilterS
           <Button type="button" variant="secondary" onClick={onClear} className="flex-1">
             LIMPAR FILTROS
           </Button>
-          <Button type="button" onClick={() => { onApply(draft); }} className="flex-1">
+          <Button
+            type="button"
+            onClick={() => {
+              onApply(draft)
+            }}
+            className="flex-1"
+          >
             APLICAR
           </Button>
         </div>

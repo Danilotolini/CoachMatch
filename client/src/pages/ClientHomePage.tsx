@@ -201,7 +201,10 @@ function CoachRail() {
               />
             ))
           : coaches.map((coach) => (
-              <div key={coach.coachId} className="w-[76vw] max-w-70 shrink-0 snap-start md:w-62.5 lg:w-auto lg:max-w-none">
+              <div
+                key={coach.coachId}
+                className="w-[76vw] max-w-70 shrink-0 snap-start md:w-62.5 lg:w-auto lg:max-w-none"
+              >
                 <SharedCoachCard
                   name={coach.name}
                   specialties={coach.specialties.join(' · ')}

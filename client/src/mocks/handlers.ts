@@ -349,7 +349,9 @@ export const handlers = [
       const matchesSpecialty =
         specialtiesFilter.length === 0 ||
         specialtiesFilter.some((item) =>
-          coach.specialties.some((specialty) => normalizeText(specialty).includes(normalizeText(item))),
+          coach.specialties.some((specialty) =>
+            normalizeText(specialty).includes(normalizeText(item)),
+          ),
         )
       const matchesAddress =
         !address ||
@@ -602,10 +604,7 @@ export const handlers = [
     const transaction = state.transactions.get(String(transactionId))
 
     if (!transaction) {
-      return HttpResponse.json(
-        { error: 'Transaction not found' },
-        { status: 404 }
-      )
+      return HttpResponse.json({ error: 'Transaction not found' }, { status: 404 })
     }
 
     return HttpResponse.json<Transaction>(transaction)
@@ -617,17 +616,11 @@ export const handlers = [
     const transaction = state.transactions.get(String(transactionId))
 
     if (!transaction) {
-      return HttpResponse.json(
-        { error: 'Transaction not found' },
-        { status: 404 }
-      )
+      return HttpResponse.json({ error: 'Transaction not found' }, { status: 404 })
     }
 
     if (transaction.status === 'refused') {
-      return HttpResponse.json(
-        { error: 'Cannot refund a refused transaction' },
-        { status: 400 }
-      )
+      return HttpResponse.json({ error: 'Cannot refund a refused transaction' }, { status: 400 })
     }
 
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions

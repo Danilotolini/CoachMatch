@@ -6,7 +6,14 @@ interface IconProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
   filled?: boolean
 }
 
-export function Icon({ name, size = 24, filled = false, style, className = '', ...props }: IconProps) {
+export function Icon({
+  name,
+  size = 24,
+  filled = false,
+  style,
+  className = '',
+  ...props
+}: IconProps) {
   const variation: CSSProperties = {
     fontSize: size,
     fontVariationSettings: filled

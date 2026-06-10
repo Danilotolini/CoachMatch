@@ -31,7 +31,11 @@ export function CoachCard({
         className="relative h-40 bg-surface-container"
         style={
           image
-            ? { backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            ? {
+                backgroundImage: `url(${image})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }
             : undefined
         }
       >

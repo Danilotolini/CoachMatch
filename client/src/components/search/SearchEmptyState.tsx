@@ -11,7 +11,9 @@ export function SearchEmptyState({ onClear }: SearchEmptyStateProps) {
       <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container-high text-primary">
         <Icon name="manage_search" size={34} />
       </div>
-      <h2 className="font-headline text-xl font-semibold">Nenhum treinador encontrado pra esses filtros</h2>
+      <h2 className="font-headline text-xl font-semibold">
+        Nenhum treinador encontrado pra esses filtros
+      </h2>
       <p className="mt-2 max-w-sm font-body text-sm text-on-surface-variant">
         Ajuste modalidade, bairro ou preço para abrir novas combinações.
       </p>

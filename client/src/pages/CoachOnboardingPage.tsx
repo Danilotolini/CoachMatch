@@ -391,7 +391,7 @@ export default function CoachOnboardingPage() {
                   }}
                   className="text-primary text-xs font-bold uppercase tracking-widest hover:underline"
                 >
-                   SUGERIR ACADEMIA
+                  SUGERIR ACADEMIA
                 </button>
                 {errors.gyms ? <p className="font-body text-xs text-error">{errors.gyms}</p> : null}
               </div>

@@ -60,6 +60,9 @@ describe('ClientSearchPage', () => {
     await waitFor(() => {
       expect(screen.getByText('12 treinadores encontrados')).toBeInTheDocument()
     })
-    expect(screen.getByRole('radio', { name: 'Menor preço' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('radio', { name: 'Menor preço' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
   })
 })

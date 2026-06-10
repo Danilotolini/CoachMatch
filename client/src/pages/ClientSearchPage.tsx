@@ -46,7 +46,9 @@ function filtersFromParams(searchParams: URLSearchParams): CoachSearchFilters {
 function paramsFromFilters(filters: CoachSearchFilters): URLSearchParams {
   const params = new URLSearchParams()
   if (filters.q) params.set('q', filters.q)
-  filters.specialties?.forEach((specialty) => { params.append('specialties', specialty); })
+  filters.specialties?.forEach((specialty) => {
+    params.append('specialties', specialty)
+  })
   if (filters.address) params.set('address', filters.address)
   if (filters.availableOn) params.set('availableOn', filters.availableOn)
   if (filters.sort && filters.sort !== 'rating') params.set('sort', filters.sort)
@@ -112,15 +114,26 @@ export default function ClientSearchPage() {
           <SearchHeader
             type="search"
             value={filters.q ?? ''}
-            onChange={(q) => { updateFilters({ q: q || undefined }); }}
-            onOpenFilters={() => { setFiltersOpen(true); }}
+            onChange={(q) => {
+              updateFilters({ q: q || undefined })
+            }}
+            onOpenFilters={() => {
+              setFiltersOpen(true)
+            }}
           />
-          <SortControl value={filters.sort ?? 'rating'} onChange={(sort) => { updateFilters({ sort }); }} />
+          <SortControl
+            value={filters.sort ?? 'rating'}
+            onChange={(sort) => {
+              updateFilters({ sort })
+            }}
+          />
           <ActiveFiltersBar filters={filters} onRemove={removeFilter} />
 
           <div className="flex items-center justify-between gap-4">
             <p className="font-body text-sm text-on-surface-variant">
-              {pagination ? `${String(pagination.total)} treinadores encontrados` : 'Buscando treinadores'}
+              {pagination
+                ? `${String(pagination.total)} treinadores encontrados`
+                : 'Buscando treinadores'}
             </p>
             {isFetching && !isLoading ? (
               <span className="font-label text-xs text-primary">Atualizando...</span>
@@ -132,7 +145,9 @@ export default function ClientSearchPage() {
           {isError ? (
             <Card className="p-6 text-center">
               <Icon name="error" size={34} className="mx-auto mb-3 text-primary" />
-              <h2 className="font-headline text-xl font-semibold">Não foi possível carregar a busca</h2>
+              <h2 className="font-headline text-xl font-semibold">
+                Não foi possível carregar a busca
+              </h2>
               <p className="mt-2 font-body text-sm text-on-surface-variant">
                 Tente de novo em alguns instantes.
               </p>
@@ -146,19 +161,25 @@ export default function ClientSearchPage() {
             <SearchEmptyState onClear={clearFilters} />
           ) : null}
 
-          {!isLoading && !isError && coaches.length > 0 ? <SearchResultsList coaches={coaches} /> : null}
+          {!isLoading && !isError && coaches.length > 0 ? (
+            <SearchResultsList coaches={coaches} />
+          ) : null}
 
           {!isLoading && !isError && pagination?.hasNext ? (
             <Button
               type="button"
               variant="secondary"
-              onClick={() => { updateFilters({ page: (filters.page ?? 1) + 1 }); }}
+              onClick={() => {
+                updateFilters({ page: (filters.page ?? 1) + 1 })
+              }}
               className="mx-auto w-full max-w-xs"
             >
               VER MAIS
             </Button>
           ) : !isLoading && !isError && coaches.length > 0 ? (
-            <p className="py-2 text-center font-label text-xs text-on-surface-variant">Fim dos resultados</p>
+            <p className="py-2 text-center font-label text-xs text-on-surface-variant">
+              Fim dos resultados
+            </p>
           ) : null}
         </section>
       </div>
@@ -166,7 +187,9 @@ export default function ClientSearchPage() {
       <FilterSheet
         open={filtersOpen}
         filters={filters}
-        onClose={() => { setFiltersOpen(false); }}
+        onClose={() => {
+          setFiltersOpen(false)
+        }}
         onApply={(nextFilters) => {
           updateFilters(nextFilters)
           setFiltersOpen(false)
