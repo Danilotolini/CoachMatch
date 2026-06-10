@@ -1,176 +1,57 @@
 openapi: 3.0.3
 info:
   title: CoachMatch API
-  version: 0.1.0
+  version: 0.2.0
   description: |
-    Especificação derivada das chamadas feitas pelo frontend (`client/src/api/*`)
-    e pelos handlers MSW (`client/src/mocks/handlers.ts`).
+    Especificação derivada da collection Postman e das chamadas feitas pelo frontend.
 
-    Endpoints de terceiros (IBGE, ViaCEP) e helpers de desenvolvimento (`/dev/*`)
-    ficam fora deste contrato.
+    As rotas são separadas por papel: `/coach/*` para treinadores e `/student/*` para alunos.
+
+    Endpoints de terceiros (Cognito) e helpers de desenvolvimento ficam fora deste contrato.
 servers:
-  - url: '{apiBaseUrl}'
-    description: Base configurada via `VITE_API_BASE_URL`.
-    variables:
-      apiBaseUrl:
-        default: https://api.coachmatch.app
-        description: Origem da API CoachMatch.
+  - url: "https://api.coachmatch.com.br"
+    description: API de produção CoachMatch.
 
 tags:
-  - name: Clients
-    description: Recursos do aluno autenticado.
-  - name: Coaches
-    description: Recursos do treinador autenticado e busca pública.
-  - name: Gyms
-    description: Academias cadastradas e sugestões.
-  - name: Specialties
-    description: Catálogo de especialidades.
-  - name: Uploads
+  - name: Coach — Perfil
+    description: Dados do treinador autenticado.
+  - name: Coach — Uploads
     description: Geração de URLs pré-assinadas para upload direto ao S3.
+  - name: Coach — Recursos
+    description: Especialidades e academias acessadas pelo treinador.
+  - name: Coach — Agenda
+    description: Disponibilidades e gestão de agendamentos do treinador.
+  - name: Student — Perfil
+    description: Dados do aluno autenticado.
+  - name: Student — Recursos
+    description: Especialidades e academias acessadas pelo aluno.
+  - name: Student — Agenda
+    description: Busca de slots e solicitações de agendamento do aluno.
 
 security:
   - bearerAuth: []
 
 paths:
-  /clients/me:
+  # ─────────────────────────────────────────────
+  # Coach — Perfil
+  # ─────────────────────────────────────────────
+  /coach/me:
     get:
-      tags: [Clients]
-      summary: Retorna o aluno autenticado.
-      operationId: getClientMe
-      responses:
-        '200':
-          description: Aluno encontrado.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Client'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /clients/me/profile:
-    post:
-      tags: [Clients]
-      summary: Conclui o cadastro de perfil do aluno.
-      operationId: submitClientProfile
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ClientProfilePayload'
-      responses:
-        '200':
-          description: Perfil registrado. Status do aluno avança para `ONBOARDING_HEALTH`.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Client'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /clients/me/health:
-    post:
-      tags: [Clients]
-      summary: Envia o questionário de saúde e consentimentos do aluno.
-      operationId: submitClientHealth
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ClientHealthPayload'
-      responses:
-        '200':
-          description: Saúde registrada. Status avança para `ACTIVE`.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Client'
-        '400':
-          description: Consentimentos obrigatórios não aceitos.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /coaches:
-    get:
-      tags: [Coaches]
-      summary: Busca treinadores publicamente listáveis.
-      operationId: searchCoaches
-      parameters:
-        - in: query
-          name: q
-          schema: { type: string }
-          description: Termo livre (nome, cidade, bairro, especialidade).
-        - in: query
-          name: 'specialties[]'
-          description: Filtra por uma ou mais especialidades. Pode repetir o parâmetro.
-          schema:
-            type: array
-            items: { type: string }
-          style: form
-          explode: true
-        - in: query
-          name: address
-          schema: { type: string }
-          description: Filtro por bairro/cidade.
-        - in: query
-          name: priceMin
-          schema: { type: integer, minimum: 0 }
-        - in: query
-          name: priceMax
-          schema: { type: integer, minimum: 0 }
-        - in: query
-          name: availableOn
-          schema: { type: string, format: date }
-          description: Data ISO (yyyy-mm-dd) para filtrar disponibilidade.
-        - in: query
-          name: sort
-          schema:
-            $ref: '#/components/schemas/CoachSearchSort'
-        - in: query
-          name: page
-          schema: { type: integer, minimum: 1, default: 1 }
-        - in: query
-          name: limit
-          schema: { type: integer, minimum: 1, maximum: 100, default: 12 }
-      responses:
-        '200':
-          description: Resultado paginado da busca.
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/PaginatedEnvelope'
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/CoachListItem'
-
-  /coaches/me:
-    get:
-      tags: [Coaches]
+      tags: [Coach — Perfil]
       summary: Retorna o treinador autenticado.
       operationId: getCoachMe
       responses:
-        '200':
+        "200":
           description: Treinador encontrado.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Coach'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/Coach"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
     put:
-      tags: [Coaches]
+      tags: [Coach — Perfil]
       summary: Atualiza perfil e locais de atendimento do treinador.
       operationId: updateCoachMe
       requestBody:
@@ -178,48 +59,115 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CoachUpdatePayload'
+              $ref: "#/components/schemas/CoachUpdatePayload"
       responses:
-        '200':
+        "200":
           description: Treinador atualizado.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Coach'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/Coach"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
-  /coaches/me/submit-for-review:
+  /coach/me/submit-for-review:
     post:
-      tags: [Coaches]
+      tags: [Coach — Perfil]
       summary: Submete o perfil do treinador para análise.
       operationId: submitCoachForReview
       responses:
-        '200':
+        "200":
           description: Status atualizado para `PENDING_REVIEW`.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Coach'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '409':
+                $ref: "#/components/schemas/Coach"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
           description: Estado atual não permite submissão.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
-  /gyms:
+  # ─────────────────────────────────────────────
+  # Coach — Uploads
+  # ─────────────────────────────────────────────
+  /coach/upload-url:
+    post:
+      tags: [Coach — Uploads]
+      summary: Gera URL pré-assinada (POST policy do S3) para upload de vídeo.
+      operationId: createCoachUploadUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename, contentType]
+              properties:
+                filename:
+                  type: string
+                  example: perfil-joao.mp4
+                contentType:
+                  type: string
+                  example: video/mp4
+      responses:
+        "200":
+          description: URL e campos para envio multipart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ─────────────────────────────────────────────
+  # Coach — Recursos
+  # ─────────────────────────────────────────────
+  /coach/specialties:
     get:
-      tags: [Gyms]
-      summary: Lista academias cadastradas.
-      operationId: listGyms
+      tags: [Coach — Recursos]
+      summary: Lista catálogo de especialidades (contexto treinador).
+      operationId: listCoachSpecialties
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+          example: Cross
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: Lista paginada de especialidades.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Specialty"
+
+  /coach/gyms:
+    get:
+      tags: [Coach — Recursos]
+      summary: Lista academias cadastradas (contexto treinador).
+      operationId: listCoachGyms
       parameters:
         - in: query
           name: search
           schema: { type: string }
           description: Busca por nome, endereço ou bairro.
+          example: Fit
         - in: query
           name: city
           schema: { type: string }
@@ -231,50 +179,293 @@ paths:
           name: limit
           schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
       responses:
-        '200':
+        "200":
           description: Lista paginada de academias.
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/PaginatedEnvelope'
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: '#/components/schemas/Gym'
+                          $ref: "#/components/schemas/Gym"
 
-  /gyms/suggest:
+  /coach/gyms/suggest:
     post:
-      tags: [Gyms]
-      summary: Envia sugestão de nova academia.
-      operationId: suggestGym
+      tags: [Coach — Recursos]
+      summary: Envia sugestão de nova academia (pelo treinador). Sempre criada como inativa.
+      operationId: suggestGymAsCoach
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GymSuggestPayload'
+              $ref: "#/components/schemas/GymSuggestPayload"
       responses:
-        '201':
+        "201":
           description: Sugestão registrada.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GymSuggestResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/GymSuggestResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
-  /specialties:
+  # ─────────────────────────────────────────────
+  # Coach — Agenda
+  # ─────────────────────────────────────────────
+  /coach/schedule:
     get:
-      tags: [Specialties]
-      summary: Lista catálogo de especialidades.
-      operationId: listSpecialties
+      tags: [Coach — Agenda]
+      summary: Lista disponibilidades do treinador autenticado.
+      operationId: getCoachSchedule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startDateTime:
+                  type: string
+                  format: date-time
+                  example: "2026-05-01T08:00:30-03:00"
+                endDateTime:
+                  type: string
+                  format: date-time
+                  example: "2026-06-06T08:00:30-03:00"
+      responses:
+        "200":
+          description: Lista de disponibilidades do treinador.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Schedule"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [Coach — Agenda]
+      summary: Cria uma disponibilidade de agenda.
+      operationId: createCoachSchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleCreatePayload"
+      responses:
+        "201":
+          description: Disponibilidade criada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /coach/schedule/requests:
+    get:
+      tags: [Coach — Agenda]
+      summary: Lista solicitações de agendamento recebidas pelo treinador.
+      operationId: getCoachScheduleRequests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scheduleId:
+                  type: string
+                  example: avl_6cb2b644248448c68e63f350119c032d
+      responses:
+        "200":
+          description: Lista de solicitações de agendamento.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduleRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /coach/schedule/approve:
+    post:
+      tags: [Coach — Agenda]
+      summary: Aprova uma solicitação de agendamento.
+      operationId: approveScheduleRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scheduleId, studentId]
+              properties:
+                scheduleId:
+                  type: string
+                  example: avl_6cb2b644248448c68e63f350119c032d
+                studentId:
+                  type: string
+                  example: 037c4a8a-6031-705c-e02f-8e45f93bd387
+      responses:
+        "200":
+          description: Solicitação aprovada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Solicitação não encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /coach/schedule/cancel:
+    post:
+      tags: [Coach — Agenda]
+      summary: Cancela uma disponibilidade de agenda (pelo treinador).
+      operationId: cancelCoachSchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scheduleId]
+              properties:
+                scheduleId:
+                  type: string
+                  example: avl_6cb2b644248448c68e63f350119c032d
+      responses:
+        "200":
+          description: Disponibilidade cancelada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /coach/schedule/class/status:
+    post:
+      tags: [Coach — Agenda]
+      summary: Finaliza um atendimento (COMPLETED ou NOSHOW).
+      operationId: updateClassStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scheduleId, status]
+              properties:
+                scheduleId:
+                  type: string
+                  example: avl_6cb2b644248448c68e63f350119c032d
+                status:
+                  $ref: "#/components/schemas/ClassStatus"
+      responses:
+        "200":
+          description: Status da aula atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ─────────────────────────────────────────────
+  # Student — Perfil
+  # ─────────────────────────────────────────────
+  /student/me:
+    get:
+      tags: [Student — Perfil]
+      summary: Retorna o aluno autenticado.
+      operationId: getStudentMe
+      responses:
+        "200":
+          description: Aluno encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /student/me/profile:
+    post:
+      tags: [Student — Perfil]
+      summary: Conclui o cadastro de perfil do aluno.
+      operationId: submitStudentProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientProfilePayload"
+      responses:
+        "200":
+          description: Perfil registrado. Status do aluno avança para `ONBOARDING_HEALTH`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /student/me/health:
+    post:
+      tags: [Student — Perfil]
+      summary: Envia o questionário de saúde e consentimentos do aluno.
+      operationId: submitStudentHealth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientHealthPayload"
+      responses:
+        "200":
+          description: Saúde registrada. Status avança para `ACTIVE`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+        "400":
+          description: Consentimentos obrigatórios não aceitos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ─────────────────────────────────────────────
+  # Student — Recursos
+  # ─────────────────────────────────────────────
+  /student/specialties:
+    get:
+      tags: [Student — Recursos]
+      summary: Lista catálogo de especialidades (contexto aluno).
+      operationId: listStudentSpecialties
       parameters:
         - in: query
           name: search
           schema: { type: string }
+          example: Cross
         - in: query
           name: page
           schema: { type: integer, minimum: 1, default: 1 }
@@ -282,48 +473,294 @@ paths:
           name: limit
           schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
       responses:
-        '200':
+        "200":
           description: Lista paginada de especialidades.
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/PaginatedEnvelope'
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: '#/components/schemas/Specialty'
+                          $ref: "#/components/schemas/Specialty"
 
-  /upload-url:
+  /student/gyms:
+    get:
+      tags: [Student — Recursos]
+      summary: Lista academias cadastradas (contexto aluno).
+      operationId: listStudentGyms
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Busca por nome, endereço ou bairro.
+          example: Fit
+        - in: query
+          name: city
+          schema: { type: string }
+          description: Cidade exata.
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: Lista paginada de academias.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Gym"
+
+  /student/gyms/suggest:
     post:
-      tags: [Uploads]
-      summary: Gera URL pré-assinada (POST policy do S3) para upload direto.
-      operationId: createUploadUrl
+      tags: [Student — Recursos]
+      summary: Envia sugestão de nova academia (pelo aluno). Sempre criada como inativa.
+      operationId: suggestGymAsStudent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GymSuggestPayload"
+      responses:
+        "201":
+          description: Sugestão registrada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GymSuggestResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ─────────────────────────────────────────────
+  # Student — Agenda
+  # ─────────────────────────────────────────────
+  /student/coach/schedules:
+    get:
+      tags: [Student — Agenda]
+      summary: Lista disponibilidades de um treinador específico.
+      operationId: getCoachSchedulesForStudent
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                coachId:
+                  type: string
+                  example: 83dcfaba-f0c1-705d-b109-2b381fed0971
+                startDateTime:
+                  type: string
+                  format: date-time
+                  example: "2026-05-01T08:00:30-03:00"
+                endDateTime:
+                  type: string
+                  format: date-time
+                  example: "2026-06-06T08:00:30-03:00"
+      responses:
+        "200":
+          description: Lista de disponibilidades do treinador.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Schedule"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /student/gyms/schedule:
+    get:
+      tags: [Student — Agenda]
+      summary: Lista disponibilidades em uma academia específica.
+      operationId: getGymScheduleForStudent
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                gymId:
+                  type: string
+                  example: gym_sp005
+                startDateTime:
+                  type: string
+                  format: date-time
+                  example: "2026-05-01T08:00:30-03:00"
+                endDateTime:
+                  type: string
+                  format: date-time
+                  example: "2026-06-06T08:00:30-03:00"
+      responses:
+        "200":
+          description: Lista de disponibilidades na academia.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Schedule"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /student/coach/schedules/request:
+    post:
+      tags: [Student — Agenda]
+      summary: Solicita um agendamento.
+      operationId: requestSchedule
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [filename, contentType]
+              required: [scheduleId]
               properties:
-                filename:
+                scheduleId:
                   type: string
-                  example: perfil.jpg
-                contentType:
-                  type: string
-                  example: image/jpeg
+                  example: avl_6cb2b644248448c68e63f350119c032d
       responses:
-        '200':
-          description: URL e campos para envio multipart.
+        "201":
+          description: Solicitação registrada.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UploadUrlResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/ScheduleRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    get:
+      tags: [Student — Agenda]
+      summary: Lista agendamentos solicitados pelo aluno.
+      operationId: listStudentScheduleRequests
+      responses:
+        "200":
+          description: Lista de solicitações do aluno.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduleRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    delete:
+      tags: [Student — Agenda]
+      summary: Cancela uma solicitação de agendamento.
+      operationId: cancelScheduleRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scheduleId]
+              properties:
+                scheduleId:
+                  type: string
+                  example: avl_6cb2b644248448c68e63f350119c032d
+      responses:
+        "200":
+          description: Solicitação cancelada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /student/coach/schedules/cancel:
+    post:
+      tags: [Student — Agenda]
+      summary: Cancela um agendamento aprovado (pelo aluno).
+      operationId: cancelStudentSchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scheduleId]
+              properties:
+                scheduleId:
+                  type: string
+                  example: avl_6cb2b644248448c68e63f350119c032d
+      responses:
+        "200":
+          description: Agendamento cancelado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ─────────────────────────────────────────────
+  # Busca pública de treinadores (mantida do contrato anterior)
+  # ─────────────────────────────────────────────
+  /student/coaches:
+    get:
+      tags: [Student — Agenda]
+      summary: Busca treinadores publicamente listáveis.
+      operationId: searchCoaches
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Termo livre (nome, cidade, bairro, especialidade).
+        - in: query
+          name: "specialties[]"
+          description: Filtra por uma ou mais especialidades. Pode repetir o parâmetro.
+          schema:
+            type: array
+            items: { type: string }
+          style: form
+          explode: true
+        - in: query
+          name: address
+          schema: { type: string }
+          description: Filtro por bairro/cidade.
+        - in: query
+          name: availableOn
+          schema: { type: string, format: date }
+          description: Data ISO (yyyy-mm-dd) para filtrar disponibilidade.
+        - in: query
+          name: sort
+          schema:
+            $ref: "#/components/schemas/CoachSearchSort"
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 12 }
+      responses:
+        "200":
+          description: Resultado paginado da busca.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/CoachListItem"
 
 components:
   securitySchemes:
@@ -331,7 +768,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Access token emitido pelo Amazon Cognito (papel ativo: aluno ou treinador).
+      description: "IdToken emitido pelo Amazon Cognito (papel ativo: aluno ou treinador)."
 
   responses:
     Unauthorized:
@@ -339,13 +776,13 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
     BadRequest:
       description: Payload inválido.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
 
   schemas:
     Error:
@@ -382,9 +819,9 @@ components:
           type: array
           items: {}
         pagination:
-          $ref: '#/components/schemas/Pagination'
+          $ref: "#/components/schemas/Pagination"
 
-    # --- Client ---
+    # ── Client / Student ──────────────────────
     ClientStatus:
       type: string
       enum: [ONBOARDING_PROFILE, ONBOARDING_HEALTH, ACTIVE]
@@ -395,7 +832,7 @@ components:
       properties:
         clientId: { type: string, example: client_demo }
         email: { type: string, format: email }
-        status: { $ref: '#/components/schemas/ClientStatus' }
+        status: { $ref: "#/components/schemas/ClientStatus" }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -403,12 +840,12 @@ components:
       type: object
       required: [phone, birthDate, gender, cep, city, state, radius, goal]
       properties:
-        phone: { type: string, example: '+5511999990000' }
+        phone: { type: string, example: "+5511999990000" }
         birthDate: { type: string, format: date }
         gender:
           type: string
           enum: [F, M, NB, NA]
-        cep: { type: string, example: '01310-100' }
+        cep: { type: string, example: "01310-100" }
         city: { type: string, example: São Paulo }
         state: { type: string, minLength: 2, maxLength: 2, example: SP }
         radius:
@@ -435,7 +872,7 @@ components:
         lgpdConsent: { type: boolean }
         medicalDisclaimer: { type: boolean }
 
-    # --- Coach ---
+    # ── Coach ─────────────────────────────────
     CoachStatus:
       type: string
       enum: [ONBOARDING_PROFILE, PENDING_REVIEW, APPROVED, REJECTED]
@@ -455,8 +892,8 @@ components:
         specialties:
           type: array
           items: { type: string }
-        cref: { type: string, example: 'CREF 012345-G/SP' }
-        instagram: { type: string, example: '@treinador' }
+        cref: { type: string, example: "CREF 012345-G/SP" }
+        instagram: { type: string, example: "@treinador" }
         profile_video:
           type: boolean
           description: Indica se há vídeo de apresentação enviado.
@@ -488,32 +925,41 @@ components:
           type: string
           enum: [HOME_SERVICE]
         coverage:
-          $ref: '#/components/schemas/HomeServiceCoverage'
+          $ref: "#/components/schemas/HomeServiceCoverage"
 
     WorkLocation:
       oneOf:
-        - $ref: '#/components/schemas/WorkLocationGym'
-        - $ref: '#/components/schemas/WorkLocationHomeService'
+        - $ref: "#/components/schemas/WorkLocationGym"
+        - $ref: "#/components/schemas/WorkLocationHomeService"
       discriminator:
         propertyName: type
         mapping:
-          GYM: '#/components/schemas/WorkLocationGym'
-          HOME_SERVICE: '#/components/schemas/WorkLocationHomeService'
+          GYM: "#/components/schemas/WorkLocationGym"
+          HOME_SERVICE: "#/components/schemas/WorkLocationHomeService"
 
     Coach:
       type: object
       required:
-        [coachId, email, status, visibility, profile, work_location, createdAt, updatedAt]
+        [
+          coachId,
+          email,
+          status,
+          visibility,
+          profile,
+          work_location,
+          createdAt,
+          updatedAt,
+        ]
       properties:
         coachId: { type: string }
         email: { type: string, format: email }
-        status: { $ref: '#/components/schemas/CoachStatus' }
-        visibility: { $ref: '#/components/schemas/CoachVisibility' }
-        profile: { $ref: '#/components/schemas/CoachProfile' }
+        status: { $ref: "#/components/schemas/CoachStatus" }
+        visibility: { $ref: "#/components/schemas/CoachVisibility" }
+        profile: { $ref: "#/components/schemas/CoachProfile" }
         work_location:
           type: array
           items:
-            $ref: '#/components/schemas/WorkLocation'
+            $ref: "#/components/schemas/WorkLocation"
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -522,12 +968,12 @@ components:
       properties:
         profile:
           allOf:
-            - $ref: '#/components/schemas/CoachProfile'
+            - $ref: "#/components/schemas/CoachProfile"
           description: Campos parciais aceitos.
         work_location:
           type: array
           items:
-            $ref: '#/components/schemas/WorkLocation'
+            $ref: "#/components/schemas/WorkLocation"
 
     CoachSearchSort:
       type: string
@@ -537,7 +983,17 @@ components:
     CoachListItem:
       type: object
       required:
-        [coachId, name, specialties, rating, priceFrom, neighborhood, city, nextAvailability, photo]
+        [
+          coachId,
+          name,
+          specialties,
+          rating,
+          priceFrom,
+          neighborhood,
+          city,
+          nextAvailability,
+          photo,
+        ]
       properties:
         coachId: { type: string }
         name: { type: string }
@@ -561,7 +1017,7 @@ components:
           type: string
           nullable: true
 
-    # --- Gym ---
+    # ── Gym ───────────────────────────────────
     Gym:
       type: object
       required: [gymId, name, address, city, state, neighborhood, coordinates]
@@ -573,7 +1029,7 @@ components:
         state: { type: string, minLength: 2, maxLength: 2 }
         neighborhood: { type: string }
         coordinates:
-          $ref: '#/components/schemas/Coordinates'
+          $ref: "#/components/schemas/Coordinates"
 
     GymSuggestPayload:
       type: object
@@ -585,18 +1041,18 @@ components:
         state: { type: string, minLength: 2, maxLength: 2 }
         neighborhood: { type: string }
         coordinates:
-          $ref: '#/components/schemas/Coordinates'
+          $ref: "#/components/schemas/Coordinates"
 
     GymSuggestResponse:
       type: object
       required: [data, message]
       properties:
-        data: { $ref: '#/components/schemas/Gym' }
+        data: { $ref: "#/components/schemas/Gym" }
         message:
           type: string
           example: Sugestão registrada com sucesso. Aguardando aprovação.
 
-    # --- Specialty ---
+    # ── Specialty ─────────────────────────────
     Specialty:
       type: object
       required: [id, label]
@@ -604,14 +1060,93 @@ components:
         id: { type: string, example: musculacao }
         label: { type: string, example: Musculação }
 
-    # --- Upload ---
+    # ── Schedule ──────────────────────────────
+    ScheduleStatus:
+      type: string
+      enum: [AVAILABLE, REQUESTED, APPROVED, CANCELLED, COMPLETED, NOSHOW]
+
+    ClassStatus:
+      type: string
+      enum: [COMPLETED, NOSHOW]
+
+    Schedule:
+      type: object
+      required:
+        [
+          scheduleId,
+          coachId,
+          gymId,
+          specialtyId,
+          startDateTime,
+          endDateTime,
+          price,
+          status,
+        ]
+      properties:
+        scheduleId:
+          { type: string, example: avl_6cb2b644248448c68e63f350119c032d }
+        coachId: { type: string }
+        gymId: { type: string, example: gym_sp005 }
+        specialtyId: { type: string, example: MUSCULATION }
+        startDateTime:
+          {
+            type: string,
+            format: date-time,
+            example: "2026-06-03T07:30:00-03:00",
+          }
+        endDateTime:
+          {
+            type: string,
+            format: date-time,
+            example: "2026-06-03T08:00:30-03:00",
+          }
+        price:
+          type: string
+          description: Valor em BRL.
+          example: "120.00"
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+
+    ScheduleCreatePayload:
+      type: object
+      required: [gymId, specialtyId, startDateTime, endDateTime, price]
+      properties:
+        gymId: { type: string, example: gym_sp005 }
+        specialtyId: { type: string, example: MUSCULATION }
+        startDateTime:
+          {
+            type: string,
+            format: date-time,
+            example: "2026-06-03T07:30:00-03:00",
+          }
+        endDateTime:
+          {
+            type: string,
+            format: date-time,
+            example: "2026-06-03T08:00:30-03:00",
+          }
+        price:
+          type: string
+          description: Valor em BRL.
+          example: "120.00"
+
+    ScheduleRequest:
+      type: object
+      required: [scheduleId, studentId, status]
+      properties:
+        scheduleId:
+          { type: string, example: avl_6cb2b644248448c68e63f350119c032d }
+        studentId:
+          { type: string, example: 037c4a8a-6031-705c-e02f-8e45f93bd387 }
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+
+    # ── Upload ────────────────────────────────
     UploadUrlResponse:
       type: object
       required: [key, expiresIn, upload]
       properties:
         key:
           type: string
-          example: uploads/1715800000000-perfil.jpg
+          example: uploads/1715800000000-perfil-joao.mp4
         expiresIn:
           type: integer
           description: Validade da URL em segundos.
@@ -627,4 +1162,7 @@ components:
             fields:
               type: object
               additionalProperties: { type: string }
-              description: Campos da policy POST do S3, devem acompanhar o `multipart/form-data`.
+              description: |
+                Campos da policy POST do S3 (key, Content-Type, X-Amz-Algorithm,
+                X-Amz-Credential, X-Amz-Date, Policy, X-Amz-Signature,
+                x-amz-security-token). Devem acompanhar o multipart/form-data.
