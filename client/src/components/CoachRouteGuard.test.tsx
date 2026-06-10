@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { http, HttpResponse } from 'msw'
-import { RouteGuard } from './RouteGuard'
+import { CoachRouteGuard } from './CoachRouteGuard'
 import { server } from '@/mocks/server'
 import { getToken } from '@/lib/auth'
 import { createWrapper } from '@/test/createWrapper'
@@ -19,9 +19,9 @@ function renderGuard(allow: Coach['status'][], initialPath = '/protected') {
           <Route
             path="/protected"
             element={
-              <RouteGuard allow={allow}>
+              <CoachRouteGuard allow={allow}>
                 <div>conteúdo protegido</div>
-              </RouteGuard>
+              </CoachRouteGuard>
             }
           />
           <Route path="/coach/login" element={<div>login page</div>} />
@@ -35,7 +35,7 @@ function renderGuard(allow: Coach['status'][], initialPath = '/protected') {
   )
 }
 
-describe('RouteGuard', () => {
+describe('CoachRouteGuard', () => {
   it('redireciona para /coach/login quando não há token', async () => {
     renderGuard(['APPROVED'])
     expect(await screen.findByText('login page')).toBeInTheDocument()

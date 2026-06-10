@@ -23,7 +23,7 @@ import CoachRejectedPage from '@/pages/CoachRejectedPage'
 import CoachDashboardPage from '@/pages/CoachDashboardPage'
 import ClientHomePage from '@/pages/ClientHomePage'
 import PaymentPage from '@/pages/PaymentPage'
-import { RouteGuard } from '@/components/RouteGuard'
+import { CoachRouteGuard } from '@/components/CoachRouteGuard'
 import { ClientRouteGuard } from '@/components/ClientRouteGuard'
 import { AppShell } from '@/components/AppShell'
 import ClientSearchPage from '@/pages/ClientSearchPage'
@@ -84,40 +84,40 @@ const router = createBrowserRouter([
         path: '/client/search',
         element: (
           <ClientRouteGuard requireOnboarded>
-              <ClientSearchPage />
+            <ClientSearchPage />
           </ClientRouteGuard>
         ),
       },
       {
         path: '/coach/onboarding',
         element: (
-          <RouteGuard allow={['ONBOARDING_PROFILE']}>
+          <CoachRouteGuard allow={['ONBOARDING_PROFILE']}>
             <CoachOnboardingPage />
-          </RouteGuard>
+          </CoachRouteGuard>
         ),
       },
       {
         path: '/coach/pending-review',
         element: (
-          <RouteGuard allow={['PENDING_REVIEW']}>
+          <CoachRouteGuard allow={['PENDING_REVIEW']}>
             <CoachPendingReviewPage />
-          </RouteGuard>
+          </CoachRouteGuard>
         ),
       },
       {
         path: '/coach/rejected',
         element: (
-          <RouteGuard allow={['REJECTED']}>
+          <CoachRouteGuard allow={['REJECTED']}>
             <CoachRejectedPage />
-          </RouteGuard>
+          </CoachRouteGuard>
         ),
       },
       {
         path: '/coach',
         element: (
-          <RouteGuard allow={['APPROVED']}>
+          <CoachRouteGuard allow={['APPROVED']}>
             <CoachDashboardPage />
-          </RouteGuard>
+          </CoachRouteGuard>
         ),
       },
       {

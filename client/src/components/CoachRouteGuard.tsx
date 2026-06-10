@@ -26,7 +26,7 @@ function Spinner() {
   )
 }
 
-export function RouteGuard({ allow, children }: RouteGuardProps) {
+export function CoachRouteGuard({ allow, children }: RouteGuardProps) {
   const hasToken = !!getToken()
   const { data, isLoading, isError, error } = useCoachMe()
 
