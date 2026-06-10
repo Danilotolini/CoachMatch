@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams } from 'react-router'
 import { ProgressHeader } from '@/components/layout/ProgressHeader'
 import { useCreatePayment } from '@/hooks/useCreatePayment'
 import { useCoachMe } from '@/hooks/useCoachMe'

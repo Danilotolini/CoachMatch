@@ -8,31 +8,13 @@ export interface GymsParams {
   limit?: number | undefined
 }
 
-interface BackendGym {
-  gymId: string
-  name: string
-  address: string
-  city: string
-  state: string
-  neighborhood: string
-  coordinates: { lat: number; lng: number }
-}
-
-interface BackendGymsResponse {
-  items: BackendGym[]
-  nextCursor: string | null
-}
-
-export async function fetchGyms(params: GymsParams = {}): Promise<PaginatedResponse<Gym>> {
-  const raw = await apiGet<BackendGymsResponse>('/gyms', {
-    limit: params.limit ?? 20,
-  })
-  return {
-    data: raw.items.map(({ gymId, ...rest }) => ({ id: gymId, ...rest })),
+export function fetchGyms(params: GymsParams = {}): Promise<PaginatedResponse<Gym>> {
+  return apiGet<PaginatedResponse<Gym>>('/gyms', {
+    ...(params.search ? { search: params.search } : {}),
+    ...(params.city ? { city: params.city } : {}),
     page: params.page ?? 1,
     limit: params.limit ?? 20,
-    total: raw.items.length,
-  }
+  })
 }
 
 export function suggestGym(payload: GymSuggestPayload) {

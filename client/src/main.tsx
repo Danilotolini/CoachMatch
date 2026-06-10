@@ -120,15 +120,15 @@ const router = createBrowserRouter([
           </RouteGuard>
         ),
       },
+      {
+        path: '/pagamento/:sessionId',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <PaymentPage />
+          </ClientRouteGuard>
+        ),
+      },
     ],
-  },
-  {
-    path: '/pagamento/:sessionId',
-    element: (
-      <RouteGuard allow={['APPROVED']}>
-        <PaymentPage />
-      </RouteGuard>
-    ),
   },
 ])
 
