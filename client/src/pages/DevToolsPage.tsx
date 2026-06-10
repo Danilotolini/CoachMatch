@@ -8,13 +8,7 @@ import { apiGet, apiPost } from '@/lib/http'
 import { buildMockIdToken } from '@/dev/mockSession'
 import { useOnboardingStore } from '@/stores/onboardingStore'
 import { useSessionStore } from '@/stores/sessionStore'
-import type {
-  Client,
-  ClientHealthPayload,
-  ClientStatus,
-  Coach,
-  CoachStatus,
-} from '@/types/api'
+import type { Client, ClientHealthPayload, ClientStatus, Coach, CoachStatus } from '@/types/api'
 
 const MOCK_COACH_STORAGE_KEY = 'coachmatch:mock:coach'
 const MOCK_CLIENT_STORAGE_KEY = 'coachmatch:mock:client'
@@ -62,11 +56,7 @@ const COACH_STATUSES: CoachStatus[] = [
   'REJECTED',
 ]
 
-const CLIENT_STATUSES: ClientStatus[] = [
-  'ONBOARDING_PROFILE',
-  'ONBOARDING_HEALTH',
-  'ACTIVE',
-]
+const CLIENT_STATUSES: ClientStatus[] = ['ONBOARDING_PROFILE', 'ONBOARDING_HEALTH', 'ACTIVE']
 
 const DEMO_CLIENT_HEALTH: ClientHealthPayload = {
   answers: {
@@ -173,7 +163,9 @@ export default function DevToolsPage() {
       setMessage(`Status do aluno mock: ${client.status}.`)
     },
     onError: () => {
-      setMessage('Nao consegui mudar o status do aluno. Ligue VITE_API_MOCKING=enabled para usar o MSW.')
+      setMessage(
+        'Nao consegui mudar o status do aluno. Ligue VITE_API_MOCKING=enabled para usar o MSW.',
+      )
     },
   })
 
@@ -348,9 +340,7 @@ export default function DevToolsPage() {
               <div className="rounded-lg bg-surface-container p-3">
                 <dt className="text-on-surface-variant">Visibilidade</dt>
                 <dd className="mt-2">
-                  <StateBadge
-                    active={coachMe.data?.visibility === 'VISIBLE'}
-                  >
+                  <StateBadge active={coachMe.data?.visibility === 'VISIBLE'}>
                     {coachVisibilityLabel}
                   </StateBadge>
                 </dd>

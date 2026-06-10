@@ -58,9 +58,7 @@ function mockClient(status: ClientStatus) {
 }
 
 function mockClientError(status: number) {
-  server.use(
-    http.get('*/clients/me', () => HttpResponse.json({ error: 'boom' }, { status })),
-  )
+  server.use(http.get('*/clients/me', () => HttpResponse.json({ error: 'boom' }, { status })))
 }
 
 describe('ClientRouteGuard', () => {

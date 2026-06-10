@@ -30,9 +30,7 @@ describe('ApiError', () => {
 
 describe('apiGet', () => {
   it('faz GET e retorna o JSON parseado', async () => {
-    server.use(
-      http.get('http://api.test/echo', () => HttpResponse.json({ hello: 'world' })),
-    )
+    server.use(http.get('http://api.test/echo', () => HttpResponse.json({ hello: 'world' })))
 
     const data = await apiGet<{ hello: string }>('/echo')
     expect(data).toEqual({ hello: 'world' })
@@ -83,9 +81,7 @@ describe('apiGet', () => {
 
   it('lança ApiError com status quando o response não é ok', async () => {
     server.use(
-      http.get('http://api.test/boom', () =>
-        HttpResponse.json({ error: 'x' }, { status: 500 }),
-      ),
+      http.get('http://api.test/boom', () => HttpResponse.json({ error: 'x' }, { status: 500 })),
     )
 
     await expect(apiGet('/boom')).rejects.toMatchObject({

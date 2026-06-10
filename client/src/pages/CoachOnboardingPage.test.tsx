@@ -70,9 +70,7 @@ describe('CoachOnboardingPage', () => {
 
     await user.click(screen.getByRole('button', { name: /CONCLUIR PERFIL/i }))
 
-    expect(
-      await screen.findByText(/Existem erros no formulário/i),
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/Existem erros no formulário/i)).toBeInTheDocument()
   })
 
   it('submete o perfil e navega para /coach/pending-review quando válido', async () => {
@@ -126,16 +124,12 @@ describe('CoachOnboardingPage', () => {
       coordinates: { lat: 0, lng: 0 },
     })
 
-    server.use(
-      http.put('*/coaches/me', () => HttpResponse.json({ error: 'x' }, { status: 500 })),
-    )
+    server.use(http.put('*/coaches/me', () => HttpResponse.json({ error: 'x' }, { status: 500 })))
 
     renderPage()
 
     await user.click(screen.getByRole('button', { name: /CONCLUIR PERFIL/i }))
 
-    expect(
-      await screen.findByText(/Não foi possível salvar seu perfil/i),
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/Não foi possível salvar seu perfil/i)).toBeInTheDocument()
   })
 })

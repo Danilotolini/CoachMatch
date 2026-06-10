@@ -1,5 +1,10 @@
 import { apiGet, apiPost, apiPut } from '@/lib/http'
-import type { Coach, CoachSearchFilters, CoachSearchResponse, CoachUpdatePayload } from '@/types/api'
+import type {
+  Coach,
+  CoachSearchFilters,
+  CoachSearchResponse,
+  CoachUpdatePayload,
+} from '@/types/api'
 
 export function fetchCoachMe(): Promise<Coach> {
   return apiGet<Coach>('/coaches/me')

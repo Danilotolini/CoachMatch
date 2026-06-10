@@ -19,26 +19,60 @@ export function ActiveFiltersBar({ filters, onRemove }: ActiveFiltersBarProps) {
 
   return (
     <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 md:mx-0 md:px-0">
-      {filters.q ? <Chip label={`Busca: ${filters.q}`} active onRemove={() => { onRemove('q'); }} /> : null}
+      {filters.q ? (
+        <Chip
+          label={`Busca: ${filters.q}`}
+          active
+          onRemove={() => {
+            onRemove('q')
+          }}
+        />
+      ) : null}
       {filters.address ? (
-        <Chip label={filters.address} active onRemove={() => { onRemove('address'); }} />
+        <Chip
+          label={filters.address}
+          active
+          onRemove={() => {
+            onRemove('address')
+          }}
+        />
       ) : null}
       {filters.specialties?.map((specialty) => (
         <Chip
           key={specialty}
           label={specialty}
           active
-          onRemove={() => { onRemove('specialties', specialty); }}
+          onRemove={() => {
+            onRemove('specialties', specialty)
+          }}
         />
       ))}
       {filters.priceMin ? (
-        <Chip label={`De R$ ${String(filters.priceMin)}`} active onRemove={() => { onRemove('priceMin'); }} />
+        <Chip
+          label={`De R$ ${String(filters.priceMin)}`}
+          active
+          onRemove={() => {
+            onRemove('priceMin')
+          }}
+        />
       ) : null}
       {filters.priceMax ? (
-        <Chip label={`Até R$ ${String(filters.priceMax)}`} active onRemove={() => { onRemove('priceMax'); }} />
+        <Chip
+          label={`Até R$ ${String(filters.priceMax)}`}
+          active
+          onRemove={() => {
+            onRemove('priceMax')
+          }}
+        />
       ) : null}
       {filters.availableOn ? (
-        <Chip label={filters.availableOn} active onRemove={() => { onRemove('availableOn'); }} />
+        <Chip
+          label={filters.availableOn}
+          active
+          onRemove={() => {
+            onRemove('availableOn')
+          }}
+        />
       ) : null}
     </div>
   )

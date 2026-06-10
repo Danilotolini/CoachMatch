@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import {
-  getActiveRole,
-  getActiveToken,
-  getSessionToken,
-  useSessionStore,
-} from './sessionStore'
+import { getActiveRole, getActiveToken, getSessionToken, useSessionStore } from './sessionStore'
 
 beforeEach(() => {
   useSessionStore.setState({ activeRole: null, sessions: {} })

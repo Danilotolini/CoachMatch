@@ -26,7 +26,10 @@ export function SearchResultsList({ coaches }: SearchResultsListProps) {
 
 export function SearchResultsSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label="Carregando resultados">
+    <div
+      className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+      aria-label="Carregando resultados"
+    >
       {Array.from({ length: 6 }).map((_, index) => (
         <div
           key={index}

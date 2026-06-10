@@ -38,9 +38,7 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
               onChange(tab.id)
             }}
             className={`flex flex-col items-center gap-1 rounded-xl transition-all duration-200 ${
-              isActive
-                ? 'bg-primary/10 px-3.5 py-1.5 scale-[1.06]'
-                : 'bg-transparent px-2.5 py-1.5'
+              isActive ? 'bg-primary/10 px-3.5 py-1.5 scale-[1.06]' : 'bg-transparent px-2.5 py-1.5'
             }`}
           >
             <Icon

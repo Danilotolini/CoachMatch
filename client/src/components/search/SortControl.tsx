@@ -13,7 +13,11 @@ interface SortControlProps {
 
 export function SortControl({ value, onChange }: SortControlProps) {
   return (
-    <div className="grid grid-cols-3 rounded-xl bg-surface-container-low p-1" role="radiogroup" aria-label="Ordenação">
+    <div
+      className="grid grid-cols-3 rounded-xl bg-surface-container-low p-1"
+      role="radiogroup"
+      aria-label="Ordenação"
+    >
       {OPTIONS.map((option) => {
         const selected = option.value === value
         return (
@@ -22,7 +26,9 @@ export function SortControl({ value, onChange }: SortControlProps) {
             type="button"
             role="radio"
             aria-checked={selected}
-            onClick={() => { onChange(option.value); }}
+            onClick={() => {
+              onChange(option.value)
+            }}
             className={`min-h-10 rounded-lg px-2 font-label text-[11px] font-bold uppercase transition-all active:scale-[0.98] ${
               selected
                 ? 'bg-primary text-on-primary-fixed'
