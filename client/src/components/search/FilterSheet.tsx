@@ -25,16 +25,6 @@ function todayISO(): string {
   return `${String(year)}-${month}-${day}`
 }
 
-const PRICE_MIN = 0
-const PRICE_MAX = 1_000_000_000
-
-function parsePrice(raw: string): number | undefined {
-  if (!raw) return undefined
-  const value = Number(raw)
-  if (!Number.isFinite(value)) return undefined
-  return Math.min(Math.max(value, PRICE_MIN), PRICE_MAX)
-}
-
 export function FilterSheet({ open, filters, onClose, onApply, onClear }: FilterSheetProps) {
   if (!open) return null
 
@@ -109,34 +99,6 @@ function FilterSheetContent({ filters, onClose, onApply, onClear }: Omit<FilterS
                   onClick={() => { updateDraft({ specialties: toggleItem(selectedSpecialties, specialty.label) }); }}
                 />
               ))}
-            </div>
-          </section>
-
-          <section className="space-y-3">
-            <h3 className="font-label text-xs font-bold uppercase text-on-surface-variant">Preço por sessão</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="mb-1 block font-label text-xs text-on-surface-variant">Mínimo</span>
-                <input
-                  type="number"
-                  min={PRICE_MIN}
-                  max={PRICE_MAX}
-                  value={draft.priceMin ?? ''}
-                  onChange={(event) => { updateDraft({ priceMin: parsePrice(event.target.value) }); }}
-                  className="w-full rounded-xl border-outline-variant/20 bg-surface-container-high px-4 py-3 font-body text-sm text-on-surface focus:border-primary focus:ring-primary/30"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block font-label text-xs text-on-surface-variant">Máximo</span>
-                <input
-                  type="number"
-                  min={PRICE_MIN}
-                  max={PRICE_MAX}
-                  value={draft.priceMax ?? ''}
-                  onChange={(event) => { updateDraft({ priceMax: parsePrice(event.target.value) }); }}
-                  className="w-full rounded-xl border-outline-variant/20 bg-surface-container-high px-4 py-3 font-body text-sm text-on-surface focus:border-primary focus:ring-primary/30"
-                />
-              </label>
             </div>
           </section>
 

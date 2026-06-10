@@ -10,8 +10,6 @@ export function searchCoaches(filters: CoachSearchFilters = {}): Promise<CoachSe
     q: filters.q,
     'specialties[]': filters.specialties,
     address: filters.address,
-    priceMin: filters.priceMin,
-    priceMax: filters.priceMax,
     availableOn: filters.availableOn,
     sort: filters.sort ?? 'rating',
     page: filters.page ?? 1,

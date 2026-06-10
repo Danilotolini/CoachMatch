@@ -36,8 +36,6 @@ function filtersFromParams(searchParams: URLSearchParams): CoachSearchFilters {
     q: searchParams.get('q') ?? undefined,
     specialties: arrayParam(searchParams, 'specialties'),
     address: searchParams.get('address') ?? undefined,
-    priceMin: numberParam(searchParams, 'priceMin'),
-    priceMax: numberParam(searchParams, 'priceMax'),
     availableOn: searchParams.get('availableOn') ?? undefined,
     sort: (searchParams.get('sort') as CoachSearchSort | null) ?? 'rating',
     page: numberParam(searchParams, 'page') ?? 1,
@@ -50,8 +48,6 @@ function paramsFromFilters(filters: CoachSearchFilters): URLSearchParams {
   if (filters.q) params.set('q', filters.q)
   filters.specialties?.forEach((specialty) => { params.append('specialties', specialty); })
   if (filters.address) params.set('address', filters.address)
-  if (filters.priceMin) params.set('priceMin', String(filters.priceMin))
-  if (filters.priceMax) params.set('priceMax', String(filters.priceMax))
   if (filters.availableOn) params.set('availableOn', filters.availableOn)
   if (filters.sort && filters.sort !== 'rating') params.set('sort', filters.sort)
   if (filters.page && filters.page > 1) params.set('page', String(filters.page))
