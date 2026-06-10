@@ -26,6 +26,7 @@ import PaymentPage from '@/pages/PaymentPage'
 import { RouteGuard } from '@/components/RouteGuard'
 import { ClientRouteGuard } from '@/components/ClientRouteGuard'
 import { AppShell } from '@/components/AppShell'
+import ClientSearchPage from '@/pages/ClientSearchPage'
 
 function getDevRoutes() {
   if (!import.meta.env.DEV) return []
@@ -40,20 +41,6 @@ function getDevRoutes() {
       ),
     },
   ]
-}
-
-function getClientSearchRoute() {
-  const ClientSearchPage = lazy(() => import('@/pages/ClientSearchPage'))
-  return {
-    path: '/client/search',
-    element: (
-      <ClientRouteGuard requireOnboarded>
-        <Suspense fallback={null}>
-          <ClientSearchPage />
-        </Suspense>
-      </ClientRouteGuard>
-    ),
-  }
 }
 
 const router = createBrowserRouter([
@@ -93,7 +80,14 @@ const router = createBrowserRouter([
           </ClientRouteGuard>
         ),
       },
-      getClientSearchRoute(),
+      {
+        path: '/client/search',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+              <ClientSearchPage />
+          </ClientRouteGuard>
+        ),
+      },
       {
         path: '/coach/onboarding',
         element: (
