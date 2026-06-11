@@ -20,6 +20,7 @@ const buildCoachRecord = (overrides = {}) => ({
   coachId: COACH_ID,
   email: 'coach@mail.com',
   status: 'PENDING_PROFILE',
+  visibility: 'VISIBLE',
   profile: {
     name: 'João Silva',
     phone: '11999999999',
@@ -29,6 +30,8 @@ const buildCoachRecord = (overrides = {}) => ({
     profile_video: false,
   },
   work_location: [{ type: 'GYM', gymId: 'gym-1' }],
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-02T00:00:00.000Z',
   ...overrides,
 });
 
@@ -36,20 +39,47 @@ const buildCoachRecord = (overrides = {}) => ({
 describe('get-coach › index (getCoachProfile)', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('retorna CoachMe mapeado corretamente', async () => {
+  it('retorna shape Coach aninhado com coachId e timestamps', async () => {
     findCoachById.mockResolvedValue(buildCoachRecord());
     const result = await getCoachProfile(COACH_ID);
 
+    expect(result.coachId).toBe(COACH_ID);
     expect(result.email).toBe('coach@mail.com');
-    expect(result.name).toBe('João Silva');
-    expect(result.territory).toBe('GYMS');
-    expect(result.gyms).toEqual(['gym-1']);
+    expect(result.visibility).toBe('VISIBLE');
+    expect(result.createdAt).toBe('2026-01-01T00:00:00.000Z');
+    expect(result.updatedAt).toBe('2026-01-02T00:00:00.000Z');
   });
 
-  it('mapeia status PENDING_PROFILE → PROFILE_INCOMPLETE', async () => {
+  it('retorna profile como objeto aninhado', async () => {
+    findCoachById.mockResolvedValue(buildCoachRecord());
+    const result = await getCoachProfile(COACH_ID);
+
+    expect(result.profile).toMatchObject({
+      name:          'João Silva',
+      phone:         '11999999999',
+      instagram:     '@joao',
+      cref:          'CREF 123456-G/SP',
+      specialties:   ['Musculação'],
+      profile_video: false,
+    });
+  });
+
+  it('retorna work_location como array passado direto', async () => {
+    findCoachById.mockResolvedValue(buildCoachRecord());
+    const result = await getCoachProfile(COACH_ID);
+    expect(result.work_location).toEqual([{ type: 'GYM', gymId: 'gym-1' }]);
+  });
+
+  it('mapeia status PENDING_PROFILE → ONBOARDING_PROFILE', async () => {
     findCoachById.mockResolvedValue(buildCoachRecord({ status: 'PENDING_PROFILE' }));
     const result = await getCoachProfile(COACH_ID);
-    expect(result.status).toBe('PROFILE_INCOMPLETE');
+    expect(result.status).toBe('ONBOARDING_PROFILE');
+  });
+
+  it('não altera status PENDING_REVIEW', async () => {
+    findCoachById.mockResolvedValue(buildCoachRecord({ status: 'PENDING_REVIEW' }));
+    const result = await getCoachProfile(COACH_ID);
+    expect(result.status).toBe('PENDING_REVIEW');
   });
 
   it('não altera status APPROVED', async () => {
@@ -58,23 +88,24 @@ describe('get-coach › index (getCoachProfile)', () => {
     expect(result.status).toBe('APPROVED');
   });
 
-  it('mapeia HOME_SERVICE com serviceRadius', async () => {
-    findCoachById.mockResolvedValue(
-      buildCoachRecord({ work_location: [{ type: 'HOME_SERVICE', serviceRadius: 30 }] })
-    );
+  it('não altera status REJECTED', async () => {
+    findCoachById.mockResolvedValue(buildCoachRecord({ status: 'REJECTED' }));
     const result = await getCoachProfile(COACH_ID);
-    expect(result.territory).toBe('HOME_SERVICE');
-    expect(result.serviceRadius).toBe(30);
-    expect(result.gyms).toEqual([]);
+    expect(result.status).toBe('REJECTED');
   });
 
-  it('retorna null/[] para campos ausentes no perfil', async () => {
+  it('retorna valores padrão seguros para profile ausente', async () => {
     findCoachById.mockResolvedValue({ coachId: COACH_ID, email: 'x@x.com', status: 'PENDING_PROFILE' });
     const result = await getCoachProfile(COACH_ID);
-    expect(result.name).toBeNull();
-    expect(result.phone).toBeNull();
-    expect(result.territory).toBeNull();
-    expect(result.specialties).toEqual([]);
+
+    expect(result.profile.name).toBeNull();
+    expect(result.profile.phone).toBeNull();
+    expect(result.profile.specialties).toEqual([]);
+    expect(result.profile.cref).toBe('');
+    expect(result.profile.instagram).toBe('');
+    expect(result.profile.profile_video).toBe(false);
+    expect(result.work_location).toEqual([]);
+    expect(result.visibility).toBe('VISIBLE');
   });
 
   it('lança NotFoundException quando coach não existe', async () => {
@@ -87,14 +118,16 @@ describe('get-coach › index (getCoachProfile)', () => {
 describe('get-coach › handler', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('retorna 200 com CoachMe mapeado', async () => {
+  it('retorna 200 com shape Coach correto', async () => {
     findCoachById.mockResolvedValue(buildCoachRecord());
     const response = await handler(buildAuthEvent());
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(body.email).toBe('coach@mail.com');
-    expect(body.status).toBe('PROFILE_INCOMPLETE');
+    expect(body.coachId).toBe(COACH_ID);
+    expect(body.status).toBe('ONBOARDING_PROFILE');
+    expect(body.profile).toMatchObject({ name: 'João Silva' });
+    expect(body.work_location).toBeDefined();
   });
 
   it('retorna 401 quando sub está ausente', async () => {

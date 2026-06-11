@@ -3,27 +3,15 @@ import { findCoachById, persistCoachUpdate } from './repository.js';
 import { ValidationException, NotFoundException } from '../../shared/exceptions.js';
 
 /**
- * Constrói o array work_location a partir do payload flat do front-end.
- * @param {object} body - Payload validado.
- * @returns {object[]}
- */
-const buildWorkLocation = (body) => {
-  if (body.territory === 'GYMS') {
-    return (body.gyms ?? []).map((gymId) => ({ type: 'GYM', gymId }));
-  }
-  if (body.territory === 'HOME_SERVICE') {
-    return [{ type: 'HOME_SERVICE', serviceRadius: body.serviceRadius ?? 10 }];
-  }
-  return [];
-};
-
-/**
  * Atualiza o perfil do coach com os dados enviados pelo front-end.
- * Realiza a transição de status PENDING_PROFILE → PENDING_REVIEW na primeira atualização.
+ *
+ * Importante: esta operação NÃO muda o status do coach.
+ * A transição de status (ONBOARDING_PROFILE → PENDING_REVIEW) é feita
+ * exclusivamente pelo endpoint POST /coaches/me/submit-for-review.
  *
  * @param {string} coachId - ID do coach extraído do JWT.
- * @param {object} body    - Payload flat enviado pelo front-end.
- * @throws {NotFoundException}  Se o coach não existir.
+ * @param {object} body    - Payload aninhado: { profile: {...}, work_location: [...] }
+ * @throws {NotFoundException}   Se o coach não existir.
  * @throws {ValidationException} Se o payload for inválido.
  */
 export const updateCoachProfile = async (coachId, body) => {
@@ -33,23 +21,25 @@ export const updateCoachProfile = async (coachId, body) => {
   const { error, value } = updateCoachInputSchema.validate(body, { abortEarly: false });
   if (error) throw new ValidationException('Dados do perfil inválidos', error.details);
 
-  // Normaliza campos que o front-end pode enviar sem prefixo
-  const cref      = value.cref.startsWith('CREF ')  ? value.cref      : `CREF ${value.cref}`;
-  const instagram = value.instagram.startsWith('@') ? value.instagram : `@${value.instagram}`;
+  const { profile, work_location } = value;
 
-  const newStatus =
-    current.status === 'PENDING_PROFILE' ? 'PENDING_REVIEW' : current.status;
+  // Normaliza prefixos que o front-end pode ou não incluir
+  const normalizedCref = profile.cref.startsWith('CREF ')
+    ? profile.cref
+    : `CREF ${profile.cref}`;
+  const normalizedInstagram =
+    profile.instagram && !profile.instagram.startsWith('@')
+      ? `@${profile.instagram}`
+      : profile.instagram;
 
   await persistCoachUpdate(coachId, {
     profile: {
-      name:          value.name,
-      phone:         value.phone,
-      specialties:   value.specialties,
-      cref,
-      instagram,
-      profile_video: value.profileVideo,
+      ...profile,
+      cref:      normalizedCref,
+      instagram: normalizedInstagram,
     },
-    work_location: buildWorkLocation(value),
-    status: newStatus,
+    work_location,
+    // Preserva o status atual — submit-for-review é quem transiciona
+    status: current.status,
   });
 };

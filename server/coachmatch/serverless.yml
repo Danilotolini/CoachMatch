@@ -129,6 +129,21 @@ functions:
           pool: CoachAccess
           trigger: PostConfirmation
           existing: true
+
+  coachSubmitForReview:
+    handler: src/coaches/submit-coach-for-review/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /coaches/me/submit-for-review
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
   
   studentCreate:
     handler: src/students/create-student/handler.handler

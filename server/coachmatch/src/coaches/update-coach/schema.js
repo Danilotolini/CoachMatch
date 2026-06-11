@@ -1,27 +1,48 @@
 import Joi from 'joi';
 
 /**
- * Schema que valida o payload flat enviado pelo front-end no PUT /coaches/me.
- * Corresponde ao tipo CoachUpdatePayload usado em client/src/api/coaches.ts.
+ * Shape de work_location que o front-end (CoachOnboardingPage) envia:
+ *   GYM:          { type: 'GYM', gymId: string }
+ *   HOME_SERVICE: { type: 'HOME_SERVICE', coverage: { city, state, neighborhoods } }
+ */
+const workLocationGymSchema = Joi.object({
+  type:  Joi.string().valid('GYM').required(),
+  gymId: Joi.string().required(),
+});
+
+const workLocationHomeServiceSchema = Joi.object({
+  type: Joi.string().valid('HOME_SERVICE').required(),
+  coverage: Joi.object({
+    city:          Joi.string().required(),
+    state:         Joi.string().length(2).uppercase().required(),
+    neighborhoods: Joi.array().items(Joi.string()).default([]),
+  }).required(),
+});
+
+/**
+ * Valida o payload enviado pelo front-end em PUT /coaches/me.
+ * Corresponde ao tipo `CoachUpdatePayload` em client/src/types/api.ts:
+ *   { profile?: Partial<CoachProfile>, work_location?: WorkLocation[] }
  */
 export const updateCoachInputSchema = Joi.object({
-  name:         Joi.string().required(),
-  phone:        Joi.string().required(),
+  profile: Joi.object({
+    // name vem do usuário autenticado no Cognito (passado pelo front)
+    name:          Joi.string().required(),
 
-  // Aceita com ou sem "@"; o handler adiciona o prefixo se ausente
-  instagram:    Joi.string().required(),
+    // front-end envia apenas dígitos: onlyDigits(form.phone) → "11999999999"
+    phone:         Joi.string().required(),
 
-  // Aceita com ou sem "CREF "; o handler adiciona o prefixo se ausente
-  cref:         Joi.string().required(),
+    // front-end já adiciona "@"; o handler normaliza caso esteja ausente
+    instagram:     Joi.string().allow('').default(''),
 
-  specialties:  Joi.array().items(Joi.string()).min(1).required(),
+    // front-end pode ou não incluir o prefixo "CREF "; normalizado no index
+    cref:          Joi.string().required(),
 
-  territory:    Joi.string().valid('GYMS', 'HOME_SERVICE').required(),
+    specialties:   Joi.array().items(Joi.string()).min(1).required(),
+    profile_video: Joi.boolean().default(false),
+  }).required(),
 
-  gyms:         Joi.array().items(Joi.string()).default([]),
-
-  // serviceRadius é obrigatório quando territory === HOME_SERVICE (verificado no index)
-  serviceRadius: Joi.number().integer().min(10).max(50).allow(null).default(null),
-
-  profileVideo: Joi.boolean().default(false),
+  work_location: Joi.array()
+    .items(Joi.alternatives().try(workLocationGymSchema, workLocationHomeServiceSchema))
+    .default([]),
 });

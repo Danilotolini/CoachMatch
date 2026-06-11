@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../update-coach/repository.js', () => ({
-  findCoachById:    vi.fn(),
+  findCoachById:      vi.fn(),
   persistCoachUpdate: vi.fn(),
 }));
 
@@ -27,16 +27,17 @@ const currentCoach = {
   work_location: [],
 };
 
+/** Payload aninhado que o front-end envia via buildCoachUpdatePayload() */
 const validBody = {
-  name: 'João Silva',
-  phone: '11999999999',
-  instagram: '@joao',
-  cref: '123456-G/SP',
-  specialties: ['Musculação'],
-  territory: 'GYMS',
-  gyms: ['gym-1'],
-  serviceRadius: null,
-  profileVideo: false,
+  profile: {
+    name:          'João Silva',
+    phone:         '11999999999',
+    instagram:     '@joao',
+    cref:          '123456-G/SP',
+    specialties:   ['Musculação'],
+    profile_video: false,
+  },
+  work_location: [{ type: 'GYM', gymId: 'gym-1' }],
 };
 
 const buildAuthEvent = (body = validBody) => ({
@@ -46,59 +47,75 @@ const buildAuthEvent = (body = validBody) => ({
 
 const updatedCoachRecord = {
   ...currentCoach,
-  status: 'PENDING_REVIEW',
+  status: 'PENDING_PROFILE',       // status não muda no update
   profile: {
-    name: 'João Silva',
-    phone: '11999999999',
-    specialties: ['Musculação'],
-    cref: 'CREF 123456-G/SP',
-    instagram: '@joao',
+    name:          'João Silva',
+    phone:         '11999999999',
+    specialties:   ['Musculação'],
+    cref:          'CREF 123456-G/SP',
+    instagram:     '@joao',
     profile_video: false,
   },
   work_location: [{ type: 'GYM', gymId: 'gym-1' }],
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-02T00:00:00.000Z',
 };
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
-describe('update-coach › schema (payload flat do front-end)', () => {
-  it('aceita payload válido completo', () => {
+describe('update-coach › schema (payload aninhado do front-end)', () => {
+  it('aceita payload nested válido com GYM', () => {
     const { error } = updateCoachInputSchema.validate(validBody);
     expect(error).toBeUndefined();
   });
 
-  it('aceita territory HOME_SERVICE com serviceRadius', () => {
-    const { error } = updateCoachInputSchema.validate({
-      ...validBody, territory: 'HOME_SERVICE', serviceRadius: 25,
-    });
+  it('aceita work_location com HOME_SERVICE', () => {
+    const homeBody = {
+      ...validBody,
+      work_location: [
+        {
+          type: 'HOME_SERVICE',
+          coverage: { city: 'São Paulo', state: 'SP', neighborhoods: ['Pinheiros'] },
+        },
+      ],
+    };
+    const { error } = updateCoachInputSchema.validate(homeBody);
     expect(error).toBeUndefined();
   });
 
-  it('rejeita territory inválida', () => {
-    const { error } = updateCoachInputSchema.validate({ ...validBody, territory: 'OUTDOOR' });
-    expect(error?.details[0].path).toContain('territory');
+  it('aceita work_location vazio (padrão)', () => {
+    const { error } = updateCoachInputSchema.validate({ ...validBody, work_location: [] });
+    expect(error).toBeUndefined();
   });
 
-  it('rejeita specialties vazio', () => {
-    const { error } = updateCoachInputSchema.validate({ ...validBody, specialties: [] });
-    expect(error?.details[0].path).toContain('specialties');
+  it('usa false como padrão para profile_video ausente', () => {
+    const body = { ...validBody, profile: { ...validBody.profile, profile_video: undefined } };
+    const { value } = updateCoachInputSchema.validate(body);
+    expect(value.profile.profile_video).toBe(false);
   });
 
-  it('rejeita serviceRadius abaixo de 10', () => {
+  it('usa [] como padrão para work_location ausente', () => {
+    const { value } = updateCoachInputSchema.validate({ profile: validBody.profile });
+    expect(value.work_location).toEqual([]);
+  });
+
+  it('rejeita profile.specialties vazio', () => {
     const { error } = updateCoachInputSchema.validate({
-      ...validBody, territory: 'HOME_SERVICE', serviceRadius: 5,
+      ...validBody,
+      profile: { ...validBody.profile, specialties: [] },
     });
-    expect(error?.details[0].path).toContain('serviceRadius');
+    expect(error?.details[0].path).toEqual(['profile', 'specialties']);
   });
 
-  it('rejeita serviceRadius acima de 50', () => {
+  it('rejeita profile ausente', () => {
+    const { error } = updateCoachInputSchema.validate({ work_location: [] });
+    expect(error?.details[0].path).toEqual(['profile']);
+  });
+
+  it('rejeita profile.name ausente', () => {
     const { error } = updateCoachInputSchema.validate({
-      ...validBody, territory: 'HOME_SERVICE', serviceRadius: 55,
+      profile: { ...validBody.profile, name: undefined },
     });
-    expect(error?.details[0].path).toContain('serviceRadius');
-  });
-
-  it('usa false como padrão para profileVideo ausente', () => {
-    const { value } = updateCoachInputSchema.validate({ ...validBody, profileVideo: undefined });
-    expect(value.profileVideo).toBe(false);
+    expect(error?.details[0].path).toContain('name');
   });
 });
 
@@ -116,45 +133,39 @@ describe('update-coach › index (updateCoachProfile)', () => {
     expect(profile.cref).toBe('CREF 123456-G/SP');
   });
 
-  it('não duplica prefixo "CREF " quando já presente', async () => {
-    await updateCoachProfile(COACH_ID, { ...validBody, cref: 'CREF 123456-G/SP' });
+  it('não duplica "CREF " quando já presente', async () => {
+    const body = { ...validBody, profile: { ...validBody.profile, cref: 'CREF 123456-G/SP' } };
+    await updateCoachProfile(COACH_ID, body);
     const { profile } = persistCoachUpdate.mock.calls[0][1];
     expect(profile.cref).toBe('CREF 123456-G/SP');
   });
 
   it('adiciona "@" ao instagram sem prefixo', async () => {
-    await updateCoachProfile(COACH_ID, { ...validBody, instagram: 'joao' });
+    const body = { ...validBody, profile: { ...validBody.profile, instagram: 'joao' } };
+    await updateCoachProfile(COACH_ID, body);
     const { profile } = persistCoachUpdate.mock.calls[0][1];
     expect(profile.instagram).toBe('@joao');
   });
 
   it('não duplica "@" quando já presente', async () => {
-    await updateCoachProfile(COACH_ID, { ...validBody, instagram: '@joao' });
+    await updateCoachProfile(COACH_ID, validBody);
     const { profile } = persistCoachUpdate.mock.calls[0][1];
     expect(profile.instagram).toBe('@joao');
   });
 
-  it('constrói work_location corretamente para GYMS', async () => {
+  it('passa work_location diretamente ao repositório', async () => {
     await updateCoachProfile(COACH_ID, validBody);
     const { work_location } = persistCoachUpdate.mock.calls[0][1];
     expect(work_location).toEqual([{ type: 'GYM', gymId: 'gym-1' }]);
   });
 
-  it('constrói work_location corretamente para HOME_SERVICE', async () => {
-    await updateCoachProfile(COACH_ID, {
-      ...validBody, territory: 'HOME_SERVICE', gyms: [], serviceRadius: 25,
-    });
-    const { work_location } = persistCoachUpdate.mock.calls[0][1];
-    expect(work_location).toEqual([{ type: 'HOME_SERVICE', serviceRadius: 25 }]);
-  });
-
-  it('transiciona status PENDING_PROFILE → PENDING_REVIEW', async () => {
+  it('NÃO altera o status do coach (submit-for-review é quem faz isso)', async () => {
     await updateCoachProfile(COACH_ID, validBody);
     const { status } = persistCoachUpdate.mock.calls[0][1];
-    expect(status).toBe('PENDING_REVIEW');
+    expect(status).toBe('PENDING_PROFILE');   // preserva o status atual
   });
 
-  it('não altera status APPROVED', async () => {
+  it('preserva status APPROVED ao atualizar', async () => {
     findCoachById.mockResolvedValue({ ...currentCoach, status: 'APPROVED' });
     await updateCoachProfile(COACH_ID, validBody);
     const { status } = persistCoachUpdate.mock.calls[0][1];
@@ -166,9 +177,8 @@ describe('update-coach › index (updateCoachProfile)', () => {
     await expect(updateCoachProfile(COACH_ID, validBody)).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('lança ValidationException com dados inválidos', async () => {
-    await expect(updateCoachProfile(COACH_ID, { territory: 'INVALIDA' }))
-      .rejects.toBeInstanceOf(ValidationException);
+  it('lança ValidationException com payload inválido', async () => {
+    await expect(updateCoachProfile(COACH_ID, {})).rejects.toBeInstanceOf(ValidationException);
   });
 });
 
@@ -181,12 +191,13 @@ describe('update-coach › handler', () => {
     findCoachForGet.mockResolvedValue(updatedCoachRecord);
   });
 
-  it('retorna 200 com CoachMe atualizado', async () => {
+  it('retorna 200 com shape Coach aninhado atualizado', async () => {
     const response = await handler(buildAuthEvent());
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(body.status).toBe('PENDING_REVIEW');
-    expect(body.gyms).toEqual(['gym-1']);
+    expect(body.coachId).toBe(COACH_ID);
+    expect(body.profile).toMatchObject({ name: 'João Silva', cref: 'CREF 123456-G/SP' });
+    expect(body.work_location).toEqual([{ type: 'GYM', gymId: 'gym-1' }]);
   });
 
   it('aceita body já como objeto (não string)', async () => {
@@ -207,8 +218,8 @@ describe('update-coach › handler', () => {
     expect(response.statusCode).toBe(404);
   });
 
-  it('retorna 422 com payload inválido', async () => {
-    const response = await handler(buildAuthEvent({ territory: 'INVALIDA', specialties: [] }));
+  it('retorna 422 com payload inválido (profile ausente)', async () => {
+    const response = await handler(buildAuthEvent({ work_location: [] }));
     expect(response.statusCode).toBe(422);
     const body = JSON.parse(response.body);
     expect(body.details).toBeDefined();

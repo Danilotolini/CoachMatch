@@ -5,9 +5,18 @@ const TABLE = 'coaches';
 
 /**
  * Persiste um novo coach na tabela DynamoDB.
- * @param {object} coach - Item completo a ser inserido.
+ * Timestamps createdAt e updatedAt são gerados aqui para garantir consistência.
+ *
+ * @param {object} coach - Dados do coach sem timestamps.
  */
 export const insertCoach = async (coach) => {
   const docClient = createClient();
-  await docClient.send(new PutCommand({ TableName: TABLE, Item: coach }));
+  const now = new Date().toISOString();
+
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE,
+      Item: { ...coach, createdAt: now, updatedAt: now },
+    })
+  );
 };

@@ -34,3 +34,15 @@ export class NotFoundException extends Error {
     this.id = id;
   }
 }
+
+/**
+ * Exceção lançada quando uma operação é inválida para o estado atual do recurso.
+ * Mapeada para HTTP 409 Conflict.
+ * @param {string} message - Descrição do conflito.
+ */
+export class ConflictException extends Error {
+  constructor(message = 'Operação inválida para o estado atual do recurso') {
+    super(message);
+    this.name = 'ConflictException';
+  }
+}

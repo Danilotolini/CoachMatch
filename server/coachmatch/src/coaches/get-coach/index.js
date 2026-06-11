@@ -2,36 +2,41 @@ import { findCoachById } from './repository.js';
 import { NotFoundException } from '../../shared/exceptions.js';
 
 /**
- * Mapeia o registro DynamoDB para o shape CoachMe esperado pelo front-end.
- * Garante que todos os campos opcionais tenham valores padrão seguros.
+ * Mapa de status interno (DynamoDB) para os valores que o front-end entende.
+ * O front-end usa `Coach.status: 'ONBOARDING_PROFILE' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'`.
+ */
+const STATUS_MAP = {
+  PENDING_PROFILE: 'ONBOARDING_PROFILE',
+  // PENDING_REVIEW, APPROVED, REJECTED passam direto
+};
+
+/**
+ * Mapeia o registro DynamoDB para o shape `Coach` esperado pelo front-end.
+ * Shape: { coachId, email, status, visibility, profile: { name, phone, ... }, work_location, createdAt, updatedAt }
  *
  * @param {object} record - Registro bruto do DynamoDB.
- * @returns {object} Perfil do coach formatado.
+ * @returns {object} Perfil do coach no formato esperado pelo front-end.
  */
 const mapToCoachMe = (record) => {
   const profile = record.profile ?? {};
-  const locations = record.work_location ?? [];
-  const gyms = locations.filter((l) => l.type === 'GYM');
-  const homeService = locations.find((l) => l.type === 'HOME_SERVICE');
-
-  // Status interno PENDING_PROFILE é exposto como PROFILE_INCOMPLETE ao front-end
-  const STATUS_MAP = { PENDING_PROFILE: 'PROFILE_INCOMPLETE' };
-  const status = STATUS_MAP[record.status] ?? record.status;
+  const locations = Array.isArray(record.work_location) ? record.work_location : [];
 
   return {
-    email:           record.email,
-    name:            profile.name          ?? null,
-    phone:           profile.phone         ?? null,
-    instagram:       profile.instagram     ?? null,
-    cref:            profile.cref          ?? null,
-    profilePhoto:    profile.profile_photo ?? null,
-    profileVideo:    profile.profile_video ?? null,
-    specialties:     profile.specialties   ?? [],
-    territory:       gyms.length > 0 ? 'GYMS' : homeService ? 'HOME_SERVICE' : null,
-    gyms:            gyms.map((l) => l.gymId),
-    serviceRadius:   homeService?.serviceRadius ?? null,
-    status,
-    rejectionReason: record.rejection_reason ?? null,
+    coachId:   record.coachId,
+    email:     record.email,
+    status:    STATUS_MAP[record.status] ?? record.status,
+    visibility: record.visibility ?? 'VISIBLE',
+    profile: {
+      name:          profile.name          ?? null,
+      phone:         profile.phone         ?? null,
+      specialties:   profile.specialties   ?? [],
+      cref:          profile.cref          ?? '',
+      instagram:     profile.instagram     ?? '',
+      profile_video: profile.profile_video ?? false,
+    },
+    work_location: locations,
+    createdAt: record.createdAt ?? null,
+    updatedAt: record.updatedAt ?? null,
   };
 };
 
@@ -39,7 +44,7 @@ const mapToCoachMe = (record) => {
  * Recupera e formata o perfil do coach autenticado.
  *
  * @param {string} coachId - ID do coach extraído do JWT.
- * @returns {object} Perfil formatado (shape CoachMe).
+ * @returns {object} Coach no shape esperado pelo front-end.
  * @throws {NotFoundException} Se o coach não existir.
  */
 export const getCoachProfile = async (coachId) => {
