@@ -156,6 +156,22 @@ functions:
           method: POST
           authorizer:
             name: cognitoAuthorizer
+    
+  clientGetHandler:
+    handler: src/api-Client/api-client-get/clientGetHandler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /clients/me
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+        
 
 resources: 
   Conditions:
