@@ -56,8 +56,8 @@ provider:
 
 functions:
 
-  gymGet:
-    handler: src/gyms/handlers/get.handler.handler
+  gymList:
+    handler: src/gyms/list-gyms/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -72,7 +72,7 @@ functions:
             name: cognitoAuthorizer
 
   gymSuggest:
-    handler: src/gyms/handlers/suggest.handler.handler
+    handler: src/gyms/suggest-gym/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -87,7 +87,7 @@ functions:
             name: cognitoAuthorizer
 
   coachGetMe:
-    handler: src/coaches/handlers/get.handler.handler
+    handler: src/coaches/get-coach/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -102,7 +102,7 @@ functions:
             name: cognitoAuthorizer
 
   coachUpdateMe:
-    handler: src/coaches/handlers/update.handler.handler
+    handler: src/coaches/update-coach/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -117,7 +117,7 @@ functions:
             name: cognitoAuthorizer
 
   coachCreate:
-    handler: src/coaches/handlers/create.handler.handler
+    handler: src/coaches/create-coach/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
