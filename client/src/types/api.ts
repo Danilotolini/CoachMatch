@@ -80,23 +80,49 @@ export interface CoachSearchFilters {
 
 export type CoachSearchResponse = PaginatedResponse<CoachListItem>
 
+export type ClientGender = 'F' | 'M' | 'NB' | 'NA'
+
+export type ClientGoal =
+  | 'WEIGHT_LOSS'
+  | 'HYPERTROPHY'
+  | 'CONDITIONING'
+  | 'REHAB'
+  | 'PERFORMANCE'
+
+/** Respostas PAR-Q armazenadas após a etapa de saúde */
+export interface ClientHealth {
+  answers: Record<string, 'YES' | 'NO'>
+  notes: string
+  lgpdConsent: boolean
+  medicalDisclaimer: boolean
+}
+
+/** Perfil completo do aluno retornado por GET/POST /clients/me */
 export interface Client {
   clientId: string
   email: string
   status: ClientStatus
-  createdAt: string
-  updatedAt: string
+  name: string | null
+  phone: string | null
+  birthDate: string | null
+  gender: ClientGender | null
+  cep: string | null
+  city: string | null
+  state: string | null
+  radius: number | null
+  goal: ClientGoal | string | null
+  health: ClientHealth | null
 }
 
 export interface ClientProfilePayload {
   phone: string
   birthDate: string
-  gender: 'F' | 'M' | 'NB' | 'NA'
+  gender: ClientGender
   cep: string
   city: string
   state: string
   radius: 5 | 10 | 20
-  goal: 'WEIGHT_LOSS' | 'HYPERTROPHY' | 'CONDITIONING' | 'REHAB' | 'PERFORMANCE'
+  goal: ClientGoal
 }
 
 export interface ClientHealthPayload {

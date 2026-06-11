@@ -51,11 +51,13 @@ provider:
             - dynamodb:UpdateItem
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/student
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/gyms
 
 functions:
 
-  gymGet:
-    handler: src/gyms/handlers/get.handler.handler
+  gymList:
+    handler: src/gyms/list-gyms/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -70,7 +72,7 @@ functions:
             name: cognitoAuthorizer
 
   gymSuggest:
-    handler: src/gyms/handlers/suggest.handler.handler
+    handler: src/gyms/suggest-gym/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -85,7 +87,7 @@ functions:
             name: cognitoAuthorizer
 
   coachGetMe:
-    handler: src/coaches/handlers/get.handler.handler
+    handler: src/coaches/get-coach/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -100,7 +102,7 @@ functions:
             name: cognitoAuthorizer
 
   coachUpdateMe:
-    handler: src/coaches/handlers/update.handler.handler
+    handler: src/coaches/update-coach/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -115,7 +117,7 @@ functions:
             name: cognitoAuthorizer
 
   coachCreate:
-    handler: src/coaches/handlers/create.handler.handler
+    handler: src/coaches/create-coach/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -127,8 +129,66 @@ functions:
           pool: CoachAccess
           trigger: PostConfirmation
           existing: true
+  
+  studentCreate:
+    handler: src/students/create-student/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - cognitoUserPool:
+          pool: StudentAccess
+          trigger: PostConfirmation
+          existing: true
 
+  studentGetProfile:
+    handler: src/students/get-student/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /clients/me
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
 
+  studentUpdateProfile:
+    handler: src/students/update-student-profile/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /clients/me/profile
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
+
+  studentUpdateHealth:
+    handler: src/students/update-student-health/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /clients/me/health
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
+        
 
 resources: 
   Conditions:
@@ -158,6 +218,20 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: coachId  
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    studentTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsLocal
+      Properties:
+        TableName: student
+        AttributeDefinitions:
+          - AttributeName: studentId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: studentId  
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
