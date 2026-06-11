@@ -110,8 +110,10 @@ export interface Client {
   city: string | null
   state: string | null
   radius: number | null
-  goal: ClientGoal | string | null
+  goal: ClientGoal | null
   health: ClientHealth | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ClientProfilePayload {
