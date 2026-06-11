@@ -97,16 +97,40 @@ Monitora performance do projeto.
 
 ### 1. GitHub Secrets
 
-Configure estas variáveis de ambiente em **Settings → Secrets and Variables**:
+Configure estas variáveis de ambiente em **Settings → Secrets and Variables → Actions**:
 
 ```
-AWS_ACCESS_KEY_ID              # AWS credentials para deploy
-AWS_SECRET_ACCESS_KEY          # AWS credentials para deploy
-CLOUDFRONT_STAGING_ID          # CloudFront distribution (staging)
-CLOUDFRONT_PROD_ID             # CloudFront distribution (prod)
-SLACK_WEBHOOK_URL              # Para notificações (opcional)
-SNYK_TOKEN                      # Security scanning (opcional)
+# ── Deploy AWS ───────────────────────────────────────────────────────
+AWS_ACCESS_KEY_ID              # IAM user com permissões S3 + CloudFront
+AWS_SECRET_ACCESS_KEY          # Chave secreta do IAM user
+
+S3_BUCKET_DEVELOP              # Ex: coachmatch-staging
+S3_BUCKET_PRODUCTION           # Ex: coachmatch-production
+
+CLOUDFRONT_DEVELOP_ID          # ID da distribuição CloudFront (staging)
+CLOUDFRONT_PRODUCTION_ID       # ID da distribuição CloudFront (production)
+
+# ── Front-end (Vite build) ────────────────────────────────────────────
+VITE_API_BASE_URL              # Ex: https://api.coachmatch.com.br
+                               # Fallback automático se não configurado: mesma URL
+
+VITE_COGNITO_CLIENT_ID         # App client ID do pool de Coaches
+VITE_COGNITO_CLIENT_SECRET     # App client secret do pool de Coaches
+VITE_COGNITO_DOMAIN            # Ex: https://login.coachmatch.com.br
+
+VITE_COGNITO_STUDENT_CLIENT_ID # App client ID do pool de Alunos
+VITE_COGNITO_STUDENT_DOMAIN    # Ex: https://student.coachmatch.com.br
+
+# ── Observabilidade / Qualidade ───────────────────────────────────────
+CODECOV_TOKEN                  # Token do projeto em codecov.io (obrigatório)
+SNYK_TOKEN                     # Token de acesso ao snyk.io (opcional)
 ```
+
+> **Nota sobre fallbacks**: `VITE_API_BASE_URL`, `VITE_COGNITO_DOMAIN` e
+> `VITE_COGNITO_STUDENT_DOMAIN` possuem fallbacks hardcoded para URLs de
+> produção caso o secret não esteja configurado. As chaves Cognito
+> (`CLIENT_ID`, `CLIENT_SECRET`) não têm fallback — o build vai passar mas
+> o login não vai funcionar sem elas.
 
 ### 2. Branch Protection Rules
 

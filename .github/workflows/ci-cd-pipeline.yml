@@ -27,8 +27,9 @@ env:
   PNPM_VERSION: '10'
 
 jobs:
+  # ── 1. LINT & TYPE-CHECK ────────────────────────────────────────────────────
   lint:
-    name: Lint and Code Quality
+    name: Lint and Type Check
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -42,28 +43,25 @@ jobs:
 
       - uses: pnpm/action-setup@v2
         with:
-          version: 10
+          version: ${{ env.PNPM_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - run: pnpm run lint --format json --output-file lint-results.json || true
+      - name: ESLint
+        run: pnpm run lint
         continue-on-error: true
 
-      - run: pnpm run type-check || true
+      - name: TypeScript type check
+        run: pnpm run type-check
         continue-on-error: true
 
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: lint-results
-          path: lint-results.json
-          retention-days: 5
-
+  # ── 2. SECURITY ─────────────────────────────────────────────────────────────
   security:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -74,18 +72,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
-      - run: npm audit --audit-level=moderate || true
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # pnpm audit covers all workspace packages declared at root level
+      - name: Audit root workspace dependencies
+        run: pnpm audit --audit-level=moderate
         continue-on-error: true
 
-      - uses: snyk/actions/node@master
+      # Snyk — requires SNYK_TOKEN secret. continue-on-error so missing token
+      # doesn't block the pipeline; the quality-gate ignores security failures.
+      # Pin to a versioned tag (not @master) for supply-chain safety.
+      - name: Snyk security scan
+        uses: snyk/actions/node@v0.4.0
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
+  # ── 3. BACKEND TESTS ────────────────────────────────────────────────────────
   test-backend:
     name: Backend Tests
     runs-on: ubuntu-latest
@@ -94,6 +107,7 @@ jobs:
       checks: write
 
     services:
+      # DynamoDB Local for api-pagamentos integration tests
       dynamodb:
         image: amazon/dynamodb-local:latest
         ports:
@@ -104,29 +118,50 @@ jobs:
 
       - uses: pnpm/action-setup@v2
         with:
-          version: 10
+          version: ${{ env.PNPM_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - run: pnpm install --frozen-lockfile
+      # Root install covers `client` and `server` (api-pagamentos) workspaces
+      - name: Install root workspace dependencies
+        run: pnpm install --frozen-lockfile
 
-      - run: pnpm run test:backend --coverage || true
+      # server/coachmatch is a nested pnpm workspace — install separately
+      - name: Install coachmatch dependencies
+        run: cd server/coachmatch && pnpm install --frozen-lockfile
+
+      # Vitest — coachmatch lambdas (ESM, 3-layer architecture)
+      - name: Test coachmatch lambdas (Vitest)
+        run: cd server/coachmatch && pnpm run test:coverage
+        env:
+          STAGE: test
+          REGION: us-east-1
+        continue-on-error: true
+
+      # Jest — api-pagamentos (CommonJS, Babel transform)
+      - name: Test api-pagamentos (Jest)
+        run: pnpm run test:backend
         env:
           AWS_REGION: us-east-1
           DYNAMODB_ENDPOINT: http://localhost:8000
         continue-on-error: true
 
-      - uses: codecov/codecov-action@v3
+      # Upload coverage for both packages
+      - uses: codecov/codecov-action@v4
         if: always()
         with:
-          files: ./server/api-pagamentos/coverage/coverage-final.json
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: >-
+            ./server/coachmatch/coverage/coverage-final.json,
+            ./server/api-pagamentos/coverage/coverage-final.json
           flags: backend
           name: backend-coverage
           fail_ci_if_error: false
 
+  # ── 4. FRONTEND TESTS ───────────────────────────────────────────────────────
   test-frontend:
     name: Frontend Tests
     runs-on: ubuntu-latest
@@ -139,30 +174,35 @@ jobs:
 
       - uses: pnpm/action-setup@v2
         with:
-          version: 10
+          version: ${{ env.PNPM_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - run: pnpm run test:frontend --coverage || true
+      - name: Run frontend tests with coverage
+        run: pnpm run test:frontend
         continue-on-error: true
 
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         if: always()
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./client/coverage/coverage-final.json
           flags: frontend
           name: frontend-coverage
           fail_ci_if_error: false
 
+  # ── 5. BUILD ────────────────────────────────────────────────────────────────
   build:
     name: Build Check
     needs: [lint, test-backend, test-frontend]
     runs-on: ubuntu-latest
+    # Run even if earlier jobs are skipped (e.g. draft PR)
     if: always()
     permissions:
       contents: read
@@ -172,18 +212,29 @@ jobs:
 
       - uses: pnpm/action-setup@v2
         with:
-          version: 10
+          version: ${{ env.PNPM_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - run: cd client && pnpm run build
+      # Build the React SPA.
+      # VITE_API_BASE_URL — falls back to production URL when secret is not set.
+      # Cognito secrets must be configured in GitHub repo settings for auth to work.
+      - name: Build frontend
+        run: cd client && pnpm run build
         env:
-          VITE_API_URL: ${{ secrets.API_URL || 'http://localhost:3000' }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'https://api.coachmatch.com.br' }}
+          VITE_API_MOCKING: disabled
+          VITE_COGNITO_CLIENT_ID: ${{ secrets.VITE_COGNITO_CLIENT_ID }}
+          VITE_COGNITO_CLIENT_SECRET: ${{ secrets.VITE_COGNITO_CLIENT_SECRET }}
+          VITE_COGNITO_DOMAIN: ${{ secrets.VITE_COGNITO_DOMAIN || 'https://login.coachmatch.com.br' }}
+          VITE_COGNITO_STUDENT_CLIENT_ID: ${{ secrets.VITE_COGNITO_STUDENT_CLIENT_ID }}
+          VITE_COGNITO_STUDENT_DOMAIN: ${{ secrets.VITE_COGNITO_STUDENT_DOMAIN || 'https://student.coachmatch.com.br' }}
 
       - uses: actions/upload-artifact@v4
         if: success()
@@ -192,9 +243,7 @@ jobs:
           path: client/dist
           retention-days: 7
 
-      - run: pnpm run build:backend || true
-        continue-on-error: true
-
+  # ── 6. E2E ──────────────────────────────────────────────────────────────────
   e2e:
     name: E2E Tests
     needs: build
@@ -209,18 +258,21 @@ jobs:
 
       - uses: pnpm/action-setup@v2
         with:
-          version: 10
+          version: ${{ env.PNPM_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - run: npx playwright install --with-deps
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
 
-      - run: npx playwright test --reporter=html || true
+      - name: Run E2E tests
+        run: npx playwright test --reporter=html
         continue-on-error: true
 
       - uses: actions/upload-artifact@v4
@@ -230,6 +282,7 @@ jobs:
           path: playwright-report/
           retention-days: 5
 
+  # ── 7. QUALITY GATE ─────────────────────────────────────────────────────────
   quality-gate:
     name: Quality Gate
     needs: [lint, test-backend, test-frontend, build, security]
@@ -239,7 +292,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Avaliar resultado dos jobs
+      - name: Summarize job results
         run: |
           echo "### Quality Gate Summary" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
@@ -250,18 +303,22 @@ jobs:
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
 
-      - name: Bloquear se algum job falhou
+      # Build is a hard gate — pipeline is blocked if it fails.
+      # Tests are soft gates (continue-on-error inside each job); the job itself
+      # only fails if the runner crashes, so we check 'failure' not 'skipped'.
+      - name: Fail if build or tests broke
         if: |
-          needs.lint.result == 'failure' ||
+          needs.build.result == 'failure' ||
           needs.test-backend.result == 'failure' ||
-          needs.test-frontend.result == 'failure' ||
-          needs.build.result == 'failure'
+          needs.test-frontend.result == 'failure'
         run: |
-          echo "Pipeline bloqueado por falha em um ou mais jobs." >> $GITHUB_STEP_SUMMARY
+          echo "❌ Pipeline bloqueado por falha em um ou mais jobs críticos." >> $GITHUB_STEP_SUMMARY
           exit 1
 
-      - run: echo "Pipeline passou por todos os quality gates"
+      - name: All checks passed
+        run: echo "✅ Pipeline passou por todos os quality gates"
 
+  # ── 8. DEPLOY (manual, via workflow_dispatch) ────────────────────────────────
   deploy:
     name: Deploy Manual
     needs: quality-gate
@@ -275,7 +332,7 @@ jobs:
       name: ${{ github.event.inputs.environment }}
 
     steps:
-      - name: Validar confirmacao
+      - name: Validate confirmation
         run: |
           if [ "${{ github.event.inputs.confirm }}" != "CONFIRMAR" ]; then
             echo "Confirmacao invalida. Deploy cancelado."
@@ -284,7 +341,8 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v2
+      # v4 is the current LTS — v2 is deprecated and will stop working
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -295,22 +353,26 @@ jobs:
           name: client-build
           path: client/dist
 
-      - name: Deploy para develop
+      - name: Deploy para develop (staging)
         if: github.event.inputs.environment == 'develop'
         run: |
           aws s3 sync client/dist s3://${{ secrets.S3_BUCKET_DEVELOP }}/ --delete
-          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DEVELOP_ID }} --paths "/*"
-          echo "Deploy realizado em develop" >> $GITHUB_STEP_SUMMARY
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DEVELOP_ID }} \
+            --paths "/*"
+          echo "✅ Deploy realizado em develop (staging)" >> $GITHUB_STEP_SUMMARY
 
       - name: Deploy para production
         if: github.event.inputs.environment == 'production' && github.ref == 'refs/heads/main'
         run: |
           aws s3 sync client/dist s3://${{ secrets.S3_BUCKET_PRODUCTION }}/ --delete
-          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_PRODUCTION_ID }} --paths "/*"
-          echo "Deploy realizado em production" >> $GITHUB_STEP_SUMMARY
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_PRODUCTION_ID }} \
+            --paths "/*"
+          echo "✅ Deploy realizado em production" >> $GITHUB_STEP_SUMMARY
 
-      - name: Bloquear deploy de production fora da main
+      - name: Block production deploy from non-main branch
         if: github.event.inputs.environment == 'production' && github.ref != 'refs/heads/main'
         run: |
-          echo "Deploy de production so permitido a partir da branch main."
+          echo "❌ Deploy de production só é permitido a partir da branch main."
           exit 1
