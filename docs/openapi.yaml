@@ -1,13 +1,17 @@
 openapi: 3.0.3
 info:
   title: CoachMatch API
-  version: 0.2.0
+  version: 0.3.0
   description: |
-    Especificação derivada da collection Postman e das chamadas feitas pelo frontend.
+    Especificação das rotas implementadas no serviço `server/coachmatch` (Serverless Framework + DynamoDB).
 
-    As rotas são separadas por papel: `/coach/*` para treinadores e `/student/*` para alunos.
+    Rotas implementadas:
+    - `/coaches/*`  — treinadores autenticados (Cognito pool CoachAccess)
+    - `/clients/*`  — alunos autenticados (Cognito pool StudentAccess)
+    - `/gyms/*`     — academias (ambos os papéis)
 
-    Endpoints de terceiros (Cognito) e helpers de desenvolvimento ficam fora deste contrato.
+    Rotas marcadas com `x-not-implemented: true` existem apenas como planejamento futuro.
+    Endpoints de terceiros (Cognito OAuth) e helpers de desenvolvimento ficam fora deste contrato.
 servers:
   - url: "https://api.coachmatch.com.br"
     description: API de produção CoachMatch.
@@ -35,7 +39,7 @@ paths:
   # ─────────────────────────────────────────────
   # Coach — Perfil
   # ─────────────────────────────────────────────
-  /coach/me:
+  /coaches/me:
     get:
       tags: [Coach — Perfil]
       summary: Retorna o treinador autenticado.
@@ -70,7 +74,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /coach/me/submit-for-review:
+  /coaches/me/submit-for-review:
     post:
       tags: [Coach — Perfil]
       summary: Submete o perfil do treinador para análise.
@@ -94,7 +98,7 @@ paths:
   # ─────────────────────────────────────────────
   # Coach — Uploads
   # ─────────────────────────────────────────────
-  /coach/upload-url:
+  /upload-url:  # x-not-implemented: true
     post:
       tags: [Coach — Uploads]
       summary: Gera URL pré-assinada (POST policy do S3) para upload de vídeo.
@@ -126,7 +130,7 @@ paths:
   # ─────────────────────────────────────────────
   # Coach — Recursos
   # ─────────────────────────────────────────────
-  /coach/specialties:
+  /specialties:  # x-not-implemented: true
     get:
       tags: [Coach — Recursos]
       summary: Lista catálogo de especialidades (contexto treinador).
@@ -157,7 +161,7 @@ paths:
                         items:
                           $ref: "#/components/schemas/Specialty"
 
-  /coach/gyms:
+  /gyms:
     get:
       tags: [Coach — Recursos]
       summary: Lista academias cadastradas (contexto treinador).
@@ -193,7 +197,7 @@ paths:
                         items:
                           $ref: "#/components/schemas/Gym"
 
-  /coach/gyms/suggest:
+  /gyms/suggest:
     post:
       tags: [Coach — Recursos]
       summary: Envia sugestão de nova academia (pelo treinador). Sempre criada como inativa.
@@ -217,7 +221,7 @@ paths:
   # ─────────────────────────────────────────────
   # Coach — Agenda
   # ─────────────────────────────────────────────
-  /coach/schedule:
+  /coach/schedule:  # x-not-implemented: true
     get:
       tags: [Coach — Agenda]
       summary: Lista disponibilidades do treinador autenticado.
@@ -388,7 +392,7 @@ paths:
   # ─────────────────────────────────────────────
   # Student — Perfil
   # ─────────────────────────────────────────────
-  /student/me:
+  /clients/me:
     get:
       tags: [Student — Perfil]
       summary: Retorna o aluno autenticado.
@@ -403,7 +407,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /student/me/profile:
+  /clients/me/profile:
     post:
       tags: [Student — Perfil]
       summary: Conclui o cadastro de perfil do aluno.
@@ -426,7 +430,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /student/me/health:
+  /clients/me/health:
     post:
       tags: [Student — Perfil]
       summary: Envia o questionário de saúde e consentimentos do aluno.
@@ -454,95 +458,11 @@ paths:
           $ref: "#/components/responses/Unauthorized"
 
   # ─────────────────────────────────────────────
-  # Student — Recursos
+  # Recursos Compartilhados (alunos e treinadores)
+  # Nota: /gyms e /gyms/suggest já estão documentados
+  # acima na seção "Coach — Recursos" — o mesmo endpoint
+  # serve ambos os papéis (Cognito JWT de qualquer pool).
   # ─────────────────────────────────────────────
-  /student/specialties:
-    get:
-      tags: [Student — Recursos]
-      summary: Lista catálogo de especialidades (contexto aluno).
-      operationId: listStudentSpecialties
-      parameters:
-        - in: query
-          name: search
-          schema: { type: string }
-          example: Cross
-        - in: query
-          name: page
-          schema: { type: integer, minimum: 1, default: 1 }
-        - in: query
-          name: limit
-          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
-      responses:
-        "200":
-          description: Lista paginada de especialidades.
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/PaginatedEnvelope"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Specialty"
-
-  /student/gyms:
-    get:
-      tags: [Student — Recursos]
-      summary: Lista academias cadastradas (contexto aluno).
-      operationId: listStudentGyms
-      parameters:
-        - in: query
-          name: search
-          schema: { type: string }
-          description: Busca por nome, endereço ou bairro.
-          example: Fit
-        - in: query
-          name: city
-          schema: { type: string }
-          description: Cidade exata.
-        - in: query
-          name: page
-          schema: { type: integer, minimum: 1, default: 1 }
-        - in: query
-          name: limit
-          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
-      responses:
-        "200":
-          description: Lista paginada de academias.
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/PaginatedEnvelope"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Gym"
-
-  /student/gyms/suggest:
-    post:
-      tags: [Student — Recursos]
-      summary: Envia sugestão de nova academia (pelo aluno). Sempre criada como inativa.
-      operationId: suggestGymAsStudent
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GymSuggestPayload"
-      responses:
-        "201":
-          description: Sugestão registrada.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GymSuggestResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
 
   # ─────────────────────────────────────────────
   # Student — Agenda
@@ -826,6 +746,30 @@ components:
       type: string
       enum: [ONBOARDING_PROFILE, ONBOARDING_HEALTH, ACTIVE]
 
+    ClientGender:
+      type: string
+      enum: [F, M, NB, NA]
+
+    ClientGoal:
+      type: string
+      enum: [WEIGHT_LOSS, HYPERTROPHY, CONDITIONING, REHAB, PERFORMANCE]
+
+    ClientHealth:
+      type: object
+      required: [answers, lgpdConsent, medicalDisclaimer]
+      properties:
+        answers:
+          type: object
+          description: Mapa das respostas PAR-Q — chaves fixas heart/chest_pain/dizziness/bone_joint/medication.
+          additionalProperties:
+            type: string
+            enum: [YES, NO]
+        notes:
+          type: string
+          description: Observações livres sobre restrições ou lesões.
+        lgpdConsent: { type: boolean }
+        medicalDisclaimer: { type: boolean }
+
     Client:
       type: object
       required: [clientId, email, status, createdAt, updatedAt]
@@ -833,6 +777,25 @@ components:
         clientId: { type: string, example: client_demo }
         email: { type: string, format: email }
         status: { $ref: "#/components/schemas/ClientStatus" }
+        name: { type: string, nullable: true }
+        phone: { type: string, nullable: true, example: "+5511999990000" }
+        birthDate: { type: string, format: date, nullable: true }
+        gender:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ClientGender"
+        cep: { type: string, nullable: true, example: "01310-100" }
+        city: { type: string, nullable: true }
+        state: { type: string, nullable: true, minLength: 2, maxLength: 2 }
+        radius: { type: integer, nullable: true, description: Raio em km. }
+        goal:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ClientGoal"
+        health:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ClientHealth"
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 

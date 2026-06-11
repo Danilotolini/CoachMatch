@@ -1,90 +1,142 @@
-<!--
-title: 'Serverless Framework Node Express API service backed by DynamoDB on AWS'
-description: 'This template demonstrates how to develop and deploy a simple Node Express API service backed by DynamoDB running on AWS Lambda using the Serverless Framework.'
-layout: Doc
-framework: v4
-platform: AWS
-language: nodeJS
-priority: 1
-authorLink: 'https://github.com/serverless'
-authorName: 'Serverless, Inc.'
-authorAvatar: 'https://avatars1.githubusercontent.com/u/13742415?s=200&v=4'
--->
+# CoachMatch — API de Lambdas (coachmatch)
 
-# Serverless Framework Node Express API on AWS
+Serviço serverless com as Lambdas do marketplace CoachMatch. Arquitetura 3 camadas por função Lambda, implantada na AWS com Serverless Framework.
 
-This template demonstrates how to develop and deploy a simple Node Express API service, backed by DynamoDB table, running on AWS Lambda using the Serverless Framework.
+## Stack
 
-This template configures a single function, `api`, which is responsible for handling all incoming requests using the `httpApi` event. To learn more about `httpApi` event configuration options, please refer to [httpApi event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api/). As the event is configured in a way to accept all incoming requests, the Express.js framework is responsible for routing and handling requests internally. This implementation uses the `serverless-http` package to transform the incoming event request payloads to payloads compatible with Express.js. To learn more about `serverless-http`, please refer to the [serverless-http README](https://github.com/dougmoscrop/serverless-http).
+- **Runtime**: Node.js 22 (ESM)
+- **Framework**: Serverless Framework v4
+- **Banco**: DynamoDB (via `@aws-sdk/lib-dynamodb`)
+- **Validação**: Joi
+- **Testes**: Vitest
 
-Additionally, it also handles provisioning of a DynamoDB database that is used for storing data about users. The Express.js application exposes two endpoints, `POST /users` and `GET /user/:userId`, which create and retrieve a user record.
+## Estrutura de pastas
 
-## Usage
-
-### Deployment
-
-Install dependencies with:
+Cada Lambda tem sua própria pasta com 4 arquivos fixos:
 
 ```
-npm install
+src/
+├── coaches/
+│   ├── create-coach/          # Trigger PostConfirmation Cognito
+│   │   ├── handler.js         # Entry-point AWS (parse evento Cognito)
+│   │   ├── index.js           # Lógica de negócio
+│   │   ├── repository.js      # Acesso ao DynamoDB
+│   │   └── schema.js          # Validação Joi
+│   ├── get-coach/             # GET /coaches/me
+│   ├── update-coach/          # PUT /coaches/me
+│   └── submit-coach-for-review/  # POST /coaches/me/submit-for-review
+│
+├── students/
+│   ├── create-student/        # Trigger PostConfirmation Cognito
+│   ├── get-student/           # GET /clients/me
+│   ├── update-student-profile/ # POST /clients/me/profile
+│   └── update-student-health/ # POST /clients/me/health
+│
+├── gyms/
+│   ├── list-gyms/             # GET /gyms
+│   └── suggest-gym/           # POST /gyms/suggest
+│
+└── shared/
+    ├── config.js              # createClient() — DynamoDBDocumentClient
+    └── exceptions.js          # DatabaseConnectionException, ValidationException,
+                               # NotFoundException, ConflictException
 ```
 
-and then deploy with:
+## Rotas implementadas
+
+| Método | Rota | Lambda | Auth |
+|--------|------|--------|------|
+| `GET`  | `/coaches/me` | `coachGetMe` | Cognito JWT (CoachAccess) |
+| `PUT`  | `/coaches/me` | `coachUpdateMe` | Cognito JWT (CoachAccess) |
+| `POST` | `/coaches/me/submit-for-review` | `coachSubmitForReview` | Cognito JWT (CoachAccess) |
+| `GET`  | `/clients/me` | `studentGetProfile` | Cognito JWT (StudentAccess) |
+| `POST` | `/clients/me/profile` | `studentUpdateProfile` | Cognito JWT (StudentAccess) |
+| `POST` | `/clients/me/health` | `studentUpdateHealth` | Cognito JWT (StudentAccess) |
+| `GET`  | `/gyms` | `gymList` | Cognito JWT |
+| `POST` | `/gyms/suggest` | `gymSuggest` | Cognito JWT |
+
+Triggers Cognito (não HTTP):
+- `coachCreate` — PostConfirmation no pool **CoachAccess**
+- `studentCreate` — PostConfirmation no pool **StudentAccess**
+
+## Status de coach (fluxo)
 
 ```
-serverless deploy
+[Cognito confirm] → PENDING_PROFILE
+       ↓ PUT /coaches/me (salva perfil, sem mudar status)
+PENDING_PROFILE
+       ↓ POST /coaches/me/submit-for-review
+PENDING_REVIEW
+       ↓ Aprovação manual (admin)
+APPROVED   /   REJECTED
 ```
 
-After running deploy, you should see output similar to:
+O frontend mapeia:
+- `PENDING_PROFILE` (DynamoDB) → `ONBOARDING_PROFILE` (front-end `CoachStatus`)
+- `PENDING_REVIEW`, `APPROVED`, `REJECTED` → sem alteração
 
-```
-Deploying "aws-node-express-dynamodb-api" to stage "dev" (us-east-1)
+## Setup local
 
-✔ Service deployed to stack aws-node-express-dynamodb-api-dev (109s)
+### Pré-requisitos
 
-endpoint: ANY - https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com
-functions:
-  api: aws-node-express-dynamodb-api-dev-api (3.8 MB)
-```
-
-_Note_: In current form, after deployment, your API is public and can be invoked by anyone. For production deployments, you might want to configure an authorizer. For details on how to do that, refer to [`httpApi` event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api/). Additionally, in current configuration, the DynamoDB table will be removed when running `serverless remove`. To retain the DynamoDB table even after removal of the stack, add `DeletionPolicy: Retain` to its resource definition.
-
-### Invocation
-
-After successful deployment, you can create a new user by calling the corresponding endpoint:
-
-```
-curl --request POST 'https://xxxxxx.execute-api.us-east-1.amazonaws.com/users' --header 'Content-Type: application/json' --data-raw '{"name": "John", "userId": "someUserId"}'
+```bash
+node >= 22
+pnpm >= 10
 ```
 
-Which should result in the following response:
+### Instalar dependências
 
-```json
-{ "userId": "someUserId", "name": "John" }
+```bash
+pnpm install
 ```
 
-You can later retrieve the user by `userId` by calling the following endpoint:
+### Configuração
 
-```
-curl https://xxxxxxx.execute-api.us-east-1.amazonaws.com/users/someUserId
-```
+Crie `config.yml` a partir do exemplo:
 
-Which should result in the following response:
-
-```json
-{ "userId": "someUserId", "name": "John" }
-```
-
-### Local development
-
-The easiest way to develop and test your function is to use the `dev` command:
-
-```
-serverless dev
+```yaml
+# config.yml
+config:
+  stage: local
+  region: sa-east-1
+  endpoint: http://localhost:8000
+  accessKeyId: local
+  secretAccessKey: local
 ```
 
-This will start a local emulator of AWS Lambda and tunnel your requests to and from AWS Lambda, allowing you to interact with your function as if it were running in the cloud.
+### Iniciar servidor local
 
-Now you can invoke the function as before, but this time the function will be executed locally. Now you can develop your function locally, invoke it, and see the results immediately without having to re-deploy.
+```bash
+pnpm dev
+# Sobe serverless-offline + DynamoDB Local na porta 8000
+```
 
-When you are done developing, don't forget to run `serverless deploy` to deploy the function to the cloud.
+### Executar testes
+
+```bash
+pnpm test              # run uma vez
+pnpm test:watch        # watch mode
+pnpm test:coverage     # com relatório de cobertura (coverage/)
+```
+
+## Variáveis de ambiente (runtime)
+
+| Variável | Descrição |
+|----------|-----------|
+| `STAGE` | `local` habilita DynamoDB Local; qualquer outro valor usa AWS |
+| `REGION` | Região AWS (ex: `sa-east-1`) |
+| `ENDPOINT` | URL do DynamoDB Local (somente em `STAGE=local`) |
+| `ACCESS_KEY_ID` | Credencial AWS (somente em `STAGE=local`) |
+| `SECRET_ACCESS_KEY` | Credencial AWS (somente em `STAGE=local`) |
+
+## Deploy
+
+```bash
+# Staging (develop)
+serverless deploy --stage dev
+
+# Produção (main)
+serverless deploy --stage prod
+```
+
+O deploy é disparado automaticamente pelo CI/CD quando há push na `main` ou `develop` (via GitHub Actions).
