@@ -31,6 +31,8 @@ tags:
     description: Especialidades e academias acessadas pelo aluno.
   - name: Student — Agenda
     description: Busca de slots e solicitações de agendamento do aluno.
+  - name: Pagamentos
+    description: Processamento de pagamentos via cartão de crédito ou PIX (api-pagamentos).
 
 security:
   - bearerAuth: []
@@ -145,7 +147,7 @@ paths:
           schema: { type: integer, minimum: 1, default: 1 }
         - in: query
           name: limit
-          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+          schema: { type: integer, minimum: 1, maximum: 100, default: 100 }
       responses:
         "200":
           description: Lista paginada de especialidades.
@@ -181,7 +183,7 @@ paths:
           schema: { type: integer, minimum: 1, default: 1 }
         - in: query
           name: limit
-          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+          schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
       responses:
         "200":
           description: Lista paginada de academias.
@@ -273,6 +275,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
 
   /coach/schedule/requests:
     get:
@@ -280,25 +284,31 @@ paths:
       summary: Lista solicitações de agendamento recebidas pelo treinador.
       operationId: getCoachScheduleRequests
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required: [scheduleId]
               properties:
                 scheduleId:
                   type: string
                   example: avl_6cb2b644248448c68e63f350119c032d
       responses:
         "200":
-          description: Lista de solicitações de agendamento.
+          description: Solicitações do schedule, enriquecidas com o nome do aluno.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ScheduleRequest"
+                $ref: "#/components/schemas/ScheduleRequestsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /coach/schedule/approve:
     post:
@@ -321,19 +331,21 @@ paths:
                   example: 037c4a8a-6031-705c-e02f-8e45f93bd387
       responses:
         "200":
-          description: Solicitação aprovada.
+          description: Solicitação aprovada; schedule passa a `BOOKED` e demais pedidos são rejeitados.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ScheduleRequest"
+                $ref: "#/components/schemas/ScheduleApproveResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
-          description: Solicitação não encontrada.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
 
   /coach/schedule/cancel:
     post:
@@ -353,13 +365,21 @@ paths:
                   example: avl_6cb2b644248448c68e63f350119c032d
       responses:
         "200":
-          description: Disponibilidade cancelada.
+          description: Disponibilidade cancelada; alunos com pedido pendente são notificados.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Schedule"
+                $ref: "#/components/schemas/ScheduleCancelResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
 
   /coach/schedule/class/status:
     post:
@@ -381,13 +401,21 @@ paths:
                   $ref: "#/components/schemas/ClassStatus"
       responses:
         "200":
-          description: Status da aula atualizado.
+          description: Status atualizado; `paymentStatus` é definido como `PENDING`.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Schedule"
+                $ref: "#/components/schemas/ClassStatusResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
 
   # ─────────────────────────────────────────────
   # Student — Perfil
@@ -463,6 +491,93 @@ paths:
   # acima na seção "Coach — Recursos" — o mesmo endpoint
   # serve ambos os papéis (Cognito JWT de qualquer pool).
   # ─────────────────────────────────────────────
+  /student/specialties:
+    get:
+      tags: [Student — Recursos]
+      summary: Lista catálogo de especialidades (contexto aluno).
+      operationId: listStudentSpecialties
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+          example: Cross
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 100 }
+      responses:
+        "200":
+          description: Lista paginada de especialidades.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Specialty"
+
+  /student/gyms:
+    get:
+      tags: [Student — Recursos]
+      summary: Lista academias cadastradas (contexto aluno).
+      operationId: listStudentGyms
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Busca por nome, endereço ou bairro.
+          example: Fit
+        - in: query
+          name: city
+          schema: { type: string }
+          description: Cidade exata.
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
+      responses:
+        "200":
+          description: Lista paginada de academias.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Gym"
+
+  /student/gyms/suggest:
+    post:
+      tags: [Student — Recursos]
+      summary: Envia sugestão de nova academia (pelo aluno). Sempre criada como inativa.
+      operationId: suggestGymAsStudent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GymSuggestPayload"
+      responses:
+        "201":
+          description: Sugestão registrada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GymSuggestResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   # ─────────────────────────────────────────────
   # Student — Agenda
@@ -507,10 +622,12 @@ paths:
       summary: Lista disponibilidades em uma academia específica.
       operationId: getGymScheduleForStudent
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required: [gymId, startDateTime, endDateTime]
               properties:
                 gymId:
                   type: string
@@ -525,13 +642,13 @@ paths:
                   example: "2026-06-06T08:00:30-03:00"
       responses:
         "200":
-          description: Lista de disponibilidades na academia.
+          description: Disponibilidades na academia (status AVAILABLE ou REQUESTED).
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Schedule"
+                $ref: "#/components/schemas/GymScheduleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -552,34 +669,40 @@ paths:
                   type: string
                   example: avl_6cb2b644248448c68e63f350119c032d
       responses:
-        "201":
-          description: Solicitação registrada.
+        "200":
+          description: Solicitação registrada; o treinador é notificado por e-mail.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ScheduleRequest"
+                $ref: "#/components/schemas/ScheduleRequestResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
 
     get:
       tags: [Student — Agenda]
-      summary: Lista agendamentos solicitados pelo aluno.
+      summary: Lista todos os schedules em que o aluno tem (ou teve) solicitação.
       operationId: listStudentScheduleRequests
       responses:
         "200":
-          description: Lista de solicitações do aluno.
+          description: |
+            Schedules do aluno ordenados por startDateTime crescente.
+            Inclui schedules com status AVAILABLE, REQUESTED e BOOKED.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ScheduleRequest"
+                $ref: "#/components/schemas/StudentSchedulesResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
     delete:
       tags: [Student — Agenda]
-      summary: Cancela uma solicitação de agendamento.
+      summary: Cancela a solicitação de agendamento enquanto ainda está pendente (status REQUESTED).
       operationId: cancelScheduleRequest
       requestBody:
         required: true
@@ -594,13 +717,21 @@ paths:
                   example: avl_6cb2b644248448c68e63f350119c032d
       responses:
         "200":
-          description: Solicitação cancelada.
+          description: |
+            Solicitação cancelada. O schedule pode voltar para AVAILABLE se não houver
+            outros pedidos pendentes.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ScheduleRequest"
+                $ref: "#/components/schemas/CancelRequestResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
 
   /student/coach/schedules/cancel:
     post:
@@ -620,11 +751,190 @@ paths:
                   example: avl_6cb2b644248448c68e63f350119c032d
       responses:
         "200":
-          description: Agendamento cancelado.
+          description: Agendamento cancelado; o treinador é notificado por e-mail.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Schedule"
+                $ref: "#/components/schemas/ScheduleCancelResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  # ─────────────────────────────────────────────
+  # Pagamentos
+  # ─────────────────────────────────────────────
+  /payments:
+    post:
+      tags: [Pagamentos]
+      summary: Cria um pagamento (cartão de crédito ou PIX).
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/CardPaymentPayload"
+                - $ref: "#/components/schemas/PixPaymentPayload"
+              discriminator:
+                propertyName: method
+                mapping:
+                  credit_card: "#/components/schemas/CardPaymentPayload"
+                  pix: "#/components/schemas/PixPaymentPayload"
+      responses:
+        "201":
+          description: Pagamento aprovado ou em processamento.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          description: Pagamento recusado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /payments/{transactionId}:
+    get:
+      tags: [Pagamentos]
+      summary: Busca uma transação pelo ID.
+      operationId: getPayment
+      parameters:
+        - in: path
+          name: transactionId
+          required: true
+          schema: { type: string, example: mock_uuid }
+      responses:
+        "200":
+          description: Transação encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /payments/{transactionId}/refund:
+    post:
+      tags: [Pagamentos]
+      summary: Solicita estorno de uma transação.
+      operationId: refundPayment
+      parameters:
+        - in: path
+          name: transactionId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefundPayload"
+      responses:
+        "200":
+          description: Estorno registrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /payments/coach/{coachId}:
+    get:
+      tags: [Pagamentos]
+      summary: Lista todas as transações de um treinador.
+      operationId: getCoachPayments
+      parameters:
+        - in: path
+          name: coachId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Transações do treinador.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [transactions, total]
+                properties:
+                  transactions:
+                    type: array
+                    items: { $ref: "#/components/schemas/Transaction" }
+                  total: { type: integer }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /payments/student/{studentId}:
+    get:
+      tags: [Pagamentos]
+      summary: Lista todas as transações de um aluno.
+      operationId: getStudentPayments
+      parameters:
+        - in: path
+          name: studentId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Transações do aluno.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [transactions, total]
+                properties:
+                  transactions:
+                    type: array
+                    items: { $ref: "#/components/schemas/Transaction" }
+                  total: { type: integer }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /payments/session/{sessionId}:
+    get:
+      tags: [Pagamentos]
+      summary: Lista transações de uma sessão específica.
+      operationId: getSessionPayments
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Transações da sessão.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [transactions, total]
+                properties:
+                  transactions:
+                    type: array
+                    items: { $ref: "#/components/schemas/Transaction" }
+                  total: { type: integer }
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -698,7 +1008,27 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     BadRequest:
-      description: Payload inválido.
+      description: Payload inválido (JSON malformado ou campo obrigatório ausente).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Autenticado, mas sem permissão sobre o recurso (ownership).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Recurso não encontrado.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnprocessableEntity:
+      description: |
+        Regra de negócio violada (datas inválidas, conflito de horário, gym/especialidade
+        inexistente, estado incompatível, janela de cancelamento, etc.).
       content:
         application/json:
           schema:
@@ -708,10 +1038,11 @@ components:
     Error:
       type: object
       properties:
-        error:
-          type: string
-          example: Consentimentos obrigatórios.
-      required: [error]
+        errors:
+          type: array
+          items: { type: string }
+          example: ["Missing required field: scheduleId."]
+      required: [errors]
 
     Coordinates:
       type: object
@@ -1024,9 +1355,15 @@ components:
         label: { type: string, example: Musculação }
 
     # ── Schedule ──────────────────────────────
+    # Status no nível da disponibilidade (item da tabela `schedule`).
     ScheduleStatus:
       type: string
-      enum: [AVAILABLE, REQUESTED, APPROVED, CANCELLED, COMPLETED, NOSHOW]
+      enum: [AVAILABLE, REQUESTED, BOOKED, CANCELLED, COMPLETED, NOSHOW]
+
+    # Status de cada solicitação dentro do array `requests` de um schedule.
+    RequestStatus:
+      type: string
+      enum: [REQUESTED, APPROVED, REJECTED]
 
     ClassStatus:
       type: string
@@ -1068,6 +1405,28 @@ components:
           description: Valor em BRL.
           example: "120.00"
         status: { $ref: "#/components/schemas/ScheduleStatus" }
+        studentId:
+          type: string
+          nullable: true
+          description: Aluno com a reserva confirmada (presente quando status = BOOKED).
+          example: 037c4a8a-6031-705c-e02f-8e45f93bd387
+        requests:
+          type: array
+          nullable: true
+          description: Solicitações de agendamento associadas (presente em consultas do treinador).
+          items:
+            $ref: "#/components/schemas/ScheduleRequest"
+        paymentStatus:
+          type: string
+          nullable: true
+        rating:
+          type: number
+          nullable: true
+        studentComment:
+          type: string
+          nullable: true
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
 
     ScheduleCreatePayload:
       type: object
@@ -1094,13 +1453,262 @@ components:
 
     ScheduleRequest:
       type: object
-      required: [scheduleId, studentId, status]
+      required: [studentId, status, requestedAt]
       properties:
+        studentId:
+          { type: string, example: 037c4a8a-6031-705c-e02f-8e45f93bd387 }
+        status: { $ref: "#/components/schemas/RequestStatus" }
+        requestedAt: { type: string, format: date-time }
+        alteredAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Preenchido quando a solicitação é aprovada ou rejeitada.
+        studentName:
+          type: string
+          nullable: true
+          description: Nome do aluno, incluído ao listar solicitações de um schedule.
+
+    # Resposta de GET disponibilidades por academia (get-gym-schedule).
+    GymScheduleResponse:
+      type: object
+      required: [gymId, startDateTime, endDateTime, count, schedules]
+      properties:
+        gymId: { type: string, example: gym_sp005 }
+        startDateTime: { type: string, format: date-time }
+        endDateTime: { type: string, format: date-time }
+        count: { type: integer, example: 3 }
+        schedules:
+          type: array
+          items:
+            $ref: "#/components/schemas/Schedule"
+
+    # Resposta de GET solicitações de um schedule (get-schedule-requests).
+    ScheduleRequestsResponse:
+      type: object
+      required: [scheduleId, count, requests]
+      properties:
+        scheduleId:
+          { type: string, example: avl_6cb2b644248448c68e63f350119c032d }
+        startDateTime: { type: string, format: date-time }
+        endDateTime: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+        count: { type: integer, example: 2 }
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduleRequest"
+
+    # Resposta de criação de solicitação de agendamento (post-schedule-request).
+    ScheduleRequestResult:
+      type: object
+      required: [message, scheduleId, studentId, status, requestedAt]
+      properties:
+        message: { type: string, example: Schedule request submitted successfully. }
         scheduleId:
           { type: string, example: avl_6cb2b644248448c68e63f350119c032d }
         studentId:
           { type: string, example: 037c4a8a-6031-705c-e02f-8e45f93bd387 }
-        status: { $ref: "#/components/schemas/ScheduleStatus" }
+        status: { $ref: "#/components/schemas/RequestStatus" }
+        requestedAt: { type: string, format: date-time }
+
+    # Resposta de aprovação de agendamento (post-approve-schedule).
+    ScheduleApproveResult:
+      type: object
+      required: [message, scheduleId, studentId, status, updatedAt]
+      properties:
+        message: { type: string, example: Schedule approved successfully. }
+        scheduleId:
+          { type: string, example: avl_6cb2b644248448c68e63f350119c032d }
+        studentId:
+          { type: string, example: 037c4a8a-6031-705c-e02f-8e45f93bd387 }
+        status:
+          type: string
+          enum: [BOOKED]
+        updatedAt: { type: string, format: date-time }
+
+    # Resposta de cancelamento de schedule (coach e aluno).
+    ScheduleCancelResult:
+      type: object
+      required: [message, scheduleId, status, cancelledAt]
+      properties:
+        message: { type: string, example: Schedule cancelled successfully. }
+        scheduleId:
+          { type: string, example: avl_6cb2b644248448c68e63f350119c032d }
+        status:
+          type: string
+          enum: [CANCELLED]
+        notifiedStudents:
+          type: integer
+          description: Presente apenas no cancelamento pelo treinador.
+          example: 1
+        cancelledAt: { type: string, format: date-time }
+
+    # Resposta de GET /student/coach/schedules/request (get-student-requests-by-JWT).
+    StudentScheduleItem:
+      type: object
+      required: [scheduleId, coachId, gymId, specialtyId, price, startDateTime, endDateTime, scheduleStatus]
+      properties:
+        scheduleId: { type: string, example: avl_6cb2b644248448c68e63f350119c032d }
+        coachId: { type: string }
+        gymId: { type: string, example: gym_sp005 }
+        specialtyId: { type: string, example: MUSCULATION }
+        price: { type: string, example: "120.00" }
+        startDateTime: { type: string, format: date-time }
+        endDateTime: { type: string, format: date-time }
+        scheduleStatus: { $ref: "#/components/schemas/ScheduleStatus" }
+        request:
+          nullable: true
+          description: Solicitação do aluno autenticado para este schedule.
+          allOf:
+            - $ref: "#/components/schemas/ScheduleRequest"
+
+    StudentSchedulesResponse:
+      type: object
+      required: [studentId, count, schedules]
+      properties:
+        studentId: { type: string }
+        count: { type: integer }
+        schedules:
+          type: array
+          items:
+            $ref: "#/components/schemas/StudentScheduleItem"
+
+    # Resposta de DELETE /student/coach/schedules/request (cancel-student-request).
+    CancelRequestResult:
+      type: object
+      required: [message, scheduleId, studentId, scheduleStatus, cancelledAt]
+      properties:
+        message: { type: string, example: Request cancelled successfully. }
+        scheduleId: { type: string, example: avl_6cb2b644248448c68e63f350119c032d }
+        studentId: { type: string, example: 037c4a8a-6031-705c-e02f-8e45f93bd387 }
+        scheduleStatus:
+          $ref: "#/components/schemas/ScheduleStatus"
+          description: Status do schedule após o cancelamento (AVAILABLE ou REQUESTED).
+        cancelledAt: { type: string, format: date-time }
+
+    # Resposta de POST /coach/schedule/class/status (post-class-status).
+    ClassStatusResult:
+      type: object
+      required: [message, scheduleId, status, paymentStatus, updatedAt]
+      properties:
+        message: { type: string, example: "Schedule updated to 'COMPLETED' successfully." }
+        scheduleId: { type: string, example: avl_6cb2b644248448c68e63f350119c032d }
+        status: { $ref: "#/components/schemas/ClassStatus" }
+        paymentStatus:
+          type: string
+          enum: [PENDING]
+          description: Sempre PENDING após a conclusão — aguardando processamento de pagamento.
+        updatedAt: { type: string, format: date-time }
+
+    # ── Pagamentos ────────────────────────────
+    PaymentSplit:
+      type: object
+      description: Divisão do valor entre a plataforma e o treinador.
+      properties:
+        platform: { type: integer, description: Valor da plataforma em centavos. }
+        coach: { type: integer, description: Valor do treinador em centavos. }
+
+    TransactionStatus:
+      type: string
+      enum: [approved, refused, refunded]
+
+    Transaction:
+      type: object
+      required: [transactionId, sessionId, coachId, studentId, method, amount, status, createdAt]
+      properties:
+        transactionId: { type: string, example: mock_uuid }
+        sessionId: { type: string, format: uuid }
+        coachId: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        method:
+          type: string
+          enum: [credit_card, pix]
+        amount:
+          type: integer
+          description: Valor em centavos.
+          example: 12000
+        status: { $ref: "#/components/schemas/TransactionStatus" }
+        split:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/PaymentSplit"
+        cardLastFour:
+          type: string
+          nullable: true
+          example: "4321"
+        refusalReason: { type: string, nullable: true }
+        requires3ds: { type: boolean, nullable: true }
+        pixCode: { type: string, nullable: true }
+        expiresAt: { type: string, format: date-time, nullable: true }
+        refundId: { type: string, nullable: true }
+        refundedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    CardPaymentPayload:
+      type: object
+      required: [sessionId, coachId, studentId, amount, method, card]
+      properties:
+        sessionId: { type: string, format: uuid }
+        coachId: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        amount:
+          type: integer
+          description: Valor em centavos (mínimo 100 = R$ 1,00).
+          minimum: 100
+        method:
+          type: string
+          enum: [credit_card]
+        card:
+          type: object
+          required: [number, holder, expiryMonth, expiryYear, cvv]
+          properties:
+            number: { type: string, description: "16 dígitos, sem espaços.", example: "4111111111111111" }
+            holder: { type: string, minLength: 3, maxLength: 100 }
+            expiryMonth: { type: string, pattern: '^(0[1-9]|1[0-2])$', example: "12" }
+            expiryYear: { type: string, pattern: '^\d{4}$', example: "2027" }
+            cvv: { type: string, minLength: 3, maxLength: 4 }
+
+    PixPaymentPayload:
+      type: object
+      required: [sessionId, coachId, studentId, amount, method]
+      properties:
+        sessionId: { type: string, format: uuid }
+        coachId: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        amount:
+          type: integer
+          description: Valor em centavos (mínimo 100 = R$ 1,00).
+          minimum: 100
+        method:
+          type: string
+          enum: [pix]
+
+    RefundPayload:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: integer
+          description: Valor do estorno em centavos (mínimo 1).
+          minimum: 1
+        reason:
+          type: string
+          maxLength: 255
+          nullable: true
+
+    RefundResult:
+      type: object
+      required: [refundId, transactionId, status, amount, createdAt]
+      properties:
+        refundId: { type: string, example: refund_uuid }
+        transactionId: { type: string, example: mock_uuid }
+        status:
+          type: string
+          enum: [refunded]
+        amount: { type: integer, description: Valor estornado em centavos. }
+        reason: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
 
     # ── Upload ────────────────────────────────
     UploadUrlResponse:
