@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from '@/lib/http'
-import type { Gym, GymSuggestPayload, PaginatedResponse } from '@/types/api'
+import type { Gym, GymSuggestPayload, GymSuggestResponse, PaginatedResponse } from '@/types/api'
 
 export interface GymsParams {
   search?: string | undefined
@@ -8,15 +8,15 @@ export interface GymsParams {
   limit?: number | undefined
 }
 
-export function fetchGyms(params: GymsParams = {}) {
+export function fetchGyms(params: GymsParams = {}): Promise<PaginatedResponse<Gym>> {
   return apiGet<PaginatedResponse<Gym>>('/gyms', {
-    search: params.search,
-    city: params.city,
+    ...(params.search ? { search: params.search } : {}),
+    ...(params.city ? { city: params.city } : {}),
     page: params.page ?? 1,
     limit: params.limit ?? 20,
   })
 }
 
 export function suggestGym(payload: GymSuggestPayload) {
-  return apiPost<undefined>('/gyms/suggest', payload)
+  return apiPost<GymSuggestResponse>('/gyms/suggest', payload)
 }

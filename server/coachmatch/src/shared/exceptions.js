@@ -2,8 +2,8 @@
  * Exceção lançada quando há falha de conexão ou operação com o banco de dados.
  */
 export class DatabaseConnectionException extends Error {
-  constructor(message = 'Falha na conexão com o banco de dados') {
-    super(message);
+  constructor(message = 'Falha na conexão com o banco de dados', options) {
+    super(message, options);
     this.name = 'DatabaseConnectionException';
   }
 }

@@ -1,51 +1,150 @@
-export type CoachStatus =
-  | 'PROFILE_INCOMPLETE'
-  | 'PENDING_REVIEW'
-  | 'APPROVED'
-  | 'REJECTED'
+export type CoachStatus = 'ONBOARDING_PROFILE' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
 
-export interface CoachMe {
-  email: string
-  name: string | null
-  phone: string | null
-  instagram: string | null
-  cref: string | null
-  profilePhoto: string | null
-  profileVideo: string | null
-  specialties: string[]
-  territory: 'GYMS' | 'HOME_SERVICE' | null
-  gyms: string[]
-  serviceRadius: number | null
-  status: CoachStatus
-  rejectionReason: string | null
+export type CoachVisibility = 'VISIBLE' | 'INVISIBLE'
+
+export type ClientStatus = 'ONBOARDING_PROFILE' | 'ONBOARDING_HEALTH' | 'ACTIVE'
+
+export interface Coordinates {
+  lat: number
+  lng: number
 }
 
-export interface CoachMePayload {
-  name?: string | undefined
-  phone?: string | undefined
-  instagram?: string | undefined
-  cref?: string | undefined
-  profilePhoto?: string | undefined
-  profileVideo?: string | undefined
+export interface CoachProfile {
+  name: string
+  phone: string | null
+  specialties: string[]
+  cref: string
+  instagram: string
+  profile_video: boolean
+}
+
+export interface WorkLocationGym {
+  type: 'GYM'
+  gymId: string
+}
+
+export interface HomeServiceCoverage {
+  city: string
+  state: string
+  neighborhoods: string[]
+}
+
+export interface WorkLocationHomeService {
+  type: 'HOME_SERVICE'
+  coverage: HomeServiceCoverage
+}
+
+export type WorkLocation = WorkLocationGym | WorkLocationHomeService
+
+export interface Coach {
+  coachId: string
+  email: string
+  status: CoachStatus
+  visibility: CoachVisibility
+  profile: CoachProfile
+  work_location: WorkLocation[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CoachUpdatePayload {
+  profile?: Partial<CoachProfile>
+  work_location?: WorkLocation[]
+}
+
+export type CoachSearchSort = 'rating' | 'price_asc' | 'price_desc'
+
+export interface CoachListItem {
+  coachId: string
+  name: string
+  specialties: string[]
+  rating: number
+  priceFrom: number
+  neighborhood: string
+  city: string
+  nextAvailability: string
+  photo: string | null
+}
+
+export interface CoachSearchFilters {
+  q?: string | undefined
   specialties?: string[] | undefined
-  territory?: 'GYMS' | 'HOME_SERVICE' | undefined
-  gyms?: string[] | undefined
-  serviceRadius?: number | undefined
+  address?: string | undefined
+  priceMin?: number | undefined
+  priceMax?: number | undefined
+  availableOn?: string | undefined
+  sort?: CoachSearchSort | undefined
+  page?: number | undefined
+  limit?: number | undefined
+}
+
+export type CoachSearchResponse = PaginatedResponse<CoachListItem>
+
+export type ClientGender = 'F' | 'M' | 'NB' | 'NA'
+
+export type ClientGoal =
+  | 'WEIGHT_LOSS'
+  | 'HYPERTROPHY'
+  | 'CONDITIONING'
+  | 'REHAB'
+  | 'PERFORMANCE'
+
+/** Respostas PAR-Q armazenadas após a etapa de saúde */
+export interface ClientHealth {
+  answers: Record<string, 'YES' | 'NO'>
+  notes: string
+  lgpdConsent: boolean
+  medicalDisclaimer: boolean
+}
+
+/** Perfil completo do aluno retornado por GET/POST /clients/me */
+export interface Client {
+  clientId: string
+  email: string
+  status: ClientStatus
+  name: string | null
+  phone: string | null
+  birthDate: string | null
+  gender: ClientGender | null
+  cep: string | null
+  city: string | null
+  state: string | null
+  radius: number | null
+  goal: ClientGoal | string | null
+  health: ClientHealth | null
+}
+
+export interface ClientProfilePayload {
+  phone: string
+  birthDate: string
+  gender: ClientGender
+  cep: string
+  city: string
+  state: string
+  radius: 5 | 10 | 20
+  goal: ClientGoal
+}
+
+export interface ClientHealthPayload {
+  answers: Record<string, 'YES' | 'NO'>
+  notes: string
+  lgpdConsent: boolean
+  medicalDisclaimer: boolean
 }
 
 export interface Specialty {
   id: string
-  name: string
+  label: string
 }
 
 export interface Gym {
-  id: string
+  gymId: string
   name: string
   address: string
   city: string
   state: string
   neighborhood: string
-  coordinates: { lat: number; lng: number }
+  coordinates: Coordinates
 }
 
 export interface GymSuggestPayload {
@@ -54,18 +153,31 @@ export interface GymSuggestPayload {
   city: string
   state: string
   neighborhood: string
-  coordinates: { lat: number; lng: number }
+  coordinates: Coordinates
+}
+
+export interface GymSuggestResponse {
+  data: Gym
+  message: string
+}
+
+export interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
 }
 
 export interface PaginatedResponse<T> {
   data: T[]
-  page: number
-  limit: number
-  total: number
+  pagination: Pagination
 }
 
 export interface UploadUrlResponse {
   key: string
+  expiresIn: number
   upload: {
     url: string
     fields: Record<string, string>

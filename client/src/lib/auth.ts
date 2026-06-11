@@ -1,20 +1,19 @@
-const TOKEN_KEY = 'idToken'
+import { getActiveToken } from '@/stores/sessionStore'
+
+export const SESSION_EXPIRED_EVENT = 'coachmatch:session-expired'
 
 export interface AuthUser {
   email: string | null
   name: string | null
 }
 
+export interface SessionExpiredDetail {
+  reason: 'expired' | 'unauthorized'
+  status?: number
+}
+
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
-}
-
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token)
-}
-
-export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY)
+  return getActiveToken()
 }
 
 function base64UrlDecode(value: string): string {
@@ -32,31 +31,50 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
+function getTokenClaims(token: string): Record<string, unknown> | null {
+  const [, payload] = token.split('.')
+  if (!payload) return null
+
+  try {
+    const claims: unknown = JSON.parse(base64UrlDecode(payload))
+    return isRecord(claims) ? claims : null
+  } catch {
+    return null
+  }
+}
+
 function stringClaim(claims: Record<string, unknown>, key: string): string | null {
   const value = claims[key]
   return typeof value === 'string' && value.trim() ? value : null
+}
+
+export function isTokenExpired(token: string | null = getToken(), now = Date.now()): boolean {
+  if (!token) return false
+
+  const claims = getTokenClaims(token)
+  const exp = claims?.['exp']
+  if (typeof exp !== 'number') return false
+
+  return exp * 1000 <= now
+}
+
+export function notifySessionExpired(detail: SessionExpiredDetail): void {
+  window.dispatchEvent(new CustomEvent<SessionExpiredDetail>(SESSION_EXPIRED_EVENT, { detail }))
 }
 
 export function getAuthUser(): AuthUser {
   const token = getToken()
   if (!token) return { email: null, name: null }
 
-  const [, payload] = token.split('.')
-  if (!payload) return { email: null, name: null }
+  const claims = getTokenClaims(token)
+  if (!claims) return { email: null, name: null }
 
-  try {
-    const claims: unknown = JSON.parse(base64UrlDecode(payload))
-    if (!isRecord(claims)) return { email: null, name: null }
+  const givenName = stringClaim(claims, 'given_name')
+  const familyName = stringClaim(claims, 'family_name')
+  const fullName = [givenName, familyName].filter(Boolean).join(' ')
 
-    const givenName = stringClaim(claims, 'given_name')
-    const familyName = stringClaim(claims, 'family_name')
-    const fullName = [givenName, familyName].filter(Boolean).join(' ')
-
-    return {
-      email: stringClaim(claims, 'email'),
-      name: stringClaim(claims, 'name') ?? (fullName || null),
-    }
-  } catch {
-    return { email: null, name: null }
+  return {
+    email: stringClaim(claims, 'email'),
+    name: stringClaim(claims, 'name') ?? (fullName || null),
   }
 }

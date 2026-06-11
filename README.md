@@ -6,13 +6,15 @@
 🌐 **Acesse o web app:** https://coachmatch.com.br
 
 ---
+
 ## 📖 Sobre o Projeto
 
-O **CoachMatch** é uma plataforma de marketplace que conecta alunos a personal trainers qualificados, facilitando a busca, comparação, contratação e acompanhamento de treinos — tudo em um único lugar.
+O **CoachMatch** é uma plataforma de marketplace que conecta alunos a treinadores qualificados, facilitando a busca, comparação, contratação e acompanhamento de treinos — tudo em um único lugar.
 
-A proposta nasce para resolver um problema real: hoje, escolher um personal trainer ainda é um processo pouco transparente, baseado em tentativa e erro, com alta taxa de abandono.
+A proposta nasce para resolver um problema real: hoje, escolher um treinador ainda é um processo pouco transparente, baseado em tentativa e erro, com alta taxa de abandono.
 
 ---
+
 ## 🚀 Proposta de Valor
 
 - 🔍 **Busca inteligente** por localização, modalidade e objetivo  
@@ -23,17 +25,20 @@ A proposta nasce para resolver um problema real: hoje, escolher um personal trai
 - 📱 Experiência **mobile-first (PWA)**  
 
 ---
+
 ## 🧠 Problema Resolvido
 
-- Dificuldade de encontrar profissionais confiáveis  
+- Dificuldade de encontrar treinadores confiáveis  
 - Falta de padronização e transparência  
 - Informações descentralizadas (Instagram, WhatsApp, etc.)  
 - Alta taxa de evasão em treinos (~50%)
 
 ---
+
 ## 💡 Solução
 
-O CoachMatch conecta clientes e profissionais com:
+O CoachMatch conecta alunos e treinadores com:
+
 - Filtros inteligentes e recomendações
 - Perfis completos com credenciais verificadas
 - Sistema de contratação e pagamento integrado
@@ -43,26 +48,26 @@ O CoachMatch conecta clientes e profissionais com:
 
 ## 👥 Perfis de Usuário
 
-### 🧑‍💻 Cliente
+### 🧑‍💻 Aluno
 
-- Busca profissionais
+- Busca treinadores
 - Agenda sessões
-- Avalia coaches
+- Avalia treinadores
 - Acompanha histórico
 
-### 🏆 Profissional (Personal Trainer)
+### 🏆 Treinador
 
 - Cria e gerencia serviços
 - Define agenda e disponibilidade
-- Gerencia clientes e ganhos
+- Gerencia alunos e ganhos
 - Constrói portfólio digital
 
 ---
 
 ## 🔄 Principais Fluxos
 
-- Cadastro e autenticação (cliente e profissional)
-- Busca e recomendação de profissionais
+- Cadastro e autenticação (aluno e treinador)
+- Busca e recomendação de treinadores
 - Agendamento de sessões
 - Pagamento
 - Avaliação pós-treino
@@ -107,7 +112,7 @@ A interface foi projetada para ser:
 ## 📊 Modelo de Negócio
 
 - 💸 Comissão sobre transações  
-- 📈 Planos premium para profissionais  
+- 📈 Planos premium para treinadores  
 - 🤝 Parcerias com academias e marcas fitness  
 - 📣 Monetização via visibilidade e destaque  
 

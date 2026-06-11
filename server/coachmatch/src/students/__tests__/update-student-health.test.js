@@ -5,21 +5,40 @@ vi.mock('../update-student-health/repository.js', () => ({
   updateStudentHealth: vi.fn(),
 }));
 
+vi.mock('../get-student/repository.js', () => ({
+  findStudentById: vi.fn(),
+}));
+
 import { handler } from '../update-student-health/handler.js';
 import { updateHealth } from '../update-student-health/index.js';
 import { studentHealthSchema } from '../update-student-health/schema.js';
 import { updateStudentHealth } from '../update-student-health/repository.js';
+import { findStudentById } from '../get-student/repository.js';
 import { ValidationException } from '../../shared/exceptions.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const STUDENT_ID = 'student-health-123';
 
 const validHealthData = {
-  weight: 75.5,
-  height: 178,
-  fitnessLevel: 'INTERMEDIARIO',
-  healthConditions: ['Hipertensão leve'],
+  answers: {
+    heart: 'NO',
+    chest_pain: 'NO',
+    dizziness: 'NO',
+    bone_joint: 'NO',
+    medication: 'NO',
+  },
+  notes: '',
+  lgpdConsent: true,
+  medicalDisclaimer: true,
 };
+
+const buildStudentRecord = () => ({
+  studentId: STUDENT_ID,
+  email: 'aluno@email.com',
+  status: 'ACTIVE',
+  profile: { name: 'Maria' },
+  health: validHealthData,
+});
 
 const buildAuthEvent = (body = validHealthData, studentId = STUDENT_ID) => ({
   requestContext: {
@@ -29,64 +48,49 @@ const buildAuthEvent = (body = validHealthData, studentId = STUDENT_ID) => ({
 });
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
-describe('update-student-health › schema', () => {
-  it('aceita payload válido completo', () => {
+describe('update-student-health › schema (PAR-Q)', () => {
+  it('aceita payload PAR-Q válido completo', () => {
     const { error } = studentHealthSchema.validate(validHealthData);
     expect(error).toBeUndefined();
   });
 
-  it('aceita todos os níveis de condicionamento válidos', () => {
-    const levels = ['SEDENTARIO', 'INICIANTE', 'INTERMEDIARIO', 'AVANCADO'];
-    for (const fitnessLevel of levels) {
-      const { error } = studentHealthSchema.validate({ ...validHealthData, fitnessLevel });
-      expect(error, `"${fitnessLevel}" deve ser válido`).toBeUndefined();
-    }
-  });
-
-  it('rejeita fitnessLevel inválido', () => {
-    const { error } = studentHealthSchema.validate({ ...validHealthData, fitnessLevel: 'EXPERT' });
-    expect(error?.details[0].path).toContain('fitnessLevel');
-  });
-
-  it('rejeita peso 0 (não positivo)', () => {
-    const { error } = studentHealthSchema.validate({ ...validHealthData, weight: 0 });
-    expect(error?.details[0].path).toContain('weight');
-  });
-
-  it('rejeita peso acima de 300 kg', () => {
-    const { error } = studentHealthSchema.validate({ ...validHealthData, weight: 301 });
-    expect(error?.details[0].path).toContain('weight');
-  });
-
-  it('aceita peso negativo? Não — deve rejeitar', () => {
-    const { error } = studentHealthSchema.validate({ ...validHealthData, weight: -5 });
-    expect(error?.details[0].path).toContain('weight');
-  });
-
-  it('rejeita altura abaixo de 100 cm', () => {
-    const { error } = studentHealthSchema.validate({ ...validHealthData, height: 99 });
-    expect(error?.details[0].path).toContain('height');
-  });
-
-  it('rejeita altura acima de 250 cm', () => {
-    const { error } = studentHealthSchema.validate({ ...validHealthData, height: 251 });
-    expect(error?.details[0].path).toContain('height');
-  });
-
-  it('usa [] como default quando healthConditions está ausente', () => {
-    const { error, value } = studentHealthSchema.validate({
-      weight: 70,
-      height: 170,
-      fitnessLevel: 'SEDENTARIO',
-    });
-    expect(error).toBeUndefined();
-    expect(value.healthConditions).toEqual([]);
-  });
-
-  it('aceita healthConditions como array de strings', () => {
+  it('aceita respostas YES nas perguntas', () => {
     const { error } = studentHealthSchema.validate({
       ...validHealthData,
-      healthConditions: ['Diabetes tipo 2', 'Asma'],
+      answers: { ...validHealthData.answers, heart: 'YES' },
+    });
+    expect(error).toBeUndefined();
+  });
+
+  it('rejeita quando lgpdConsent é false', () => {
+    const { error } = studentHealthSchema.validate({ ...validHealthData, lgpdConsent: false });
+    expect(error?.details[0].path).toContain('lgpdConsent');
+  });
+
+  it('rejeita quando medicalDisclaimer é false', () => {
+    const { error } = studentHealthSchema.validate({ ...validHealthData, medicalDisclaimer: false });
+    expect(error?.details[0].path).toContain('medicalDisclaimer');
+  });
+
+  it('rejeita quando answers está ausente', () => {
+    const { error } = studentHealthSchema.validate({ lgpdConsent: true, medicalDisclaimer: true });
+    expect(error?.details[0].path).toContain('answers');
+  });
+
+  it('usa string vazia como default para notes ausente', () => {
+    const { error, value } = studentHealthSchema.validate({
+      answers: validHealthData.answers,
+      lgpdConsent: true,
+      medicalDisclaimer: true,
+    });
+    expect(error).toBeUndefined();
+    expect(value.notes).toBe('');
+  });
+
+  it('aceita notes com texto livre', () => {
+    const { error } = studentHealthSchema.validate({
+      ...validHealthData,
+      notes: 'Cirurgia no joelho em 2023',
     });
     expect(error).toBeUndefined();
   });
@@ -104,25 +108,22 @@ describe('update-student-health › index (updateHealth)', () => {
 
     expect(updateStudentHealth).toHaveBeenCalledOnce();
     expect(updateStudentHealth).toHaveBeenCalledWith(STUDENT_ID, expect.objectContaining({
-      weight: validHealthData.weight,
-      height: validHealthData.height,
-      fitnessLevel: validHealthData.fitnessLevel,
+      answers: validHealthData.answers,
+      lgpdConsent: true,
+      medicalDisclaimer: true,
     }));
   });
 
-  it('lança ValidationException para dados inválidos', async () => {
-    await expect(updateHealth(STUDENT_ID, { weight: -10, height: 50, fitnessLevel: 'NINJA' }))
+  it('lança ValidationException quando lgpdConsent é false', async () => {
+    await expect(updateHealth(STUDENT_ID, { ...validHealthData, lgpdConsent: false }))
       .rejects
       .toBeInstanceOf(ValidationException);
   });
 
-  it('retorna todos os erros de uma vez (abortEarly: false)', async () => {
-    try {
-      await updateHealth(STUDENT_ID, { weight: 999, height: 50, fitnessLevel: 'GURU' });
-    } catch (err) {
-      expect(err).toBeInstanceOf(ValidationException);
-      expect(err.details.length).toBeGreaterThanOrEqual(3);
-    }
+  it('lança ValidationException quando answers está ausente', async () => {
+    await expect(updateHealth(STUDENT_ID, { lgpdConsent: true, medicalDisclaimer: true }))
+      .rejects
+      .toBeInstanceOf(ValidationException);
   });
 
   it('propaga erro do repositório', async () => {
@@ -136,14 +137,16 @@ describe('update-student-health › handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateStudentHealth.mockResolvedValue(undefined);
+    findStudentById.mockResolvedValue(buildStudentRecord());
   });
 
-  it('retorna 200 após atualização bem-sucedida', async () => {
+  it('retorna 200 com o perfil atualizado do cliente', async () => {
     const response = await handler(buildAuthEvent());
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(body.message).toMatch(/sucesso/i);
+    expect(body.clientId).toBe(STUDENT_ID);
+    expect(body.status).toBe('ACTIVE');
   });
 
   it('aceita body como objeto JavaScript (não string)', async () => {
@@ -162,8 +165,8 @@ describe('update-student-health › handler', () => {
     expect(response.statusCode).toBe(401);
   });
 
-  it('retorna 422 para dados de saúde inválidos', async () => {
-    const event = buildAuthEvent({ weight: 999, height: 10, fitnessLevel: 'ALIEN' });
+  it('retorna 422 quando lgpdConsent não foi aceito', async () => {
+    const event = buildAuthEvent({ ...validHealthData, lgpdConsent: false });
     const response = await handler(event);
 
     expect(response.statusCode).toBe(422);

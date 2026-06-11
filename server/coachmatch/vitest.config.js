@@ -7,11 +7,7 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.js'],
       exclude: ['src/**/__tests__/**'],
-      thresholds: {
-        lines: 80,
-        functions: 80,
-        branches: 70,
-      },
+      thresholds: { lines: 80, functions: 80, branches: 70 },
     },
   },
 });

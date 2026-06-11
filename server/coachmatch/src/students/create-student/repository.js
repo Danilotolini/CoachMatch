@@ -8,6 +8,6 @@ const TABLE = 'student';
  * @param {object} student - Item completo a ser inserido.
  */
 export const insertStudent = async (student) => {
-  const docClient = await createClient();
+  const docClient = createClient();
   await docClient.send(new PutCommand({ TableName: TABLE, Item: student }));
 };

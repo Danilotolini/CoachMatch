@@ -9,7 +9,7 @@ const TABLE = 'student';
  * @returns {object|null} Registro do estudante ou null se não encontrado.
  */
 export const findStudentById = async (studentId) => {
-  const docClient = await createClient();
+  const docClient = createClient();
   const result = await docClient.send(
     new GetCommand({ TableName: TABLE, Key: { studentId } })
   );

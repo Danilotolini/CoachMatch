@@ -1,5 +1,6 @@
 import { env } from '@/lib/env'
-import { getToken } from '@/lib/auth'
+import { getToken, isTokenExpired, notifySessionExpired } from '@/lib/auth'
+import { useSessionStore } from '@/stores/sessionStore'
 
 export class ApiError extends Error {
   readonly status: number
@@ -11,13 +12,20 @@ export class ApiError extends Error {
   }
 }
 
-type QueryParams = Record<string, string | number | undefined>
+type QueryParamValue = string | number | readonly (string | number)[] | undefined
+type QueryParams = Record<string, QueryParamValue>
 
 function buildUrl(path: string, params?: QueryParams): string {
   const url = new URL(`${env.apiBaseUrl}${path}`)
   if (params) {
     for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined) url.searchParams.set(key, String(value))
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          url.searchParams.append(key, String(item))
+        }
+      } else if (value !== undefined) {
+        url.searchParams.set(key, String(value))
+      }
     }
   }
   return url.toString()
@@ -25,6 +33,12 @@ function buildUrl(path: string, params?: QueryParams): string {
 
 async function request<T>(url: string, init: RequestInit): Promise<T> {
   const token = getToken()
+  if (isTokenExpired(token)) {
+    useSessionStore.getState().endActiveSession()
+    notifySessionExpired({ reason: 'expired', status: 401 })
+    throw new ApiError(401, 'Sessão expirada.')
+  }
+
   const headers = new Headers(init.headers)
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
@@ -34,6 +48,10 @@ async function request<T>(url: string, init: RequestInit): Promise<T> {
   })
 
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      useSessionStore.getState().endActiveSession()
+      notifySessionExpired({ reason: 'unauthorized', status: res.status })
+    }
     throw new ApiError(res.status, `${init.method ?? 'GET'} ${url} failed (${String(res.status)})`)
   }
 

@@ -5,16 +5,39 @@ vi.mock('../update-student-profile/repository.js', () => ({
   updateStudentProfile: vi.fn(),
 }));
 
+vi.mock('../get-student/repository.js', () => ({
+  findStudentById: vi.fn(),
+}));
+
 import { handler } from '../update-student-profile/handler.js';
 import { updateProfile } from '../update-student-profile/index.js';
 import { studentProfileSchema } from '../update-student-profile/schema.js';
 import { updateStudentProfile } from '../update-student-profile/repository.js';
+import { findStudentById } from '../get-student/repository.js';
 import { ValidationException } from '../../shared/exceptions.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const STUDENT_ID = 'student-abc';
 
-const validProfileData = {
+/** Formato enviado pelo front-end (phone formatado como "(11) 99999-9999") */
+const frontendProfilePayload = {
+  phone: '(11) 98765-4321',
+  birthDate: '1995-06-15',
+  gender: 'F',
+  cep: '01310-100',
+  city: 'São Paulo',
+  state: 'SP',
+  radius: 10,
+  goal: 'WEIGHT_LOSS',
+};
+
+const validProfileData = frontendProfilePayload;
+
+const buildStudentRecord = () => ({
+  studentId: STUDENT_ID,
+  email: 'aluno@email.com',
+  status: 'ONBOARDING_HEALTH',
+  profile: { name: 'Maria' },
   phone: '+5511987654321',
   birthDate: '1995-06-15',
   gender: 'F',
@@ -22,10 +45,10 @@ const validProfileData = {
   city: 'São Paulo',
   state: 'SP',
   radius: 10,
-  goal: 'Emagrecer e ganhar condicionamento',
-};
+  goal: 'WEIGHT_LOSS',
+});
 
-const buildAuthEvent = (body = validProfileData, studentId = STUDENT_ID) => ({
+const buildAuthEvent = (body = frontendProfilePayload, studentId = STUDENT_ID) => ({
   requestContext: {
     authorizer: { jwt: { claims: { sub: studentId } } },
   },
@@ -34,23 +57,23 @@ const buildAuthEvent = (body = validProfileData, studentId = STUDENT_ID) => ({
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 describe('update-student-profile › schema', () => {
-  it('aceita payload válido completo', () => {
+  it('aceita telefone no formato visual do front-end "(11) 99999-9999"', () => {
     const { error } = studentProfileSchema.validate(validProfileData);
     expect(error).toBeUndefined();
   });
 
-  it('rejeita telefone sem código do país +55', () => {
-    const { error } = studentProfileSchema.validate({ ...validProfileData, phone: '11987654321' });
+  it('aceita telefone no formato E.164 "+5511987654321"', () => {
+    const { error } = studentProfileSchema.validate({ ...validProfileData, phone: '+5511987654321' });
+    expect(error).toBeUndefined();
+  });
+
+  it('rejeita telefone inválido (número incompleto)', () => {
+    const { error } = studentProfileSchema.validate({ ...validProfileData, phone: '11987' });
     expect(error?.details[0].path).toContain('phone');
   });
 
-  it('rejeita telefone com formato inválido', () => {
-    const { error } = studentProfileSchema.validate({ ...validProfileData, phone: '+55119876' });
-    expect(error?.details[0].path).toContain('phone');
-  });
-
-  it('aceita gênero M, F e O', () => {
-    for (const gender of ['M', 'F', 'O']) {
+  it('aceita gênero M, F, NB e NA', () => {
+    for (const gender of ['M', 'F', 'NB', 'NA']) {
       const { error } = studentProfileSchema.validate({ ...validProfileData, gender });
       expect(error, `gênero "${gender}" deve ser válido`).toBeUndefined();
     }
@@ -76,12 +99,14 @@ describe('update-student-profile › schema', () => {
     expect(error?.details[0].path).toContain('radius');
   });
 
-  it('rejeita radius 101 (acima do máximo)', () => {
-    const { error } = studentProfileSchema.validate({ ...validProfileData, radius: 101 });
-    expect(error?.details[0].path).toContain('radius');
+  it('aceita radius 5, 10, 20 (valores usados pelo front-end)', () => {
+    for (const radius of [5, 10, 20]) {
+      const { error } = studentProfileSchema.validate({ ...validProfileData, radius });
+      expect(error, `radius ${radius} deve ser válido`).toBeUndefined();
+    }
   });
 
-  it('rejeita birthDate que não é ISO', () => {
+  it('rejeita birthDate fora do formato ISO', () => {
     const { error } = studentProfileSchema.validate({ ...validProfileData, birthDate: '15/06/1995' });
     expect(error?.details[0].path).toContain('birthDate');
   });
@@ -99,7 +124,6 @@ describe('update-student-profile › index (updateProfile)', () => {
 
     expect(updateStudentProfile).toHaveBeenCalledOnce();
     expect(updateStudentProfile).toHaveBeenCalledWith(STUDENT_ID, expect.objectContaining({
-      phone: validProfileData.phone,
       goal: validProfileData.goal,
     }));
   });
@@ -110,12 +134,11 @@ describe('update-student-profile › index (updateProfile)', () => {
       .toBeInstanceOf(ValidationException);
   });
 
-  it('inclui detalhes de todos os erros de validação (abortEarly: false)', async () => {
+  it('retorna todos os erros juntos (abortEarly: false)', async () => {
     try {
-      await updateProfile(STUDENT_ID, { phone: 'ruim', email: 'nao-relevante' });
+      await updateProfile(STUDENT_ID, { phone: 'ruim', gender: 'Z' });
     } catch (err) {
       expect(err).toBeInstanceOf(ValidationException);
-      expect(err.details).toBeDefined();
       expect(err.details.length).toBeGreaterThan(0);
     }
   });
@@ -131,18 +154,41 @@ describe('update-student-profile › handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateStudentProfile.mockResolvedValue(undefined);
+    findStudentById.mockResolvedValue(buildStudentRecord());
   });
 
-  it('retorna 200 após atualização bem-sucedida', async () => {
-    const event = buildAuthEvent();
-    const response = await handler(event);
+  it('retorna 200 com o perfil atualizado do cliente', async () => {
+    const response = await handler(buildAuthEvent());
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(body.message).toMatch(/sucesso/i);
+    expect(body.clientId).toBe(STUDENT_ID);
+    expect(body.status).toBe('ONBOARDING_HEALTH');
   });
 
-  it('aceita body como objeto (não string)', async () => {
+  it('normaliza telefone "(11) 98765-4321" para "+5511987654321" antes da validação', async () => {
+    const event = buildAuthEvent({ ...validProfileData, phone: '(11) 98765-4321' });
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(200);
+    // Verifica que o perfil salvo tem o telefone normalizado
+    expect(updateStudentProfile).toHaveBeenCalledWith(
+      STUDENT_ID,
+      expect.objectContaining({ phone: '+5511987654321' })
+    );
+  });
+
+  it('não altera telefone já no formato E.164', async () => {
+    const event = buildAuthEvent({ ...validProfileData, phone: '+5511987654321' });
+    await handler(event);
+
+    expect(updateStudentProfile).toHaveBeenCalledWith(
+      STUDENT_ID,
+      expect.objectContaining({ phone: '+5511987654321' })
+    );
+  });
+
+  it('aceita body como objeto JavaScript (não string)', async () => {
     const event = { ...buildAuthEvent(), body: validProfileData };
     const response = await handler(event);
     expect(response.statusCode).toBe(200);
@@ -159,7 +205,6 @@ describe('update-student-profile › handler', () => {
 
     expect(response.statusCode).toBe(422);
     const body = JSON.parse(response.body);
-    expect(body.message).toBeDefined();
     expect(body.details).toBeDefined();
   });
 

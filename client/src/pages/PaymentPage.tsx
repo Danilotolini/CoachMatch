@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams } from 'react-router'
 import { ProgressHeader } from '@/components/layout/ProgressHeader'
 import { useCreatePayment } from '@/hooks/useCreatePayment'
 import { useCoachMe } from '@/hooks/useCoachMe'
@@ -57,14 +57,14 @@ function centsToReal(cents: number): string {
 // ─── Mock de sessão / coach ───────────────────────────────────────────────────
 
 const MOCK_SESSION = {
-  coachName:   'Marcos V.',
-  specialty:   'Musculação · Hipertrofia',
-  date:        'Sáb, 24 Jan · 08h00',
-  duration:    '60 min',
-  amount:      18000,
+  coachName: 'Marcos V.',
+  specialty: 'Musculação · Hipertrofia',
+  date: 'Sáb, 24 Jan · 08h00',
+  duration: '60 min',
+  amount: 18000,
   platformFee: 1800,
   coachAmount: 16200,
-  sessionId:   'session_mock_001',  // Session ID for mock
+  sessionId: 'session_mock_001', // Session ID for mock
 }
 
 // ─── Componentes internos ─────────────────────────────────────────────────────
@@ -115,7 +115,11 @@ function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement> & { hasEr
 
 // ─── Tela de resultado ────────────────────────────────────────────────────────
 
-function PaymentResult({ status, amount, onRetry }: {
+function PaymentResult({
+  status,
+  amount,
+  onRetry,
+}: {
   status: 'approved' | 'refused' | 'pending'
   amount: number
   onRetry: () => void
@@ -170,15 +174,23 @@ function PaymentResult({ status, amount, onRetry }: {
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-primary text-xl">calendar_today</span>
             <div className="text-left">
-              <p className="font-label text-xs text-on-surface-variant uppercase tracking-widest">Sessão</p>
-              <p className="font-headline text-sm font-semibold text-on-surface">{MOCK_SESSION.date}</p>
+              <p className="font-label text-xs text-on-surface-variant uppercase tracking-widest">
+                Sessão
+              </p>
+              <p className="font-headline text-sm font-semibold text-on-surface">
+                {MOCK_SESSION.date}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-primary text-xl">person</span>
             <div className="text-left">
-              <p className="font-label text-xs text-on-surface-variant uppercase tracking-widest">Coach</p>
-              <p className="font-headline text-sm font-semibold text-on-surface">{MOCK_SESSION.coachName}</p>
+              <p className="font-label text-xs text-on-surface-variant uppercase tracking-widest">
+                Coach
+              </p>
+              <p className="font-headline text-sm font-semibold text-on-surface">
+                {MOCK_SESSION.coachName}
+              </p>
             </div>
           </div>
         </div>
@@ -195,7 +207,10 @@ function PaymentResult({ status, amount, onRetry }: {
       )}
 
       {status !== 'refused' && (
-        <a href="/dashboard" className="text-primary font-label text-sm hover:underline underline-offset-4">
+        <a
+          href="/dashboard"
+          className="text-primary font-label text-sm hover:underline underline-offset-4"
+        >
           Ir para o Dashboard →
         </a>
       )}
@@ -205,7 +220,11 @@ function PaymentResult({ status, amount, onRetry }: {
 
 // ─── PIX panel ────────────────────────────────────────────────────────────────
 
-function PixPanel({ amount, onConfirm, loading }: {
+function PixPanel({
+  amount,
+  onConfirm,
+  loading,
+}: {
   amount: number
   onConfirm: () => void
   loading: boolean
@@ -249,7 +268,9 @@ function PixPanel({ amount, onConfirm, loading }: {
           </code>
           <button
             type="button"
-            onClick={() => { void navigator.clipboard.writeText(mockPixCode) }}
+            onClick={() => {
+              void navigator.clipboard.writeText(mockPixCode)
+            }}
             className="p-2 rounded-lg bg-surface-container-highest hover:bg-surface-bright transition-colors"
             title="Copiar código"
           >
@@ -259,7 +280,12 @@ function PixPanel({ amount, onConfirm, loading }: {
       </div>
 
       <div className="space-y-2">
-        {['Abra o app do seu banco', 'Acesse a área PIX', 'Escaneie o QR ou cole o código', 'Confirme o pagamento'].map((step, i) => (
+        {[
+          'Abra o app do seu banco',
+          'Acesse a área PIX',
+          'Escaneie o QR ou cole o código',
+          'Confirme o pagamento',
+        ].map((step, i) => (
           <div key={i} className="flex items-center gap-3">
             <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0">
               <span className="font-label text-xs font-bold text-primary">{i + 1}</span>
@@ -293,23 +319,30 @@ function PixPanel({ amount, onConfirm, loading }: {
 
 // ─── Card panel ───────────────────────────────────────────────────────────────
 
-function CardPanel({ onSubmit, loading }: {
+function CardPanel({
+  onSubmit,
+  loading,
+}: {
   onSubmit: (card: CardForm) => void
   loading: boolean
 }) {
   const [form, setForm] = useState<CardForm>({
-    number: '', holder: '', expiryMonth: '', expiryYear: '', cvv: '',
+    number: '',
+    holder: '',
+    expiryMonth: '',
+    expiryYear: '',
+    cvv: '',
   })
   const [errors, setErrors] = useState<CardErrors>({})
 
   function handleNumberChange(value: string) {
-    setForm(f => ({ ...f, number: formatCardNumber(value) }))
+    setForm((f) => ({ ...f, number: formatCardNumber(value) }))
   }
 
   function handleExpiryChange(value: string) {
     const formatted = formatExpiry(value)
     const parts = formatted.split('/')
-    setForm(f => ({
+    setForm((f) => ({
       ...f,
       expiryMonth: parts[0] ?? '',
       expiryYear: parts[1] ? `20${parts[1]}` : '',
@@ -341,7 +374,9 @@ function CardPanel({ onSubmit, loading }: {
               inputMode="numeric"
               placeholder="0000 0000 0000 0000"
               value={form.number}
-              onChange={e => { handleNumberChange(e.target.value); }}
+              onChange={(e) => {
+                handleNumberChange(e.target.value)
+              }}
               hasError={!!errors.number}
             />
             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">
@@ -350,9 +385,9 @@ function CardPanel({ onSubmit, loading }: {
           </div>
           {errors.number && <FieldError message={errors.number} />}
           <p className="mt-1.5 font-body text-[11px] text-on-surface-variant/60">
-            Cartões de teste:{' '}
-            <span className="font-mono text-primary/70">4111 1111 1111 1111</span> (aprovado) ·{' '}
-            <span className="font-mono text-error/70">4222 2222 2222 2222</span> (recusado)
+            Cartões de teste: <span className="font-mono text-primary/70">4111 1111 1111 1111</span>{' '}
+            (aprovado) · <span className="font-mono text-error/70">4222 2222 2222 2222</span>{' '}
+            (recusado)
           </p>
         </div>
 
@@ -363,7 +398,9 @@ function CardPanel({ onSubmit, loading }: {
             type="text"
             placeholder="Como está no cartão"
             value={form.holder}
-            onChange={e => { setForm(f => ({ ...f, holder: e.target.value.toUpperCase() })); }}
+            onChange={(e) => {
+              setForm((f) => ({ ...f, holder: e.target.value.toUpperCase() }))
+            }}
             hasError={!!errors.holder}
           />
           {errors.holder && <FieldError message={errors.holder} />}
@@ -378,7 +415,9 @@ function CardPanel({ onSubmit, loading }: {
               inputMode="numeric"
               placeholder="MM/AA"
               value={expiryDisplay}
-              onChange={e => { handleExpiryChange(e.target.value); }}
+              onChange={(e) => {
+                handleExpiryChange(e.target.value)
+              }}
               hasError={!!errors.expiry}
             />
             {errors.expiry && <FieldError message={errors.expiry} />}
@@ -392,7 +431,9 @@ function CardPanel({ onSubmit, loading }: {
                 placeholder="000"
                 maxLength={4}
                 value={form.cvv}
-                onChange={e => { setForm(f => ({ ...f, cvv: e.target.value.replace(/\D/g, '') })); }}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, cvv: e.target.value.replace(/\D/g, '') }))
+                }}
                 hasError={!!errors.cvv}
               />
               <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[18px]">
@@ -440,7 +481,7 @@ export default function PaymentPage() {
   const params = useParams<{ sessionId?: string }>()
   const { data: coach } = useCoachMe()
   const createPaymentMutation = useCreatePayment()
-  
+
   const [method, setMethod] = useState<PaymentMethod>('pix')
   const [cardStatus, setCardStatus] = useState<CardStatus>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -450,7 +491,7 @@ export default function PaymentPage() {
   function handleCardSubmit(card: CardForm) {
     setError(null)
     setCardStatus('loading')
-    
+
     const cardInfo: CardInfo = {
       number: card.number,
       holder: card.holder,
@@ -459,43 +500,49 @@ export default function PaymentPage() {
       cvv: card.cvv,
     }
 
-    createPaymentMutation.mutate({
-      sessionId: params.sessionId ?? MOCK_SESSION.sessionId,
-      method: 'credit_card',
-      card: cardInfo,
-      amount: MOCK_SESSION.amount,
-      coachId: coach?.email ?? 'coach_mock',
-      studentId: coach?.email ?? 'student_mock',
-    }, {
-      onSuccess: (result) => {
-        setCardStatus(result.status)
+    createPaymentMutation.mutate(
+      {
+        sessionId: params.sessionId ?? MOCK_SESSION.sessionId,
+        method: 'credit_card',
+        card: cardInfo,
+        amount: MOCK_SESSION.amount,
+        coachId: coach?.email ?? 'coach_mock',
+        studentId: coach?.email ?? 'student_mock',
       },
-      onError: (err) => {
-        setError(err instanceof Error ? err.message : 'Erro ao processar pagamento')
-        setCardStatus('idle')
+      {
+        onSuccess: (result) => {
+          setCardStatus(result.status)
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : 'Erro ao processar pagamento')
+          setCardStatus('idle')
+        },
       },
-    })
+    )
   }
 
   function handlePixConfirm() {
     setError(null)
     setCardStatus('loading')
-    
-    createPaymentMutation.mutate({
-      sessionId: params.sessionId ?? MOCK_SESSION.sessionId,
-      method: 'pix',
-      amount: MOCK_SESSION.amount,
-      coachId: coach?.email ?? 'coach_mock',
-      studentId: coach?.email ?? 'student_mock',
-    }, {
-      onSuccess: (result) => {
-        setCardStatus(result.status)
+
+    createPaymentMutation.mutate(
+      {
+        sessionId: params.sessionId ?? MOCK_SESSION.sessionId,
+        method: 'pix',
+        amount: MOCK_SESSION.amount,
+        coachId: coach?.email ?? 'coach_mock',
+        studentId: coach?.email ?? 'student_mock',
       },
-      onError: (err) => {
-        setError(err instanceof Error ? err.message : 'Erro ao processar PIX')
-        setCardStatus('idle')
+      {
+        onSuccess: (result) => {
+          setCardStatus(result.status)
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : 'Erro ao processar PIX')
+          setCardStatus('idle')
+        },
       },
-    })
+    )
   }
 
   function handleRetry() {
@@ -503,14 +550,14 @@ export default function PaymentPage() {
     setError(null)
   }
 
-  const showResult = cardStatus === 'approved' || cardStatus === 'refused' || cardStatus === 'pending'
+  const showResult =
+    cardStatus === 'approved' || cardStatus === 'refused' || cardStatus === 'pending'
 
   return (
     <div className="min-h-dvh flex flex-col bg-surface text-on-surface">
       <ProgressHeader currentStep={3} totalSteps={4} />
 
       <main className="kinetic-grid flex-1 px-4 md:px-8 py-8 max-w-2xl mx-auto w-full space-y-10">
-
         <div>
           <span className="font-headline text-xs font-bold uppercase tracking-[0.2em] text-primary">
             CoachMatch · Pagamento
@@ -531,11 +578,7 @@ export default function PaymentPage() {
         )}
 
         {showResult ? (
-          <PaymentResult
-            status={cardStatus}
-            amount={MOCK_SESSION.amount}
-            onRetry={handleRetry}
-          />
+          <PaymentResult status={cardStatus} amount={MOCK_SESSION.amount} onRetry={handleRetry} />
         ) : (
           <>
             <Section title="Resumo">
@@ -553,22 +596,28 @@ export default function PaymentPage() {
                     <p className="font-headline text-base font-semibold text-on-surface">
                       {MOCK_SESSION.coachName}
                     </p>
-                    <p className="font-body text-xs text-on-surface-variant">{MOCK_SESSION.specialty}</p>
+                    <p className="font-body text-xs text-on-surface-variant">
+                      {MOCK_SESSION.specialty}
+                    </p>
                   </div>
                 </div>
 
                 <div className="p-5 grid grid-cols-2 gap-4">
                   {[
                     { icon: 'calendar_today', label: 'Data & Hora', value: MOCK_SESSION.date },
-                    { icon: 'timer',          label: 'Duração',     value: MOCK_SESSION.duration },
-                  ].map(item => (
+                    { icon: 'timer', label: 'Duração', value: MOCK_SESSION.duration },
+                  ].map((item) => (
                     <div key={item.label} className="flex items-start gap-3">
-                      <span className="material-symbols-outlined text-primary text-lg mt-0.5">{item.icon}</span>
+                      <span className="material-symbols-outlined text-primary text-lg mt-0.5">
+                        {item.icon}
+                      </span>
                       <div>
                         <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
                           {item.label}
                         </p>
-                        <p className="font-body text-sm text-on-surface font-medium">{item.value}</p>
+                        <p className="font-body text-sm text-on-surface font-medium">
+                          {item.value}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -593,14 +642,21 @@ export default function PaymentPage() {
 
             <Section title="Método de Pagamento">
               <div className="grid grid-cols-2 gap-3">
-                {([
-                  { id: 'pix' as const,         icon: 'qr_code_2',  label: 'PIX',    badge: 'Instantâneo' as string | null },
-                  { id: 'credit_card' as const,  icon: 'credit_card', label: 'Cartão', badge: null },
-                ]).map(opt => (
+                {[
+                  {
+                    id: 'pix' as const,
+                    icon: 'qr_code_2',
+                    label: 'PIX',
+                    badge: 'Instantâneo' as string | null,
+                  },
+                  { id: 'credit_card' as const, icon: 'credit_card', label: 'Cartão', badge: null },
+                ].map((opt) => (
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => { setMethod(opt.id); }}
+                    onClick={() => {
+                      setMethod(opt.id)
+                    }}
                     className={[
                       'rounded-xl p-4 border text-left transition-all',
                       method === opt.id
@@ -608,10 +664,14 @@ export default function PaymentPage() {
                         : 'border-outline-variant/20 bg-surface-container-low hover:border-outline-variant/50',
                     ].join(' ')}
                   >
-                    <span className={`material-symbols-outlined text-2xl ${method === opt.id ? 'text-primary' : 'text-on-surface-variant'}`}>
+                    <span
+                      className={`material-symbols-outlined text-2xl ${method === opt.id ? 'text-primary' : 'text-on-surface-variant'}`}
+                    >
                       {opt.icon}
                     </span>
-                    <p className={`font-headline text-sm font-semibold mt-2 ${method === opt.id ? 'text-on-surface' : 'text-on-surface-variant'}`}>
+                    <p
+                      className={`font-headline text-sm font-semibold mt-2 ${method === opt.id ? 'text-on-surface' : 'text-on-surface-variant'}`}
+                    >
                       {opt.label}
                     </p>
                     {opt.badge !== null && (
@@ -632,10 +692,7 @@ export default function PaymentPage() {
                   loading={isLoading}
                 />
               ) : (
-                <CardPanel
-                  onSubmit={handleCardSubmit}
-                  loading={isLoading}
-                />
+                <CardPanel onSubmit={handleCardSubmit} loading={isLoading} />
               )}
             </Section>
           </>

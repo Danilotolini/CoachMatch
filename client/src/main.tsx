@@ -1,8 +1,8 @@
-import { StrictMode } from 'react'
+import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools' 
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { queryClient } from '@/lib/queryClient'
 import './index.css'
 
@@ -14,59 +14,121 @@ async function enableMocking() {
 
 import WelcomePage from '@/pages/WelcomePage'
 import LoginPage from '@/pages/LoginPage'
-import RoutesTestPage from '@/pages/RoutesTestPage'
 import CognitoCallbackPage from '@/pages/CognitoCallbackPage'
-import OnboardingPage from '@/pages/OnboardingPage'
-import PendingReviewPage from '@/pages/PendingReviewPage'
-import RejectedPage from '@/pages/RejectedPage'
-import DashboardPage from '@/pages/DashboardPage' 
+import CoachOnboardingPage from '@/pages/CoachOnboardingPage'
+import ClientOnboardingPage from '@/pages/ClientOnboardingPage'
+import ClientHealthFormPage from '@/pages/ClientHealthFormPage'
+import CoachPendingReviewPage from '@/pages/CoachPendingReviewPage'
+import CoachRejectedPage from '@/pages/CoachRejectedPage'
+import CoachDashboardPage from '@/pages/CoachDashboardPage'
+import ClientHomePage from '@/pages/ClientHomePage'
 import PaymentPage from '@/pages/PaymentPage'
-import { RouteGuard } from '@/components/RouteGuard'
+import { CoachRouteGuard } from '@/components/CoachRouteGuard'
+import { ClientRouteGuard } from '@/components/ClientRouteGuard'
+import { AppShell } from '@/components/AppShell'
+import ClientSearchPage from '@/pages/ClientSearchPage'
+
+function getDevRoutes() {
+  if (!import.meta.env.DEV) return []
+  const DevToolsPage = lazy(() => import('@/pages/DevToolsPage'))
+  return [
+    {
+      path: '/dev',
+      element: (
+        <Suspense fallback={null}>
+          <DevToolsPage />
+        </Suspense>
+      ),
+    },
+  ]
+}
 
 const router = createBrowserRouter([
-  { path: '/', element: <WelcomePage /> },
-  { path: '/rotas', element: <RoutesTestPage /> },
-  { path: '/entrar', element: <LoginPage /> },
-  { path: '/auth/cognito/callback', element: <CognitoCallbackPage /> },
   {
-    path: '/cadastro/profissional',
-    element: (
-      <RouteGuard allow={['PROFILE_INCOMPLETE']}>
-        <OnboardingPage />
-      </RouteGuard>
-    ),
-  },
-  {
-    path: '/em-analise',
-    element: (
-      <RouteGuard allow={['PENDING_REVIEW']}>
-        <PendingReviewPage />
-      </RouteGuard>
-    ),
-  },
-  {
-    path: '/reprovado',
-    element: (
-      <RouteGuard allow={['REJECTED']}>
-        <RejectedPage />
-      </RouteGuard>
-    ),
-  },
-  {
-    path: '/dashboard',
-    element: (
-      <RouteGuard allow={['APPROVED']}>
-        <DashboardPage />
-      </RouteGuard>
-    ),
-  }, 
-  {
-    path: '/pagamento/:sessionId',
-    element: (
-      <RouteGuard allow={['APPROVED']}>
-        <PaymentPage />
-      </RouteGuard>
-    ),
+    element: <AppShell />,
+    children: [
+      { path: '/', element: <WelcomePage /> },
+      ...getDevRoutes(),
+      { path: '/coach/login', element: <LoginPage audience="coach" /> },
+      { path: '/client/login', element: <LoginPage audience="client" /> },
+      { path: '/auth/cognito/callback', element: <CognitoCallbackPage audience="coach" /> },
+      {
+        path: '/auth/cognito/student/callback',
+        element: <CognitoCallbackPage audience="client" />,
+      },
+      {
+        path: '/client/onboarding',
+        element: (
+          <ClientRouteGuard>
+            <ClientOnboardingPage />
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/client/health',
+        element: (
+          <ClientRouteGuard>
+            <ClientHealthFormPage />
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/client',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <ClientHomePage />
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/client/search',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <ClientSearchPage />
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/coach/onboarding',
+        element: (
+          <CoachRouteGuard allow={['ONBOARDING_PROFILE']}>
+            <CoachOnboardingPage />
+          </CoachRouteGuard>
+        ),
+      },
+      {
+        path: '/coach/pending-review',
+        element: (
+          <CoachRouteGuard allow={['PENDING_REVIEW']}>
+            <CoachPendingReviewPage />
+          </CoachRouteGuard>
+        ),
+      },
+      {
+        path: '/coach/rejected',
+        element: (
+          <CoachRouteGuard allow={['REJECTED']}>
+            <CoachRejectedPage />
+          </CoachRouteGuard>
+        ),
+      },
+      {
+        path: '/coach',
+        element: (
+          <CoachRouteGuard allow={['APPROVED']}>
+            <CoachDashboardPage />
+          </CoachRouteGuard>
+        ),
+      },
+      {
+        path: '/pagamento/:sessionId',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <PaymentPage />
+          </ClientRouteGuard>
+        ),
+      },
+    ],
   },
 ])
 

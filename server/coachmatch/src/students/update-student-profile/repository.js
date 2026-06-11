@@ -9,7 +9,7 @@ const TABLE = 'student';
  * @param {object} profileData - Dados validados do perfil.
  */
 export const updateStudentProfile = async (studentId, profileData) => {
-  const docClient = await createClient();
+  const docClient = createClient();
 
   await docClient.send(
     new UpdateCommand({

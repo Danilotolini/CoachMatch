@@ -1,10 +1,80 @@
 import { env } from '@/lib/env'
+import { type Role, useSessionStore } from '@/stores/sessionStore'
 
-const PKCE_KEY = 'cognito_pkce_verifier'
-const STATE_KEY = 'cognito_oauth_state'
+type ExternalAudience = 'coach' | 'student'
 
-function redirectUri(): string {
+function externalAudience(role: Role): ExternalAudience {
+  return role === 'client' ? 'student' : 'coach'
+}
+
+function pkceKey(role: Role): string {
+  return `cognito_${externalAudience(role)}_pkce_verifier`
+}
+
+function stateKey(role: Role): string {
+  return `cognito_${externalAudience(role)}_oauth_state`
+}
+
+interface CognitoClientConfig {
+  clientId: string
+  clientSecret: string | null
+  domain: string
+  redirectUri: string
+}
+
+function redirectUri(role: Role): string {
+  if (role === 'client') return `${window.location.origin}/auth/cognito/student/callback`
   return `${window.location.origin}/auth/cognito/callback`
+}
+
+function clientConfig(role: Role): CognitoClientConfig {
+  if (role === 'client') {
+    return {
+      clientId: env.cognitoStudentClientId,
+      clientSecret: null,
+      domain: env.cognitoStudentDomain,
+      redirectUri: redirectUri(role),
+    }
+  }
+
+  return {
+    clientId: env.cognitoClientId,
+    clientSecret: env.cognitoClientSecret,
+    domain: env.cognitoDomain,
+    redirectUri: redirectUri(role),
+  }
+}
+
+function defaultReturnPath(): string {
+  return '/'
+}
+
+function logoutUri(returnPath: string): string {
+  if (returnPath === '/') return window.location.origin
+  return `${window.location.origin}${returnPath}`
+}
+
+export function getLogoutUrl(role: Role, returnPath: string = defaultReturnPath()): string {
+  const config = clientConfig(role)
+  const params = new URLSearchParams({
+    client_id: config.clientId,
+    logout_uri: logoutUri(returnPath),
+  })
+  return `${config.domain}/logout?${params.toString()}`
+}
+
+// Limpa apenas a sessão do papel atual e redireciona para o /logout do
+// Cognito Hosted UI, que encerra a sessão lá e devolve o usuário à tela
+// de login do mesmo papel. Sessões de outros papéis permanecem ativas.
+export function logout(role: Role, returnPath: string = defaultReturnPath()): void {
+  if (import.meta.env.DEV && import.meta.env.VITE_API_MOCKING === 'enabled') {
+    useSessionStore.persist.clearStorage()
+    window.location.replace(returnPath)
+    return
+  }
+
+  useSessionStore.getState().endSession(role)
+  window.location.href = getLogoutUrl(role, returnPath)
 }
 
 function base64UrlEncode(buffer: ArrayBuffer): string {
@@ -24,24 +94,25 @@ async function sha256(input: string): Promise<ArrayBuffer> {
   return crypto.subtle.digest('SHA-256', new TextEncoder().encode(input))
 }
 
-export async function getLoginUrl(): Promise<string> {
+export async function getLoginUrl(role: Role): Promise<string> {
+  const config = clientConfig(role)
   const verifier = randomBase64Url(32)
   const challenge = base64UrlEncode(await sha256(verifier))
   const state = randomBase64Url(16)
 
-  sessionStorage.setItem(PKCE_KEY, verifier)
-  sessionStorage.setItem(STATE_KEY, state)
+  sessionStorage.setItem(pkceKey(role), verifier)
+  sessionStorage.setItem(stateKey(role), state)
 
   const params = new URLSearchParams({
-    client_id: env.cognitoClientId,
+    client_id: config.clientId,
     response_type: 'code',
     scope: 'email openid profile',
-    redirect_uri: redirectUri(),
+    redirect_uri: config.redirectUri,
     state,
     code_challenge: challenge,
     code_challenge_method: 'S256',
   })
-  return `${env.cognitoDomain}/oauth2/authorize?${params}`
+  return `${config.domain}/oauth2/authorize?${params}`
 }
 
 interface TokenResponse {
@@ -93,11 +164,13 @@ function parseTokenResponse(value: unknown): TokenResponse {
 export async function exchangeCodeForTokens(
   code: string,
   state: string | null,
+  role: Role,
 ): Promise<TokenResponse> {
-  const expectedState = sessionStorage.getItem(STATE_KEY)
-  const verifier = sessionStorage.getItem(PKCE_KEY)
-  sessionStorage.removeItem(STATE_KEY)
-  sessionStorage.removeItem(PKCE_KEY)
+  const config = clientConfig(role)
+  const expectedState = sessionStorage.getItem(stateKey(role))
+  const verifier = sessionStorage.getItem(pkceKey(role))
+  sessionStorage.removeItem(stateKey(role))
+  sessionStorage.removeItem(pkceKey(role))
 
   if (!expectedState || expectedState !== state) {
     throw new Error('Estado inválido. Reinicie o login.')
@@ -108,17 +181,17 @@ export async function exchangeCodeForTokens(
 
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
-    client_id: env.cognitoClientId,
+    client_id: config.clientId,
     code,
-    redirect_uri: redirectUri(),
+    redirect_uri: config.redirectUri,
     code_verifier: verifier,
   })
 
-  if (env.cognitoClientSecret) {
-    body.append('client_secret', env.cognitoClientSecret)
+  if (config.clientSecret) {
+    body.append('client_secret', config.clientSecret)
   }
 
-  const res = await fetch(`${env.cognitoDomain}/oauth2/token`, {
+  const res = await fetch(`${config.domain}/oauth2/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),

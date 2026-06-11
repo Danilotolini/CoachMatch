@@ -23,7 +23,7 @@ export function WelcomeProfileCard({
       onClick={() => {
         void navigate(to)
       }}
-      className="group relative flex min-h-40 w-full appearance-none items-center justify-between gap-4 rounded-xl border-0 bg-surface-container-low p-[2rem] text-left text-on-surface transition-all duration-300 hover:translate-x-1 hover:bg-surface-container-high active:scale-[0.99]"
+      className="group relative flex min-h-40 w-full appearance-none items-center justify-between gap-4 rounded-xl border-0 bg-surface-container-low p-8 text-left text-on-surface transition-all duration-300 hover:translate-x-1 hover:bg-surface-container-high active:scale-[0.99]"
     >
       <div className="flex flex-col items-start gap-2 text-left">
         <span className="material-symbols-outlined text-3xl text-primary">{icon}</span>

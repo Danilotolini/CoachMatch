@@ -13,7 +13,7 @@
     "jsonwebtoken": "^9.0.3",
     "serveless": "^0.0.2",
     "serverless-http": "^4.0.0",
-    "uuid": "^14.0.0"
+    "uuid": "9.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

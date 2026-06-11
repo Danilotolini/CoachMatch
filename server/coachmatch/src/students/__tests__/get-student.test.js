@@ -31,12 +31,12 @@ const buildStudentRecord = (overrides = {}) => ({
   city: 'São Paulo',
   state: 'SP',
   radius: 10,
-  goal: 'Emagrecer',
+  goal: 'WEIGHT_LOSS',
   health: {
-    weight: 65,
-    height: 165,
-    fitnessLevel: 'INICIANTE',
-    healthConditions: [],
+    answers: { heart: 'NO', chest_pain: 'NO', dizziness: 'NO', bone_joint: 'NO', medication: 'NO' },
+    notes: '',
+    lgpdConsent: true,
+    medicalDisclaimer: true,
   },
   ...overrides,
 });
@@ -45,18 +45,19 @@ const buildStudentRecord = (overrides = {}) => ({
 describe('get-student › index (getStudentProfile)', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('retorna perfil mapeado corretamente', async () => {
+  it('retorna perfil mapeado corretamente (clientId em vez de studentId)', async () => {
     const record = buildStudentRecord();
     findStudentById.mockResolvedValue(record);
 
     const result = await getStudentProfile(STUDENT_ID);
 
-    expect(result.studentId).toBe(STUDENT_ID);
+    // Front-end espera clientId (não studentId)
+    expect(result.clientId).toBe(STUDENT_ID);
+    expect(result).not.toHaveProperty('studentId');
     expect(result.email).toBe('aluno@email.com');
     expect(result.status).toBe('ACTIVE');
     expect(result.name).toBe('Maria Santos');
     expect(result.phone).toBe('+5511987654321');
-    expect(result.health.fitnessLevel).toBe('INICIANTE');
   });
 
   it('mapeia campos ausentes para null sem lançar erro', async () => {
@@ -93,7 +94,7 @@ describe('get-student › index (getStudentProfile)', () => {
 describe('get-student › handler', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('retorna 200 com perfil do estudante', async () => {
+  it('retorna 200 com perfil do estudante (clientId no payload)', async () => {
     findStudentById.mockResolvedValue(buildStudentRecord());
     const event = buildAuthEvent();
 
@@ -101,7 +102,7 @@ describe('get-student › handler', () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(body.studentId).toBe(STUDENT_ID);
+    expect(body.clientId).toBe(STUDENT_ID);
     expect(body.email).toBe('aluno@email.com');
   });
 

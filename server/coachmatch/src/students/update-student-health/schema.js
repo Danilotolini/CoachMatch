@@ -1,16 +1,33 @@
 import Joi from 'joi';
 
+/**
+ * IDs das perguntas PAR-Q definidos no front-end (ClientHealthFormPage.tsx).
+ * Cada resposta é 'YES' ou 'NO'.
+ */
+const PARQ_QUESTION_IDS = ['heart', 'chest_pain', 'dizziness', 'bone_joint', 'medication'];
+
 export const studentHealthSchema = Joi.object({
-  weight: Joi.number().positive().max(300).required()
-    .messages({ 'number.max': 'Peso máximo é 300 kg' }),
-
-  height: Joi.number().integer().min(100).max(250).required()
-    .messages({ 'number.min': 'Altura mínima é 100 cm', 'number.max': 'Altura máxima é 250 cm' }),
-
-  fitnessLevel: Joi.string()
-    .valid('SEDENTARIO', 'INICIANTE', 'INTERMEDIARIO', 'AVANCADO')
+  // Mapa de respostas ao questionário PAR-Q: { heart: 'NO', chest_pain: 'NO', ... }
+  answers: Joi.object()
+    .pattern(
+      Joi.string().valid(...PARQ_QUESTION_IDS),
+      Joi.string().valid('YES', 'NO').required()
+    )
     .required()
-    .messages({ 'any.only': 'Nível de condicionamento inválido' }),
+    .messages({ 'object.base': 'Respostas ao PAR-Q são obrigatórias' }),
 
-  healthConditions: Joi.array().items(Joi.string()).default([]),
+  // Observações sobre restrições, lesões ou cirurgias (opcional)
+  notes: Joi.string().allow('').default(''),
+
+  // Consentimento LGPD: deve ser true para continuar
+  lgpdConsent: Joi.boolean()
+    .valid(true)
+    .required()
+    .messages({ 'any.only': 'Consentimento LGPD é obrigatório' }),
+
+  // Ciência do disclaimer médico: deve ser true para continuar
+  medicalDisclaimer: Joi.boolean()
+    .valid(true)
+    .required()
+    .messages({ 'any.only': 'Aceite do disclaimer médico é obrigatório' }),
 });
