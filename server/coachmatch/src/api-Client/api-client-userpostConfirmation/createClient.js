@@ -22,11 +22,14 @@ const isAlunoFieldsValid = (userAttributes) => {
 
 function fromCognitoAttributesToAluno(userAttributes) {
 const alunoAttributes = {
-     TableName:"coaches",
+     TableName:"student",
       Item:{
-        clientId:userAttributes.sub,
+        studentId:userAttributes.sub,
         email:userAttributes.email,
         status:"ONBOARDING_PROFILE",
+        profile:{
+          name: userAttributes.name
+        }
       }
     }
     return alunoAttributes;
