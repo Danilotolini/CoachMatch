@@ -8,14 +8,16 @@ service: coachmatch
 
 
 stages:
+  # Stage para deploy real na AWS (CI/CD e deploys manuais do dev)
   dev:
     params:
-      stage: ${self:custom.config.stage}
-      region: ${self:custom.config.region}
+      stage: dev
+      region: sa-east-1   # região onde estão os recursos AWS do projeto
+  # Stage local — serverless-offline + DynamoDB Local (nunca faz deploy na AWS)
   local:
     params:
-      stage: ${self:custom.config.stage}
-      region: ${self:custom.config.region}
+      stage: local
+      region: us-east-1
       endpoint: ${self:custom.config.endpoint}
       access_key_id: ${self:custom.config.accessKeyId}
       secret_access: ${self:custom.config.secretAccessKey}
@@ -26,10 +28,13 @@ plugins:
   
 
 provider:
-  profile: JoaoAdm
+  # Perfil AWS nomeado — só usado em deploys manuais locais.
+  # CI/CD (GitHub Actions) usa AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+  # como variáveis de ambiente; profile vazio é ignorado pelo Serverless.
+  profile: ${self:custom.awsProfile.${sls:stage}, ''}
   timeout: 30
   name: aws
-  
+
   httpApi:
     authorizers:
       cognitoAuthorizer:
@@ -39,8 +44,10 @@ provider:
         audience:
           - 76hul7797npfkmpoju0mbghti7
 
-  stage: ${self:custom.config.stage}
-  region: ${self:custom.config.region}
+  # stage vem do --stage flag (ex: --stage dev); padrão: local
+  stage: ${opt:stage, 'local'}
+  # região sempre sa-east-1 onde os recursos AWS do projeto estão criados
+  region: sa-east-1
   iam:
     role:
       statements:
@@ -256,6 +263,12 @@ resources:
 
 custom:
   config: ${file(./config.yml)}
+
+  # Perfil AWS por stage — só 'local' usa perfil nomeado.
+  # Em CI/CD os outros stages usam variáveis de ambiente da AWS.
+  awsProfile:
+    local: JoaoAdm
+
   dynamodb:
     stages:
       - local
