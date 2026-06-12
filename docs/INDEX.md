@@ -33,8 +33,8 @@ Detalhes técnicos de implementações
 ## 🔧 **[/setup](./setup/)**
 Guias de configuração e testes
 
+- `GETTING_STARTED.md` — **Setup completo do zero** (frontend, backend, testes, deploy)
 - `TESTS_SETUP.md` — Configuração de testes (Jest, Playwright, CI/CD)
-- Scripts de setup local
 
 ---
 
@@ -50,7 +50,7 @@ Documentação adicional
 ## 🎯 Guia Rápido
 
 **Comecei agora? 🆕**
-→ Leia [`design-system.md`](./design-system.md) para entender tokens
+→ Comece por [`/setup/GETTING_STARTED.md`](./setup/GETTING_STARTED.md)
 
 **Implementando pagamento? 💳**
 → Veja [`/integrations/PAYMENT_INTEGRATION.md`](./integrations/PAYMENT_INTEGRATION.md)
@@ -67,6 +67,7 @@ Documentação adicional
 
 | Tópico | Arquivo | Uso |
 |--------|---------|-----|
+| **Setup do zero** | `/setup/GETTING_STARTED.md` | Clonar, instalar, rodar tudo |
 | Design Tokens | `design-system.md` | Cores, tipografia, spacing |
 | Git Workflow | `git-workflow.md` | Branches, commits, PRs |
 | Pagamentos | `/integrations/PAYMENT_INTEGRATION.md` | Setup e testes |
