@@ -1,14 +1,13 @@
 openapi: 3.0.3
 info:
   title: CoachMatch API
-  version: 0.3.0
+  version: 0.4.0
   description: |
     Especificação das rotas implementadas no serviço `server/coachmatch` (Serverless Framework + DynamoDB).
 
     Rotas implementadas:
-    - `/coaches/*`  — treinadores autenticados (Cognito pool CoachAccess)
-    - `/clients/*`  — alunos autenticados (Cognito pool StudentAccess)
-    - `/gyms/*`     — academias (ambos os papéis)
+    - `/coach/*`   — treinadores autenticados (Cognito pool CoachAccess)
+    - `/student/*` — alunos autenticados (Cognito pool StudentAccess)
 
     Rotas marcadas com `x-not-implemented: true` existem apenas como planejamento futuro.
     Endpoints de terceiros (Cognito OAuth) e helpers de desenvolvimento ficam fora deste contrato.
@@ -27,6 +26,8 @@ tags:
     description: Disponibilidades e gestão de agendamentos do treinador.
   - name: Student — Perfil
     description: Dados do aluno autenticado.
+  - name: Student — Uploads
+    description: Geração de URLs pré-assinadas para upload direto ao S3 (aluno).
   - name: Student — Recursos
     description: Especialidades e academias acessadas pelo aluno.
   - name: Student — Agenda
@@ -41,7 +42,7 @@ paths:
   # ─────────────────────────────────────────────
   # Coach — Perfil
   # ─────────────────────────────────────────────
-  /coaches/me:
+  /coach/me:
     get:
       tags: [Coach — Perfil]
       summary: Retorna o treinador autenticado.
@@ -76,31 +77,10 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /coaches/me/submit-for-review:
-    post:
-      tags: [Coach — Perfil]
-      summary: Submete o perfil do treinador para análise.
-      operationId: submitCoachForReview
-      responses:
-        "200":
-          description: Status atualizado para `PENDING_REVIEW`.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Coach"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "409":
-          description: Estado atual não permite submissão.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
   # ─────────────────────────────────────────────
   # Coach — Uploads
   # ─────────────────────────────────────────────
-  /upload-url:  # x-not-implemented: true
+  /coach/upload-url:
     post:
       tags: [Coach — Uploads]
       summary: Gera URL pré-assinada (POST policy do S3) para upload de vídeo.
@@ -132,7 +112,7 @@ paths:
   # ─────────────────────────────────────────────
   # Coach — Recursos
   # ─────────────────────────────────────────────
-  /specialties:  # x-not-implemented: true
+  /coach/specialties:
     get:
       tags: [Coach — Recursos]
       summary: Lista catálogo de especialidades (contexto treinador).
@@ -163,7 +143,7 @@ paths:
                         items:
                           $ref: "#/components/schemas/Specialty"
 
-  /gyms:
+  /coach/gyms:
     get:
       tags: [Coach — Recursos]
       summary: Lista academias cadastradas (contexto treinador).
@@ -199,7 +179,7 @@ paths:
                         items:
                           $ref: "#/components/schemas/Gym"
 
-  /gyms/suggest:
+  /coach/gyms/suggest:
     post:
       tags: [Coach — Recursos]
       summary: Envia sugestão de nova academia (pelo treinador). Sempre criada como inativa.
@@ -223,7 +203,7 @@ paths:
   # ─────────────────────────────────────────────
   # Coach — Agenda
   # ─────────────────────────────────────────────
-  /coach/schedule:  # x-not-implemented: true
+  /coach/schedule:
     get:
       tags: [Coach — Agenda]
       summary: Lista disponibilidades do treinador autenticado.
@@ -420,7 +400,7 @@ paths:
   # ─────────────────────────────────────────────
   # Student — Perfil
   # ─────────────────────────────────────────────
-  /clients/me:
+  /student/me:
     get:
       tags: [Student — Perfil]
       summary: Retorna o aluno autenticado.
@@ -435,7 +415,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /clients/me/profile:
+  /student/profile:
     post:
       tags: [Student — Perfil]
       summary: Conclui o cadastro de perfil do aluno.
@@ -458,7 +438,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /clients/me/health:
+  /student/health:
     post:
       tags: [Student — Perfil]
       summary: Envia o questionário de saúde e consentimentos do aluno.
@@ -486,10 +466,39 @@ paths:
           $ref: "#/components/responses/Unauthorized"
 
   # ─────────────────────────────────────────────
-  # Recursos Compartilhados (alunos e treinadores)
-  # Nota: /gyms e /gyms/suggest já estão documentados
-  # acima na seção "Coach — Recursos" — o mesmo endpoint
-  # serve ambos os papéis (Cognito JWT de qualquer pool).
+  # Student — Uploads
+  # ─────────────────────────────────────────────
+  /student/upload-url:
+    post:
+      tags: [Student — Uploads]
+      summary: Gera URL pré-assinada (POST policy do S3) para upload de arquivos do aluno.
+      operationId: createStudentUploadUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename, contentType]
+              properties:
+                filename:
+                  type: string
+                  example: documento-aluno.pdf
+                contentType:
+                  type: string
+                  example: application/pdf
+      responses:
+        "200":
+          description: URL e campos para envio multipart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ─────────────────────────────────────────────
+  # Student — Recursos
   # ─────────────────────────────────────────────
   /student/specialties:
     get:
@@ -582,40 +591,6 @@ paths:
   # ─────────────────────────────────────────────
   # Student — Agenda
   # ─────────────────────────────────────────────
-  /student/coach/schedules:
-    get:
-      tags: [Student — Agenda]
-      summary: Lista disponibilidades de um treinador específico.
-      operationId: getCoachSchedulesForStudent
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                coachId:
-                  type: string
-                  example: 83dcfaba-f0c1-705d-b109-2b381fed0971
-                startDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-05-01T08:00:30-03:00"
-                endDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-06-06T08:00:30-03:00"
-      responses:
-        "200":
-          description: Lista de disponibilidades do treinador.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Schedule"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
   /student/gyms/schedule:
     get:
       tags: [Student — Agenda]
@@ -649,6 +624,40 @@ paths:
                 $ref: "#/components/schemas/GymScheduleResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /student/coach/schedules:
+    get:
+      tags: [Student — Agenda]
+      summary: Lista disponibilidades de um treinador específico.
+      operationId: getCoachSchedulesForStudent
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                coachId:
+                  type: string
+                  example: 83dcfaba-f0c1-705d-b109-2b381fed0971
+                startDateTime:
+                  type: string
+                  format: date-time
+                  example: "2026-05-01T08:00:30-03:00"
+                endDateTime:
+                  type: string
+                  format: date-time
+                  example: "2026-06-06T08:00:30-03:00"
+      responses:
+        "200":
+          description: Lista de disponibilidades do treinador.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Schedule"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -732,6 +741,57 @@ paths:
           $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
+
+  /student/coaches:
+    get:
+      tags: [Student — Agenda]
+      summary: Busca treinadores publicamente listáveis.
+      operationId: searchCoaches
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Termo livre (nome, cidade, bairro, especialidade).
+        - in: query
+          name: "specialties[]"
+          description: Filtra por uma ou mais especialidades. Pode repetir o parâmetro.
+          schema:
+            type: array
+            items: { type: string }
+          style: form
+          explode: true
+        - in: query
+          name: address
+          schema: { type: string }
+          description: Filtro por bairro/cidade.
+        - in: query
+          name: availableOn
+          schema: { type: string, format: date }
+          description: Data ISO (yyyy-mm-dd) para filtrar disponibilidade.
+        - in: query
+          name: sort
+          schema:
+            $ref: "#/components/schemas/CoachSearchSort"
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 12 }
+      responses:
+        "200":
+          description: Resultado paginado da busca.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/CoachListItem"
 
   /student/coach/schedules/cancel:
     post:
@@ -937,60 +997,6 @@ paths:
                   total: { type: integer }
         "401":
           $ref: "#/components/responses/Unauthorized"
-
-  # ─────────────────────────────────────────────
-  # Busca pública de treinadores (mantida do contrato anterior)
-  # ─────────────────────────────────────────────
-  /student/coaches:
-    get:
-      tags: [Student — Agenda]
-      summary: Busca treinadores publicamente listáveis.
-      operationId: searchCoaches
-      parameters:
-        - in: query
-          name: q
-          schema: { type: string }
-          description: Termo livre (nome, cidade, bairro, especialidade).
-        - in: query
-          name: "specialties[]"
-          description: Filtra por uma ou mais especialidades. Pode repetir o parâmetro.
-          schema:
-            type: array
-            items: { type: string }
-          style: form
-          explode: true
-        - in: query
-          name: address
-          schema: { type: string }
-          description: Filtro por bairro/cidade.
-        - in: query
-          name: availableOn
-          schema: { type: string, format: date }
-          description: Data ISO (yyyy-mm-dd) para filtrar disponibilidade.
-        - in: query
-          name: sort
-          schema:
-            $ref: "#/components/schemas/CoachSearchSort"
-        - in: query
-          name: page
-          schema: { type: integer, minimum: 1, default: 1 }
-        - in: query
-          name: limit
-          schema: { type: integer, minimum: 1, maximum: 100, default: 12 }
-      responses:
-        "200":
-          description: Resultado paginado da busca.
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/PaginatedEnvelope"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/CoachListItem"
 
 components:
   securitySchemes:
