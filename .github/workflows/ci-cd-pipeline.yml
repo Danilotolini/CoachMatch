@@ -106,13 +106,6 @@ jobs:
       contents: read
       checks: write
 
-    services:
-      # DynamoDB Local for api-pagamentos integration tests
-      dynamodb:
-        image: amazon/dynamodb-local:latest
-        ports:
-          - 8000:8000
-
     steps:
       - uses: actions/checkout@v4
 
@@ -125,38 +118,25 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      # Root install covers `client` and `server` (api-pagamentos) workspaces
       - name: Install root workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      # server/coachmatch is a nested pnpm workspace — install separately
+      # server/coachmatch é uma workspace pnpm aninhada — instalar separadamente
       - name: Install coachmatch dependencies
         run: cd server/coachmatch && pnpm install --frozen-lockfile
 
-      # Vitest — coachmatch lambdas (ESM, 3-layer architecture)
+      # Vitest — todas as Lambdas (coaches, students, gyms, payments)
       - name: Test coachmatch lambdas (Vitest)
         run: cd server/coachmatch && pnpm run test:coverage
         env:
           STAGE: test
           REGION: us-east-1
-        continue-on-error: true
 
-      # Jest — api-pagamentos (CommonJS, Babel transform)
-      - name: Test api-pagamentos (Jest)
-        run: pnpm run test:backend
-        env:
-          AWS_REGION: us-east-1
-          DYNAMODB_ENDPOINT: http://localhost:8000
-        continue-on-error: true
-
-      # Upload coverage for both packages
       - uses: codecov/codecov-action@v4
         if: always()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: >-
-            ./server/coachmatch/coverage/coverage-final.json,
-            ./server/api-pagamentos/coverage/coverage-final.json
+          files: ./server/coachmatch/coverage/coverage-final.json
           flags: backend
           name: backend-coverage
           fail_ci_if_error: false
