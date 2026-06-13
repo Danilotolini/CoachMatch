@@ -8,7 +8,7 @@ export function WelcomeHeroPanel() {
         src={HERO_IMAGE}
         className="absolute inset-0 h-full w-full object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-surface/0 to-surface" />
+      <div className="absolute inset-0 bg-linear-to-r from-surface/0 to-surface" />
       <div className="relative z-10 flex min-h-[max(884px,100dvh)] flex-col justify-between p-12">
         <span className="font-headline text-2xl font-black tracking-tighter text-primary uppercase">
           CoachMatch

@@ -10,12 +10,12 @@ export function RadioOption({ label, description, checked, onChange }: RadioOpti
     <label
       className={`flex items-start p-5 rounded-xl cursor-pointer transition-all border ${
         checked
-          ? 'bg-surface-container-high border-primary bg-primary/5'
+          ? 'bg-surface-container-high border-primary'
           : 'bg-surface-container-low border-transparent hover:bg-surface-container-highest'
       }`}
     >
       <input type="radio" checked={checked} onChange={onChange} className="sr-only" />
-      <div className="flex-shrink-0 mt-0.5 mr-4">
+      <div className="shrink-0 mt-0.5 mr-4">
         <span
           className={`material-symbols-outlined ${checked ? 'text-primary' : 'text-on-surface-variant'}`}
         >

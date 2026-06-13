@@ -14,7 +14,9 @@ export function useVideoUpload() {
       await uploadToS3(upload.url, upload.fields, file, setProgress)
       return key
     },
-    onSettled: () => { setProgress(0); },
+    onSettled: () => {
+      setProgress(0)
+    },
   })
 
   return { ...mutation, progress }

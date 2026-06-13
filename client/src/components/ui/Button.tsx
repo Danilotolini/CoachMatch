@@ -20,7 +20,7 @@ export function Button({
 
   const variants = {
     primary:
-      'bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105',
+      'bg-linear-to-r from-primary to-primary-container text-on-primary-fixed shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105',
     secondary:
       'bg-surface-container-high border border-outline-variant/30 text-on-surface hover:border-primary/50',
     ghost: 'bg-transparent text-primary hover:bg-primary/10',

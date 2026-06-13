@@ -1,13 +1,63 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router'
+import { fetchClientMe } from '@/api/clients'
+import { type Role, useSessionStore } from '@/stores/sessionStore'
 import { getLoginUrl } from '@/lib/cognito'
+import { buildMockIdToken } from '@/dev/mockSession'
 
-export default function LoginPage() {
+interface LoginPageProps {
+  audience: Role
+}
+
+function isLocalMockingEnabled(): boolean {
+  return import.meta.env.DEV && import.meta.env.VITE_API_MOCKING === 'enabled'
+}
+
+export default function LoginPage({ audience }: LoginPageProps) {
+  const navigate = useNavigate()
   const [loginUrl, setLoginUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const hasSession = useSessionStore((state) => !!state.sessions[audience]?.token)
+  const startSession = useSessionStore((state) => state.startSession)
+  const setActiveRole = useSessionStore((state) => state.setActiveRole)
+
   useEffect(() => {
+    if (hasSession) {
+      setActiveRole(audience)
+      if (audience === 'coach') {
+        void navigate('/coach', { replace: true })
+        return
+      }
+
+      let cancelled = false
+      fetchClientMe()
+        .then((client) => {
+          if (cancelled) return
+          void navigate(
+            client.status === 'ACTIVE'
+              ? '/client'
+              : client.status === 'ONBOARDING_HEALTH'
+                ? '/client/health'
+                : '/client/onboarding',
+            { replace: true },
+          )
+        })
+        .catch(() => {
+          if (!cancelled) void navigate('/client/onboarding', { replace: true })
+        })
+      return () => {
+        cancelled = true
+      }
+    }
+
+    if (isLocalMockingEnabled()) {
+      startSession(audience, buildMockIdToken(audience))
+      return
+    }
+
     let cancelled = false
-    getLoginUrl()
+    getLoginUrl(audience)
       .then((url) => {
         if (cancelled) return
         setLoginUrl(url)
@@ -21,7 +71,7 @@ export default function LoginPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [audience, hasSession, navigate, setActiveRole, startSession])
 
   if (error) {
     return (

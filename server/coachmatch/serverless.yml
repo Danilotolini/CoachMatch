@@ -8,14 +8,16 @@ service: coachmatch
 
 
 stages:
+  # Stage para deploy real na AWS (CI/CD e deploys manuais do dev)
   dev:
     params:
-      stage: ${self:custom.config.stage}
-      region: ${self:custom.config.region}
+      stage: dev
+      region: sa-east-1   # região onde estão os recursos AWS do projeto
+  # Stage local — serverless-offline + DynamoDB Local (nunca faz deploy na AWS)
   local:
     params:
-      stage: ${self:custom.config.stage}
-      region: ${self:custom.config.region}
+      stage: local
+      region: us-east-1
       endpoint: ${self:custom.config.endpoint}
       access_key_id: ${self:custom.config.accessKeyId}
       secret_access: ${self:custom.config.secretAccessKey}
@@ -26,10 +28,13 @@ plugins:
   
 
 provider:
-  profile: JoaoAdm
+  # Perfil AWS nomeado — só usado em deploys manuais locais.
+  # CI/CD (GitHub Actions) usa AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+  # como variáveis de ambiente; profile vazio é ignorado pelo Serverless.
+  profile: ${self:custom.awsProfile.${sls:stage}, ''}
   timeout: 30
   name: aws
-  
+
   httpApi:
     authorizers:
       cognitoAuthorizer:
@@ -39,8 +44,10 @@ provider:
         audience:
           - 76hul7797npfkmpoju0mbghti7
 
-  stage: ${self:custom.config.stage}
-  region: ${self:custom.config.region}
+  # stage vem do --stage flag (ex: --stage dev); padrão: local
+  stage: ${opt:stage, 'local'}
+  # região sempre sa-east-1 onde os recursos AWS do projeto estão criados
+  region: sa-east-1
   iam:
     role:
       statements:
@@ -49,13 +56,18 @@ provider:
             - dynamodb:PutItem
             - dynamodb:GetItem
             - dynamodb:UpdateItem
+            - dynamodb:Query
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/student
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/gyms
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/payments
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/payments/index/*
 
 functions:
 
-  gymPostHandler:
-    handler: src/api-gyms-post/gymPostHandler.handler
+  gymList:
+    handler: src/gyms/list-gyms/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -65,12 +77,42 @@ functions:
     events:
       - httpApi:
           path: /gyms
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  gymSuggest:
+    handler: src/gyms/suggest-gym/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /gyms/suggest
           method: POST
           authorizer:
             name: cognitoAuthorizer
 
-  coach-update:
-    handler: src/api-coach-update/coach-update.handler
+  coachGetMe:
+    handler: src/coaches/get-coach/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /coaches/me
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  coachUpdateMe:
+    handler: src/coaches/update-coach/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -84,8 +126,8 @@ functions:
           authorizer:
             name: cognitoAuthorizer
 
-  userPostConfirmation:
-    handler: src/api-coach-create/userPostConfirmation.handler
+  coachCreate:
+    handler: src/coaches/create-coach/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -98,11 +140,190 @@ functions:
           trigger: PostConfirmation
           existing: true
 
+  coachSubmitForReview:
+    handler: src/coaches/submit-coach-for-review/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /coaches/me/submit-for-review
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
+  
+  studentCreate:
+    handler: src/students/create-student/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - cognitoUserPool:
+          pool: StudentAccess
+          trigger: PostConfirmation
+          existing: true
+
+  studentGetProfile:
+    handler: src/students/get-student/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /clients/me
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  studentUpdateProfile:
+    handler: src/students/update-student-profile/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /clients/me/profile
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
+
+  studentUpdateHealth:
+    handler: src/students/update-student-health/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /clients/me/health
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
+
+  # ─── Pagamentos ────────────────────────────────────────────────────────────
+
+  paymentCreate:
+    handler: src/payments/create-payment/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
+
+  paymentGet:
+    handler: src/payments/get-payment/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments/{transactionId}
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  paymentGetByCoach:
+    handler: src/payments/get-coach-payments/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments/coach/{coachId}
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  paymentGetByStudent:
+    handler: src/payments/get-student-payments/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments/student/{studentId}
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  paymentGetBySession:
+    handler: src/payments/get-session-payments/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments/session/{sessionId}
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  paymentRefund:
+    handler: src/payments/refund-payment/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments/{transactionId}/refund
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
 
 resources: 
   Conditions:
     IsLocal: !Equals [ "${param:stage}", "local"]  
   Resources:
+    gymsTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsLocal
+      Properties:
+        TableName: gyms
+        AttributeDefinitions:
+          - AttributeName: gymId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: gymId  
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
     usersTable:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
@@ -117,9 +338,96 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+    studentTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsLocal
+      Properties:
+        TableName: student
+        AttributeDefinitions:
+          - AttributeName: studentId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: studentId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+    paymentsTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsLocal
+      Properties:
+        TableName: payments
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
+            AttributeType: S
+          - AttributeName: GSI2PK
+            AttributeType: S
+          - AttributeName: GSI2SK
+            AttributeType: S
+          - AttributeName: GSI3PK
+            AttributeType: S
+          - AttributeName: GSI3SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: GSI2
+            KeySchema:
+              - AttributeName: GSI2PK
+                KeyType: HASH
+              - AttributeName: GSI2SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: GSI3
+            KeySchema:
+              - AttributeName: GSI3PK
+                KeyType: HASH
+              - AttributeName: GSI3SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+
 
 custom:
   config: ${file(./config.yml)}
+
+  # Perfil AWS por stage — só 'local' usa perfil nomeado.
+  # Em CI/CD os outros stages usam variáveis de ambiente da AWS.
+  awsProfile:
+    local: JoaoAdm
+
   dynamodb:
     stages:
       - local

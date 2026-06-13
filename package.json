@@ -10,10 +10,11 @@
     ]
   },
   "scripts": {
-    "test:frontend": "pnpm -F client test:coverage",
-    "test:backend": "cd server && npm test -- --coverage",
-    "lint": "pnpm -F client lint",
-    "build:backend": "cd server && npm run build"
+    "test:frontend": "pnpm --filter client test:coverage",
+    "test:backend": "cd server && pnpm run test:coverage",
+    "lint": "pnpm --filter client lint",
+    "type-check": "cd client && pnpm run type-check",
+    "build:frontend": "cd client && pnpm run build"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0"

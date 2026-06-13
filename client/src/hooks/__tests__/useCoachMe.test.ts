@@ -72,7 +72,7 @@ describe('useCoachMe', () => {
     const { fetchCoachMe } = await import('@/api/coaches')
     vi.mocked(fetchCoachMe).mockImplementation(
       () =>
-        new Promise(resolve =>
+        new Promise((resolve) =>
           setTimeout(() => resolve({ id: 'coach_123', name: 'João Silva' }), 50),
         ),
     )
