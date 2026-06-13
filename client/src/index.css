@@ -141,6 +141,7 @@
   html {
     min-height: 100%;
     background-color: var(--color-surface);
+    color-scheme: dark;
   }
 
   body,
