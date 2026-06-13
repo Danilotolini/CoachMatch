@@ -1,7 +1,8 @@
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router'
 import { useCoachMe } from '@/hooks/useCoachMe'
-import { useSessionStore, getSessionToken } from '@/stores/sessionStore'
+import { useSessionStore } from '@/stores/sessionStore'
 import { ApiError } from '@/lib/http'
 import type { CoachStatus } from '@/types/api'
 
@@ -27,18 +28,25 @@ function Spinner() {
 }
 
 export function CoachRouteGuard({ allow, children }: RouteGuardProps) {
-  const hasToken = !!getSessionToken('coach')
+  const token = useSessionStore((state) => state.sessions.coach?.token ?? null)
+  const endSession = useSessionStore((state) => state.endSession)
   const { data, isLoading, isError, error } = useCoachMe()
 
-  if (!hasToken) return <Navigate to="/coach/login" replace />
+  const isUnauthorized =
+    isError && error instanceof ApiError && (error.status === 401 || error.status === 403)
+
+  useEffect(() => {
+    if (isUnauthorized) {
+      endSession('coach')
+    }
+  }, [isUnauthorized, endSession])
+
+  if (!token) return <Navigate to="/coach/login" replace />
 
   if (isLoading) return <Spinner />
 
   if (isError) {
-    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-      useSessionStore.getState().endSession('coach')
-      return <Navigate to="/coach/login" replace />
-    }
+    if (isUnauthorized) return <Navigate to="/coach/login" replace />
     // 404 ou falha de rede (CORS, offline): assume perfil ainda não criado
     if (!allow.includes('ONBOARDING_PROFILE')) {
       return <Navigate to="/coach/onboarding" replace />
