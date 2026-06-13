@@ -34,28 +34,30 @@ export function ClientRouteGuard({ children, requireOnboarded = false }: ClientR
   const endSession = useSessionStore((state) => state.endSession)
   const { data, isLoading, isError, error } = useClientMe()
 
+  const expired = !!token && isTokenExpired(token)
+  const isUnauthorized =
+    isError && error instanceof ApiError && (error.status === 401 || error.status === 403)
+
   useEffect(() => {
     if (token && activeRole !== 'client') {
       setActiveRole('client')
     }
   }, [activeRole, setActiveRole, token])
 
-  if (!token) return <Navigate to="/client/login" replace />
+  useEffect(() => {
+    if (expired || isUnauthorized) {
+      endSession('client')
+    }
+  }, [expired, isUnauthorized, endSession])
 
-  if (isTokenExpired(token)) {
-    endSession('client')
-    return <Navigate to="/client/login" replace />
-  }
+  if (!token || expired) return <Navigate to="/client/login" replace />
 
   if (activeRole !== 'client') return <Spinner />
 
   if (isLoading) return <Spinner />
 
   if (isError) {
-    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-      endSession('client')
-      return <Navigate to="/client/login" replace />
-    }
+    if (isUnauthorized) return <Navigate to="/client/login" replace />
     if (requireOnboarded) return <Navigate to="/client/onboarding" replace />
     return <>{children}</>
   }
