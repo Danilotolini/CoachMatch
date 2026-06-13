@@ -56,10 +56,13 @@ provider:
             - dynamodb:PutItem
             - dynamodb:GetItem
             - dynamodb:UpdateItem
+            - dynamodb:Query
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
             - arn:aws:dynamodb:sa-east-1:138413505977:table/student
             - arn:aws:dynamodb:sa-east-1:138413505977:table/gyms
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/payments
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/payments/index/*
 
 functions:
 
@@ -210,7 +213,98 @@ functions:
           method: POST
           authorizer:
             name: cognitoAuthorizer
-        
+
+  # ─── Pagamentos ────────────────────────────────────────────────────────────
+
+  paymentCreate:
+    handler: src/payments/create-payment/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
+
+  paymentGet:
+    handler: src/payments/get-payment/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments/{transactionId}
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  paymentGetByCoach:
+    handler: src/payments/get-coach-payments/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments/coach/{coachId}
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  paymentGetByStudent:
+    handler: src/payments/get-student-payments/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments/student/{studentId}
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  paymentGetBySession:
+    handler: src/payments/get-session-payments/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments/session/{sessionId}
+          method: GET
+          authorizer:
+            name: cognitoAuthorizer
+
+  paymentRefund:
+    handler: src/payments/refund-payment/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /payments/{transactionId}/refund
+          method: POST
+          authorizer:
+            name: cognitoAuthorizer
 
 resources: 
   Conditions:
@@ -253,8 +347,73 @@ resources:
           - AttributeName: studentId
             AttributeType: S
         KeySchema:
-          - AttributeName: studentId  
+          - AttributeName: studentId
             KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+    paymentsTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsLocal
+      Properties:
+        TableName: payments
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
+            AttributeType: S
+          - AttributeName: GSI2PK
+            AttributeType: S
+          - AttributeName: GSI2SK
+            AttributeType: S
+          - AttributeName: GSI3PK
+            AttributeType: S
+          - AttributeName: GSI3SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: GSI2
+            KeySchema:
+              - AttributeName: GSI2PK
+                KeyType: HASH
+              - AttributeName: GSI2SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: GSI3
+            KeySchema:
+              - AttributeName: GSI3PK
+                KeyType: HASH
+              - AttributeName: GSI3SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
