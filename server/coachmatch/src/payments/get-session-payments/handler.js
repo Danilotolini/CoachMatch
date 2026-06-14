@@ -1,13 +1,9 @@
 import { getSessionPayments } from './index.js';
 
-/**
- * Handler HTTP: GET /payments/session/{sessionId}
- * Retorna todas as transações de uma sessão.
- */
 export const handler = async (event) => {
   const callerId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!callerId) {
-    return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado' }) };
+    return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado.' }) };
   }
 
   const sessionId = event?.pathParameters?.sessionId;
@@ -16,5 +12,13 @@ export const handler = async (event) => {
   }
 
   const transactions = await getSessionPayments(sessionId);
+
+  if (transactions.length > 0) {
+    const { studentId, coachId } = transactions[0];
+    if (callerId !== studentId && callerId !== coachId) {
+      return { statusCode: 403, body: JSON.stringify({ message: 'Acesso negado.' }) };
+    }
+  }
+
   return { statusCode: 200, body: JSON.stringify({ transactions, total: transactions.length }) };
 };

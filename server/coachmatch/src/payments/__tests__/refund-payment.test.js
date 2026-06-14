@@ -59,11 +59,16 @@ describe('refund-payment › index (refundPayment)', () => {
     expect(result.reason).toBeNull();
   });
 
-  it('chama markAsRefunded com os dados corretos', async () => {
+  it('chama markAsRefunded com os dados corretos incluindo amount', async () => {
     await refundPayment(TRANSACTION_ID, 50000, 'Motivo');
     expect(markAsRefunded).toHaveBeenCalledWith(
       TRANSACTION_ID,
-      expect.objectContaining({ reason: 'Motivo', refundedAt: expect.any(String), refundId: expect.any(String) })
+      expect.objectContaining({
+        reason:     'Motivo',
+        refundedAt: expect.any(String),
+        refundId:   expect.any(String),
+        amount:     50000,
+      })
     );
   });
 

@@ -7,14 +7,17 @@ import {
   InvalidRefundAmountException,
 } from '../shared/exceptions.js';
 
-/**
- * Handler HTTP: POST /payments/{transactionId}/refund
- * Estorna uma transação de pagamento aprovada.
- */
+const PAYMENT_EXCEPTIONS = [
+  PaymentNotFoundException,
+  PaymentAlreadyRefundedException,
+  PaymentNotRefundableException,
+  InvalidRefundAmountException,
+];
+
 export const handler = async (event) => {
   const callerId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!callerId) {
-    return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado' }) };
+    return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado.' }) };
   }
 
   const transactionId = event?.pathParameters?.transactionId;
@@ -36,17 +39,8 @@ export const handler = async (event) => {
     if (err instanceof ValidationException) {
       return { statusCode: 400, body: JSON.stringify({ message: err.message, details: err.details }) };
     }
-    if (err instanceof PaymentNotFoundException) {
-      return { statusCode: 404, body: JSON.stringify({ message: err.message }) };
-    }
-    if (err instanceof PaymentAlreadyRefundedException) {
-      return { statusCode: 409, body: JSON.stringify({ message: err.message }) };
-    }
-    if (err instanceof PaymentNotRefundableException) {
-      return { statusCode: 400, body: JSON.stringify({ message: err.message }) };
-    }
-    if (err instanceof InvalidRefundAmountException) {
-      return { statusCode: 422, body: JSON.stringify({ message: err.message }) };
+    if (PAYMENT_EXCEPTIONS.some(E => err instanceof E)) {
+      return { statusCode: err.statusCode, body: JSON.stringify({ message: err.message }) };
     }
     throw err;
   }

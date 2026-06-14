@@ -1,15 +1,12 @@
 import { createCardPayment, createPixPayment } from './index.js';
 import { ValidationException } from '../../shared/exceptions.js';
 
-/**
- * Handler HTTP: POST /payments
- * Cria uma transação de pagamento (cartão de crédito ou PIX).
- * O studentId é extraído do JWT Cognito — não é aceito do body.
- */
+const VALID_METHODS = ['pix', 'credit_card'];
+
 export const handler = async (event) => {
   const studentId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!studentId) {
-    return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado' }) };
+    return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado.' }) };
   }
 
   let body;
@@ -20,6 +17,13 @@ export const handler = async (event) => {
   }
 
   const { method, ...data } = body;
+
+  if (!VALID_METHODS.includes(method)) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ message: `Método de pagamento inválido: "${method}". Use "pix" ou "credit_card".` }),
+    };
+  }
 
   try {
     const result = method === 'pix'
