@@ -1,4 +1,4 @@
-import { getCoach } from '../service/coaches.service.js';
+import { getCoach } from './service/coaches.service.js';
 
 function mapToCoachMe(coach) {
   const profile = coach.profile ?? {};

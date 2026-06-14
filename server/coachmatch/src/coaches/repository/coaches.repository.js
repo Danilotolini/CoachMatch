@@ -20,6 +20,9 @@ export const updateCoach = async (coachId, { profile, work_location, status }) =
   const docClient = createClient();
   const hasStatus = status !== undefined;
 
+  console.log("profile: " +  JSON.stringify(profile))
+  console.log("work_location" + JSON.stringify(work_location))
+  console.log("status" + JSON.stringify(status))
   await docClient.send(
     new UpdateCommand({
       TableName: TABLE,

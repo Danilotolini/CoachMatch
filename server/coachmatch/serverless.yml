@@ -1,46 +1,53 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: coachmatch
-# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
 app: coachmatchapp
-# "service" is the name of this project. This will also be added to your AWS resource names.
 service: coachmatch
-
-
 
 stages:
   dev:
     params:
-      stage: ${self:custom.config.stage}
-      region: ${self:custom.config.region}
+      stage: ${self:custom.config.dev.stage}
+      region: ${self:custom.config.dev.region}
+      apiGatewayId: ${self:custom.config.dev.apiGatewayId}
   local:
     params:
-      stage: ${self:custom.config.stage}
-      region: ${self:custom.config.region}
-      endpoint: ${self:custom.config.endpoint}
-      access_key_id: ${self:custom.config.accessKeyId}
-      secret_access: ${self:custom.config.secretAccessKey}
+      stage: ${self:custom.config.local.stage}
+      region: ${self:custom.config.local.region}
+      endpoint: ${self:custom.config.local.endpoint}
+      access_key_id: ${self:custom.config.local.accessKeyId}
+      secret_access: ${self:custom.config.local.secretAccessKey}
 
 plugins:
+  - serverless-esbuild
   - serverless-dynamodb
   - serverless-offline
   
+package:
+  individually: true
+  patterns:
+    - '!node_modules/aws-sdk/**'
 
+build:
+  esbuild: false
+
+    
 provider:
+  runtime: nodejs18.x
   profile: JoaoAdm
   timeout: 30
   name: aws
-  
-  httpApi:
-    authorizers:
-      cognitoAuthorizer:
-        type: jwt
-        identitySource: $request.header.Authorization
-        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
-        audience:
-          - 76hul7797npfkmpoju0mbghti7
+  stage: ${param:stage}
+  region: ${param:region}
 
-  stage: ${self:custom.config.stage}
-  region: ${self:custom.config.region}
+  httpApi:
+    id: ${param:apiGatewayId, ""}  # vazio no local = serverless-offline cuida
+    authorizers:
+      # cognitoAuthorizer:
+      #   type: jwt
+      #   identitySource: $request.header.Authorization
+      #   issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
+      #   audience:
+      #     - 76hul7797npfkmpoju0mbghti7
+
   iam:
     role:
       statements:
@@ -49,6 +56,7 @@ provider:
             - dynamodb:PutItem
             - dynamodb:GetItem
             - dynamodb:UpdateItem
+            - dynamodb:Scan
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
             - arn:aws:dynamodb:sa-east-1:138413505977:table/student
@@ -57,7 +65,7 @@ provider:
 functions:
 
   gymGet:
-    handler: src/gyms/handlers/get.handler.handler
+    handler: src/gyms/get-handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -68,11 +76,12 @@ functions:
       - httpApi:
           path: /gyms
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          # authorizer:
+          #   name: cognitoAuthorizer
 
+  # C:\Users\João\Desktop\teste\CoachMatch\server\coachmatch\src\gyms\get-handler.js
   gymSuggest:
-    handler: src/gyms/handlers/suggest.handler.handler
+    handler: src/gyms/suggest-handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -83,11 +92,11 @@ functions:
       - httpApi:
           path: /gyms/suggest
           method: POST
-          authorizer:
-            name: cognitoAuthorizer
+          # authorizer:
+          #   name: cognitoAuthorizer
 
   coachGetMe:
-    handler: src/coaches/handlers/get.handler.handler
+    handler: src/coaches/get-handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -96,13 +105,13 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /coaches/me
+          path: /coach/me
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          # authorizer:
+          #   name: cognitoAuthorizer
 
   coachUpdateMe:
-    handler: src/coaches/handlers/update.handler.handler
+    handler: src/coaches/update-handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -111,13 +120,14 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /coaches/me
+          path: /coach/me
           method: PUT
-          authorizer:
-            name: cognitoAuthorizer
+          # authorizer:
+          #   name: cognitoAuthorizer
 
+  
   coachCreate:
-    handler: src/coaches/handlers/create.handler.handler
+    handler: src/coaches/handler.handler
     environment:
       STAGE: ${param:stage}
       REGION: ${param:region}
@@ -129,7 +139,7 @@ functions:
           pool: CoachAccess
           trigger: PostConfirmation
           existing: true
-  
+
   studentCreate:
     handler: src/students/create-student/handler.handler
     environment:
@@ -154,10 +164,10 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /clients/me
+          path: /student/me
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          # authorizer:
+          #   name: cognitoAuthorizer
 
   studentUpdateProfile:
     handler: src/students/update-student-profile/handler.handler
@@ -169,10 +179,10 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /clients/me/profile
+          path: /student/me/profile
           method: POST
-          authorizer:
-            name: cognitoAuthorizer
+          # authorizer:
+          #   name: cognitoAuthorizer
 
   studentUpdateHealth:
     handler: src/students/update-student-health/handler.handler
@@ -184,15 +194,14 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /clients/me/health
+          path: /student/me/health
           method: POST
-          authorizer:
-            name: cognitoAuthorizer
-        
+          # authorizer:
+          #   name: cognitoAuthorizer
 
-resources: 
+resources:
   Conditions:
-    IsLocal: !Equals [ "${param:stage}", "local"]  
+    IsLocal: !Equals [ "${param:stage}", "local" ]
   Resources:
     gymsTable:
       Type: AWS::DynamoDB::Table
@@ -203,7 +212,7 @@ resources:
           - AttributeName: gymId
             AttributeType: S
         KeySchema:
-          - AttributeName: gymId  
+          - AttributeName: gymId
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
@@ -217,7 +226,7 @@ resources:
           - AttributeName: coachId
             AttributeType: S
         KeySchema:
-          - AttributeName: coachId  
+          - AttributeName: coachId
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
@@ -231,13 +240,11 @@ resources:
           - AttributeName: studentId
             AttributeType: S
         KeySchema:
-          - AttributeName: studentId  
+          - AttributeName: studentId
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-
-
 
 custom:
   config: ${file(./config.yml)}
@@ -247,6 +254,14 @@ custom:
     start:
       port: 8000
       inMemory: true
-      migrate: true  # cria as tabelas automaticamente
+      migrate: true
   serverless-offline:
     ignoreJWTSignature: true
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: false
+    exclude:
+      - aws-sdk
+    target: node18
+    platform: node

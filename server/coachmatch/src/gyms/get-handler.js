@@ -1,4 +1,4 @@
-import { getGyms } from '../service/gyms.service.js';
+import { getGyms } from './service/gyms.service.js';
 
 function mapGym(gym) {
   const { gymId, ...rest } = gym;

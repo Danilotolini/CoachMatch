@@ -1,4 +1,4 @@
-import { suggestGym } from '../service/gyms.service.js';
+import { suggestGym } from './service/gyms.service.js';
 
 export const handler = async (event) => {
   if (!event?.body) throw new Error('Evento inválido: body ausente');

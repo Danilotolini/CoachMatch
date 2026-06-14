@@ -1,4 +1,4 @@
-import { createCoach } from '../service/coaches.service.js';
+import { createCoach } from './service/coaches.service.js';
 
 export const handler = async (event) => {
   const attributes = event?.request?.userAttributes;
