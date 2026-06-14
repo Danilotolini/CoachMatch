@@ -9,18 +9,20 @@ import { findPaymentsByStudent } from '../get-student-payments/repository.js';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
-const STUDENT_ID = '323e4567-e89b-12d3-a456-426614174000';
+const STUDENT_ID  = '323e4567-e89b-12d3-a456-426614174000';
+const OUTSIDER_ID = '999e4567-e89b-12d3-a456-426614174000';
 
 const makeTransaction = (overrides = {}) => ({
   transactionId: 'txn_1',
-  studentId: STUDENT_ID,
-  amount: 50000,
-  status: 'approved',
+  studentId:     STUDENT_ID,
+  amount:        50000,
+  status:        'approved',
   ...overrides,
 });
 
-const buildEvent = (studentId = STUDENT_ID) => ({
-  requestContext: { authorizer: { jwt: { claims: { sub: studentId } } } },
+// callerId defaults to STUDENT_ID — ownership always passes for the happy path
+const buildEvent = (studentId = STUDENT_ID, callerId = STUDENT_ID) => ({
+  requestContext: { authorizer: { jwt: { claims: { sub: callerId } } } },
   pathParameters: { studentId },
 });
 
@@ -47,6 +49,12 @@ describe('get-student-payments › handler', () => {
 
     const res = await handler(buildEvent());
     expect(JSON.parse(res.body)).toEqual({ transactions: [], total: 0 });
+  });
+
+  it('retorna 403 quando usuário não é o aluno do path', async () => {
+    const res = await handler(buildEvent(STUDENT_ID, OUTSIDER_ID));
+    expect(res.statusCode).toBe(403);
+    expect(findPaymentsByStudent).not.toHaveBeenCalled();
   });
 
   it('retorna 401 quando sub está ausente', async () => {

@@ -187,4 +187,19 @@ describe('create-payment › handler', () => {
       expect.objectContaining({ studentId: STUDENT_ID })
     );
   });
+
+  it('retorna 400 para método de pagamento inválido', async () => {
+    const res = await handler(buildAuthEvent({ ...cardBody, method: 'boleto' }));
+    expect(res.statusCode).toBe(400);
+    const body = JSON.parse(res.body);
+    expect(body.message).toContain('boleto');
+    expect(persistPayment).not.toHaveBeenCalled();
+  });
+
+  it('retorna 400 quando method está ausente', async () => {
+    const { method: _, ...bodyWithoutMethod } = cardBody;
+    const res = await handler(buildAuthEvent(bodyWithoutMethod));
+    expect(res.statusCode).toBe(400);
+    expect(persistPayment).not.toHaveBeenCalled();
+  });
 });

@@ -32,7 +32,7 @@ export const refundPayment = async (transactionId, amount, reason) => {
   const refundId = `refund_${uuidv4()}`;
   const now = new Date().toISOString();
 
-  await markAsRefunded(transactionId, { refundId, refundedAt: now, reason: reason ?? null });
+  await markAsRefunded(transactionId, { refundId, refundedAt: now, reason: reason ?? null, amount });
 
   return {
     refundId,

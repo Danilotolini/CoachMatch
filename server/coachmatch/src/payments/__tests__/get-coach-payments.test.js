@@ -9,18 +9,19 @@ import { findPaymentsByCoach } from '../get-coach-payments/repository.js';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
-const CALLER_ID = '999e4567-e89b-12d3-a456-426614174000';
-const COACH_ID  = '223e4567-e89b-12d3-a456-426614174000';
+const COACH_ID     = '223e4567-e89b-12d3-a456-426614174000';
+const OUTSIDER_ID  = '999e4567-e89b-12d3-a456-426614174000';
 
 const makeTransaction = (overrides = {}) => ({
   transactionId: 'txn_1',
-  coachId: COACH_ID,
-  amount: 50000,
-  status: 'approved',
+  coachId:       COACH_ID,
+  amount:        50000,
+  status:        'approved',
   ...overrides,
 });
 
-const buildEvent = (coachId = COACH_ID, callerId = CALLER_ID) => ({
+// callerId defaults to COACH_ID — ownership always passes for the happy path
+const buildEvent = (coachId = COACH_ID, callerId = COACH_ID) => ({
   requestContext: { authorizer: { jwt: { claims: { sub: callerId } } } },
   pathParameters: { coachId },
 });
@@ -51,6 +52,12 @@ describe('get-coach-payments › handler', () => {
     expect(JSON.parse(res.body)).toEqual({ transactions: [], total: 0 });
   });
 
+  it('retorna 403 quando usuário não é o coach do path', async () => {
+    const res = await handler(buildEvent(COACH_ID, OUTSIDER_ID));
+    expect(res.statusCode).toBe(403);
+    expect(findPaymentsByCoach).not.toHaveBeenCalled();
+  });
+
   it('retorna 401 quando sub está ausente', async () => {
     const res = await handler({ requestContext: { authorizer: { jwt: { claims: {} } } }, pathParameters: { coachId: COACH_ID } });
     expect(res.statusCode).toBe(401);
@@ -59,7 +66,7 @@ describe('get-coach-payments › handler', () => {
 
   it('retorna 400 quando coachId está ausente', async () => {
     const res = await handler({
-      requestContext: { authorizer: { jwt: { claims: { sub: CALLER_ID } } } },
+      requestContext: { authorizer: { jwt: { claims: { sub: COACH_ID } } } },
       pathParameters: {},
     });
     expect(res.statusCode).toBe(400);
