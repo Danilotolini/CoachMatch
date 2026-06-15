@@ -10,8 +10,33 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix
    * Sanitizador aplicado ao valor pelo pai (ex.: máscara/uppercase). Quando
    * informado, o caret é preservado após a transformação, evitando que ele
    * salte para o fim quando o valor digitado é alterado.
+   *
+   * Recebe o valor bruto atual e o valor mascarado anterior. O segundo
+   * argumento permite que máscaras sensíveis ao contexto (ex.: CREF) ajustem
+   * o resultado quando o usuário apaga um separador.
    */
-  transform?: ((raw: string) => string) | undefined
+  transform?: ((value: string, previousMasked: string) => string) | undefined
+}
+
+/**
+ * Alinha a posição do caret entre o valor bruto e o mascarado usando um
+ * two-pointer que avança no mascarado quando encontra separadores injetados
+ * e avança no bruto quando o caractere foi removido pela máscara.
+ */
+function alignCaret(raw: string, rawCaret: number, masked: string): number {
+  let ri = 0
+  let mi = 0
+  while (ri < rawCaret && mi < masked.length) {
+    if (raw[ri].toUpperCase() === masked[mi].toUpperCase()) {
+      ri++
+      mi++
+    } else if (!masked.slice(mi).toUpperCase().includes(raw[ri].toUpperCase())) {
+      ri++
+    } else {
+      mi++
+    }
+  }
+  return mi
 }
 
 export function Input({
@@ -43,7 +68,9 @@ export function Input({
     if (transform) {
       const { value, selectionStart } = event.target
       const caret = selectionStart ?? value.length
-      caretRef.current = transform(value.slice(0, caret)).length
+      const prevMasked = String(props.value ?? '')
+      const newMasked = transform(value, prevMasked)
+      caretRef.current = alignCaret(value, caret, newMasked)
     }
     onChange?.(event)
   }
