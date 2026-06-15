@@ -15,11 +15,7 @@ async function enableMocking() {
 import WelcomePage from '@/pages/WelcomePage'
 import LoginPage from '@/pages/LoginPage'
 import CognitoCallbackPage from '@/pages/CognitoCallbackPage'
-import CoachOnboardingPage from '@/pages/CoachOnboardingPage'
-import ClientOnboardingPage from '@/pages/ClientOnboardingPage'
-import ClientHealthFormPage from '@/pages/ClientHealthFormPage'
 import CoachDashboardPage from '@/pages/CoachDashboardPage'
-import CoachSchedulePage from '@/pages/CoachSchedulePage'
 import CoachProfilePage from '@/pages/CoachProfilePage'
 import ClientHomePage from '@/pages/ClientHomePage'
 import ClientProfilePage from '@/pages/ClientProfilePage'
@@ -30,8 +26,14 @@ import { ClientRouteGuard } from '@/components/ClientRouteGuard'
 import { AppShell } from '@/components/AppShell'
 import ClientSearchPage from '@/pages/ClientSearchPage'
 import ClientCoachDetailPage from '@/pages/ClientCoachDetailPage'
-import ClientSchedulePage from '@/pages/ClientSchedulePage'
 import NotFoundPage from '@/pages/NotFoundPage'
+import {
+  ClientHealthFormPage,
+  ClientOnboardingPage,
+  ClientSchedulePage,
+  CoachOnboardingPage,
+  CoachSchedulePage,
+} from '@/pages/lazy'
 
 function getDevRoutes() {
   if (!import.meta.env.DEV) return []
@@ -65,7 +67,9 @@ const router = createBrowserRouter([
         path: '/client/onboarding',
         element: (
           <ClientRouteGuard>
-            <ClientOnboardingPage />
+            <Suspense fallback={null}>
+              <ClientOnboardingPage />
+            </Suspense>
           </ClientRouteGuard>
         ),
       },
@@ -73,7 +77,9 @@ const router = createBrowserRouter([
         path: '/client/health',
         element: (
           <ClientRouteGuard>
-            <ClientHealthFormPage />
+            <Suspense fallback={null}>
+              <ClientHealthFormPage />
+            </Suspense>
           </ClientRouteGuard>
         ),
       },
@@ -97,7 +103,9 @@ const router = createBrowserRouter([
         path: '/client/schedule',
         element: (
           <ClientRouteGuard requireOnboarded>
-            <ClientSchedulePage />
+            <Suspense fallback={null}>
+              <ClientSchedulePage />
+            </Suspense>
           </ClientRouteGuard>
         ),
       },
@@ -121,7 +129,9 @@ const router = createBrowserRouter([
         path: '/coach/onboarding',
         element: (
           <CoachRouteGuard allow={COACH_ONBOARDING_STATUSES}>
-            <CoachOnboardingPage />
+            <Suspense fallback={null}>
+              <CoachOnboardingPage />
+            </Suspense>
           </CoachRouteGuard>
         ),
       },
@@ -137,7 +147,9 @@ const router = createBrowserRouter([
         path: '/coach/schedule',
         element: (
           <CoachRouteGuard allow={['APPROVED']}>
-            <CoachSchedulePage />
+            <Suspense fallback={null}>
+              <CoachSchedulePage />
+            </Suspense>
           </CoachRouteGuard>
         ),
       },

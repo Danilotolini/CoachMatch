@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { logout } from '@/lib/cognito'
 import { Icon } from '@/components/ui/Icon'
 
-type CoachNavId = 'home' | 'schedule' | 'students' | 'profile'
+type CoachNavId = 'home' | 'schedule' | 'profile'
 
 interface CoachNavItem {
   id: CoachNavId
@@ -14,7 +14,6 @@ interface CoachNavItem {
 const COACH_NAV_ITEMS: CoachNavItem[] = [
   { id: 'home', label: 'Início', icon: 'home', path: '/coach' },
   { id: 'schedule', label: 'Agenda', icon: 'event', path: '/coach/schedule' },
-  { id: 'students', label: 'Alunos', icon: 'group', path: '/coach' },
   { id: 'profile', label: 'Perfil', icon: 'person', path: '/coach/profile' },
 ]
 
@@ -80,7 +79,7 @@ export function CoachBottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-outline-variant/10 bg-surface-container-low/95 backdrop-blur lg:hidden">
       <ul
-        className="grid grid-cols-4 px-2 pt-2"
+        className="grid grid-cols-3 px-2 pt-2"
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
       >
         {COACH_NAV_ITEMS.map((item) => {
