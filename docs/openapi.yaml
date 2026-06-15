@@ -159,8 +159,9 @@ paths:
           schema: { type: string }
           description: Cidade exata.
         - in: query
-          name: page
-          schema: { type: integer, minimum: 1, default: 1 }
+          name: cursor
+          description: Token de paginação (nextCursor da página anterior).
+          schema: { type: string }
         - in: query
           name: limit
           schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
@@ -230,9 +231,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Schedule"
+                $ref: "#/components/schemas/CoachScheduleResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -545,25 +544,29 @@ paths:
           schema: { type: string }
           description: Cidade exata.
         - in: query
-          name: page
-          schema: { type: integer, minimum: 1, default: 1 }
+          name: cursor
+          description: Token de paginação (nextCursor da página anterior).
+          schema: { type: string }
         - in: query
           name: limit
           schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
       responses:
         "200":
-          description: Lista paginada de academias.
+          description: Lista academias no formato cursor.
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/PaginatedEnvelope"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Gym"
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Gym"
+                  nextCursor:
+                    type: string
+                    nullable: true
+                    example: eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9
 
   /student/gyms/suggest:
     post:
@@ -655,13 +658,13 @@ paths:
           example: "2026-06-06T08:00:30-03:00"
       responses:
         "200":
-          description: Lista de disponibilidades do treinador.
+          description: Disponibilidades do treinador (status AVAILABLE ou REQUESTED).
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Schedule"
+                $ref: "#/components/schemas/StudentCoachSchedulesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -1085,7 +1088,7 @@ components:
     # ── Client / Student ──────────────────────
     ClientStatus:
       type: string
-      enum: [ONBOARDING_PROFILE, ONBOARDING_HEALTH, ACTIVE]
+      enum: [PENDING_PROFILE, ONBOARDING_HEALTH, ACTIVE]
 
     ClientGender:
       type: string
@@ -1142,8 +1145,9 @@ components:
 
     ClientProfilePayload:
       type: object
-      required: [phone, birthDate, gender, cep, city, state, radius, goal]
+      required: [name, phone, birthDate, gender, cep, city, state, radius, goal]
       properties:
+        name: { type: string }
         phone: { type: string, example: "+5511999990000" }
         birthDate: { type: string, format: date }
         gender:
@@ -1499,6 +1503,49 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Schedule"
+
+    # Resposta de GET agenda do treinador autenticado (get-coach-schedule-from-jwt).
+    CoachScheduleResponse:
+      type: object
+      required: [coachId, startDateTime, endDateTime, count, schedules]
+      properties:
+        coachId: { type: string }
+        startDateTime: { type: string, format: date-time }
+        endDateTime: { type: string, format: date-time }
+        count: { type: integer, example: 3 }
+        schedules:
+          type: array
+          items:
+            $ref: "#/components/schemas/Schedule"
+
+    # Item reduzido devolvido ao aluno ao consultar a agenda de um treinador.
+    CoachScheduleSlot:
+      type: object
+      required:
+        [scheduleId, coachId, gymId, specialtyId, startDateTime, endDateTime, price, status]
+      properties:
+        scheduleId: { type: string, example: avl_6cb2b644248448c68e63f350119c032d }
+        coachId: { type: string }
+        gymId: { type: string, example: gym_sp005 }
+        specialtyId: { type: string, example: MUSCULATION }
+        startDateTime: { type: string, format: date-time }
+        endDateTime: { type: string, format: date-time }
+        price: { type: string, example: "120.00" }
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+
+    # Resposta de GET agenda de um treinador para o aluno (get-coach-schedule-from-parm).
+    StudentCoachSchedulesResponse:
+      type: object
+      required: [coachId, startDateTime, endDateTime, count, schedules]
+      properties:
+        coachId: { type: string }
+        startDateTime: { type: string, format: date-time }
+        endDateTime: { type: string, format: date-time }
+        count: { type: integer, example: 3 }
+        schedules:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoachScheduleSlot"
 
     # Resposta de GET solicitações de um schedule (get-schedule-requests).
     ScheduleRequestsResponse:

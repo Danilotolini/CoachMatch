@@ -4,12 +4,14 @@ import type {
   ClassStatus,
   ClassStatusResult,
   CoachScheduleResponse,
+  CoachScheduleSlot,
   Schedule,
   ScheduleApproveResult,
   ScheduleCancelResult,
   ScheduleCreatePayload,
   ScheduleRequestResult,
   ScheduleRequestsResponse,
+  StudentCoachSchedulesResponse,
   StudentSchedulesResponse,
 } from '@/types/api'
 
@@ -30,8 +32,12 @@ export function getStudentCoachSchedules(params: {
   coachId: string
   startDateTime?: string
   endDateTime?: string
-}): Promise<Schedule[]> {
-  return apiGetWithBody<Schedule[]>('/student/coach/schedules', params, { role: 'client' })
+}): Promise<CoachScheduleSlot[]> {
+  return apiGetWithBody<StudentCoachSchedulesResponse | CoachScheduleSlot[]>(
+    '/student/coach/schedules',
+    params,
+    { role: 'client' },
+  ).then((response) => (Array.isArray(response) ? response : response.schedules))
 }
 
 export function requestStudentSchedule(scheduleId: string): Promise<ScheduleRequestResult> {

@@ -12,6 +12,7 @@ import type {
   CoachSearchSort,
   CoachStatus,
   CoachScheduleResponse,
+  CoachScheduleSlot,
   CoachVisibility,
   CoachUpdatePayload,
   Gym,
@@ -26,6 +27,7 @@ import type {
   ScheduleRequest,
   ScheduleRequestsResponse,
   ScheduleStatus,
+  StudentCoachSchedulesResponse,
   StudentScheduleItem,
   StudentSchedulesResponse,
   Specialty,
@@ -33,7 +35,7 @@ import type {
   PaymentPayload,
   Transaction,
 } from '@/types/api'
-import { gyms, initialCoach, initialSchedules, specialties } from '@/mocks/fixtures'
+import { gyms, initialCoach, initialSchedules, mockStudents, specialties } from '@/mocks/fixtures'
 
 const wait = (ms: number) => (import.meta.env.MODE === 'test' ? Promise.resolve() : delay(ms))
 
@@ -227,9 +229,9 @@ function buildInitialCoach(): Coach {
 
 function buildInitialClient(): Client {
   return {
-    clientId: 'client_derik',
-    email: 'derikoliveira03@gmail.com',
-    status: 'ONBOARDING_PROFILE',
+    clientId: 'client_demo',
+    email: 'aluno@coachmatch.app',
+    status: 'PENDING_PROFILE',
     name: null,
     phone: null,
     birthDate: null,
@@ -306,6 +308,17 @@ const state = {
   client: readStoredClient() ?? buildInitialClient(),
   schedules: readStoredSchedules() ?? buildInitialSchedules(),
   transactions: new Map<string, Transaction>(),
+}
+
+const seededStudentNameById = new Map(
+  mockStudents.map((s): [string, string] => [s.studentId, s.name]),
+)
+
+// Espelha o backend: o nome do aluno é derivado do perfil na hora de listar pedidos,
+// não fica gravado no request. Cai no nome do cliente logado ou nos alunos semeados.
+function lookupStudentName(studentId: string): string | null {
+  if (studentId === state.client.clientId) return state.client.name
+  return seededStudentNameById.get(studentId) ?? null
 }
 
 function setCoach(coach: Coach): Coach {
@@ -390,8 +403,17 @@ function toGymListItem(gym: Gym): GymListItem {
   }
 }
 
-function cursorPage<T extends { id: string }>(items: T[], page: number, limit: number) {
-  const start = (page - 1) * limit
+function cursorPage<T extends { id: string }>(items: T[], cursor: string | null, limit: number) {
+  let start = 0
+  if (cursor) {
+    try {
+      const { gymId } = JSON.parse(atob(cursor)) as { gymId: string }
+      const idx = items.findIndex((item) => item.id === gymId)
+      if (idx >= 0) start = idx + 1
+    } catch {
+      start = 0
+    }
+  }
   const pageItems = items.slice(start, start + limit)
   const hasNext = start + limit < items.length
   const lastItem = pageItems.at(-1)
@@ -487,8 +509,21 @@ export const handlers = [
 
   http.post('*/student/me/profile', async ({ request }) => {
     await wait(200)
-    void ((await request.json()) as ClientProfilePayload)
-    const client = setClient({ ...state.client, status: 'ONBOARDING_HEALTH', updatedAt: nowIso() })
+    const payload = (await request.json()) as ClientProfilePayload
+    const client = setClient({
+      ...state.client,
+      name: payload.name,
+      phone: payload.phone,
+      birthDate: payload.birthDate,
+      gender: payload.gender,
+      cep: payload.cep,
+      city: payload.city,
+      state: payload.state,
+      radius: payload.radius,
+      goal: payload.goal,
+      status: 'ONBOARDING_HEALTH',
+      updatedAt: nowIso(),
+    })
     return HttpResponse.json<Client>(client)
   }),
 
@@ -584,7 +619,7 @@ export const handlers = [
     const url = new URL(request.url)
     const search = url.searchParams.get('search')
     const city = url.searchParams.get('city')
-    const page = getNumberParam(url, 'page', 1)
+    const cursor = url.searchParams.get('cursor')
     const limit = getNumberParam(url, 'limit', 20)
     const filtered = gyms.filter(
       (g: Gym) =>
@@ -593,7 +628,7 @@ export const handlers = [
           matchesSearch(g.neighborhood, search)) &&
         matchesExact(g.city, city),
     )
-    return HttpResponse.json(cursorPage(filtered.map(toGymListItem), page, limit))
+    return HttpResponse.json(cursorPage(filtered.map(toGymListItem), cursor, limit))
   }),
 
   http.post('*/coach/gyms/suggest', async ({ request }) => {
@@ -606,7 +641,7 @@ export const handlers = [
       city: payload.city,
       state: payload.state.toUpperCase(),
       neighborhood: payload.neighborhood,
-      coordinates: payload.coordinates,
+      coordinates: null,
     }
     return HttpResponse.json<GymSuggestResponse>(
       {
@@ -636,7 +671,7 @@ export const handlers = [
     const url = new URL(request.url)
     const search = url.searchParams.get('search')
     const city = url.searchParams.get('city')
-    const page = getNumberParam(url, 'page', 1)
+    const cursor = url.searchParams.get('cursor')
     const limit = getNumberParam(url, 'limit', 20)
     const filtered = gyms.filter(
       (g: Gym) =>
@@ -645,7 +680,7 @@ export const handlers = [
           matchesSearch(g.neighborhood, search)) &&
         matchesExact(g.city, city),
     )
-    return HttpResponse.json(paginate(filtered, page, limit))
+    return HttpResponse.json(cursorPage(filtered.map(toGymListItem), cursor, limit))
   }),
 
   http.post('*/student/gyms/suggest', async ({ request }) => {
@@ -658,7 +693,7 @@ export const handlers = [
       city: payload.city,
       state: payload.state.toUpperCase(),
       neighborhood: payload.neighborhood,
-      coordinates: payload.coordinates,
+      coordinates: null,
     }
     return HttpResponse.json<GymSuggestResponse>(
       {
@@ -695,9 +730,33 @@ export const handlers = [
   http.get('https://servicodados.ibge.gov.br/api/v1/localidades/estados', async () => {
     await wait(50)
     return HttpResponse.json([
-      { id: 35, sigla: 'SP', nome: 'São Paulo' },
-      { id: 33, sigla: 'RJ', nome: 'Rio de Janeiro' },
+      { id: 12, sigla: 'AC', nome: 'Acre' },
+      { id: 27, sigla: 'AL', nome: 'Alagoas' },
+      { id: 13, sigla: 'AM', nome: 'Amazonas' },
+      { id: 16, sigla: 'AP', nome: 'Amapá' },
+      { id: 29, sigla: 'BA', nome: 'Bahia' },
+      { id: 23, sigla: 'CE', nome: 'Ceará' },
+      { id: 53, sigla: 'DF', nome: 'Distrito Federal' },
+      { id: 32, sigla: 'ES', nome: 'Espírito Santo' },
+      { id: 52, sigla: 'GO', nome: 'Goiás' },
+      { id: 21, sigla: 'MA', nome: 'Maranhão' },
+      { id: 31, sigla: 'MG', nome: 'Minas Gerais' },
+      { id: 50, sigla: 'MS', nome: 'Mato Grosso do Sul' },
+      { id: 51, sigla: 'MT', nome: 'Mato Grosso' },
+      { id: 15, sigla: 'PA', nome: 'Pará' },
+      { id: 25, sigla: 'PB', nome: 'Paraíba' },
+      { id: 41, sigla: 'PR', nome: 'Paraná' },
       { id: 26, sigla: 'PE', nome: 'Pernambuco' },
+      { id: 22, sigla: 'PI', nome: 'Piauí' },
+      { id: 33, sigla: 'RJ', nome: 'Rio de Janeiro' },
+      { id: 24, sigla: 'RN', nome: 'Rio Grande do Norte' },
+      { id: 43, sigla: 'RS', nome: 'Rio Grande do Sul' },
+      { id: 11, sigla: 'RO', nome: 'Rondônia' },
+      { id: 14, sigla: 'RR', nome: 'Roraima' },
+      { id: 42, sigla: 'SC', nome: 'Santa Catarina' },
+      { id: 28, sigla: 'SE', nome: 'Sergipe' },
+      { id: 35, sigla: 'SP', nome: 'São Paulo' },
+      { id: 17, sigla: 'TO', nome: 'Tocantins' },
     ])
   }),
 
@@ -906,7 +965,10 @@ export const handlers = [
     if (schedule.coachId !== state.coach.coachId) {
       return HttpResponse.json({ errors: ['Sem permissão.'] }, { status: 403 })
     }
-    const requests = schedule.requests ?? []
+    const requests = (schedule.requests ?? []).map((r) => ({
+      ...r,
+      studentName: lookupStudentName(r.studentId),
+    }))
     return HttpResponse.json<ScheduleRequestsResponse>({
       scheduleId: schedule.scheduleId,
       startDateTime: schedule.startDateTime,
@@ -1020,13 +1082,33 @@ export const handlers = [
         ...(endDateTime && { endDateTime }),
       }
     }
-    const result = [...state.schedules.values()].filter((schedule) => {
-      if (params.coachId && schedule.coachId !== params.coachId) return false
-      if (params.startDateTime && schedule.startDateTime < params.startDateTime) return false
-      if (params.endDateTime && schedule.endDateTime > params.endDateTime) return false
-      return ['AVAILABLE', 'REQUESTED'].includes(schedule.status)
+    if (!params.coachId) {
+      return HttpResponse.json({ errors: ['coachId obrigatório.'] }, { status: 400 })
+    }
+    const schedules: CoachScheduleSlot[] = [...state.schedules.values()]
+      .filter((schedule) => {
+        if (schedule.coachId !== params.coachId) return false
+        if (params.startDateTime && schedule.startDateTime < params.startDateTime) return false
+        if (params.endDateTime && schedule.endDateTime > params.endDateTime) return false
+        return schedule.status === 'AVAILABLE' || schedule.status === 'REQUESTED'
+      })
+      .map((s) => ({
+        scheduleId: s.scheduleId,
+        coachId: s.coachId,
+        gymId: s.gymId,
+        specialtyId: s.specialtyId,
+        startDateTime: s.startDateTime,
+        endDateTime: s.endDateTime,
+        price: s.price,
+        status: s.status,
+      }))
+    return HttpResponse.json<StudentCoachSchedulesResponse>({
+      coachId: params.coachId,
+      startDateTime: params.startDateTime ?? '',
+      endDateTime: params.endDateTime ?? '',
+      count: schedules.length,
+      schedules,
     })
-    return HttpResponse.json<Schedule[]>(result)
   }),
 
   http.get('*/student/coach/schedules/request', async () => {
@@ -1082,8 +1164,6 @@ export const handlers = [
       studentId: state.client.clientId,
       status: 'REQUESTED',
       requestedAt,
-      alteredAt: null,
-      studentName: 'Derik Oliveira',
     }
     const existingRequests = schedule.requests ?? []
     if (existingRequests.some((item) => item.studentId === state.client.clientId)) {

@@ -71,8 +71,6 @@ PENDING_REVIEW
 APPROVED   /   REJECTED
 ```
 
-O frontend mapeia:
-- `PENDING_PROFILE` (DynamoDB) → `ONBOARDING_PROFILE` (front-end `CoachStatus`)
 - `PENDING_REVIEW`, `APPROVED`, `REJECTED` → sem alteração
 
 ## Setup local

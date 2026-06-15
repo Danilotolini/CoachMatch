@@ -1,22 +1,25 @@
 import { apiGet, apiPost } from '@/lib/http'
-import type {
-  Gym,
-  GymSuggestPayload,
-  GymSuggestResponse,
-  Pagination,
-  PaginatedResponse,
-} from '@/types/api'
+import type { Gym, GymSuggestPayload, GymSuggestResponse } from '@/types/api'
 
 export interface GymsParams {
   search?: string | undefined
   city?: string | undefined
-  page?: number | undefined
+  cursor?: string | undefined
   limit?: number | undefined
+}
+
+export interface GymsPage {
+  data: Gym[]
+  nextCursor: string | null
 }
 
 interface RawGym extends Omit<Gym, 'gymId'> {
   id: string
   active?: string | undefined
+}
+
+interface RawGymSuggestResponse extends Omit<GymSuggestResponse, 'data'> {
+  data?: RawGym | Gym | undefined
 }
 
 interface RawGymsResponse {
@@ -42,23 +45,13 @@ function normalizeGym(gym: RawGym): Gym | null {
   }
 }
 
-function buildPagination(data: Gym[], params: GymsParams, nextCursor?: string | null): Pagination {
-  const page = params.page ?? 1
-  const limit = params.limit ?? 20
-  return {
-    page,
-    limit,
-    total: data.length,
-    totalPages: 1,
-    hasNext: !!nextCursor,
-    hasPrev: page > 1,
-  }
+function normalizeSuggestedGym(gym: RawGym | Gym | undefined): Gym | undefined {
+  if (!gym) return undefined
+  if ('gymId' in gym) return gym
+  return normalizeGym(gym) ?? undefined
 }
 
-function normalizeGymsResponse(
-  response: RawGymsResponse,
-  params: GymsParams,
-): PaginatedResponse<Gym> {
+function normalizeGymsResponse(response: RawGymsResponse): GymsPage {
   const rawGyms = Array.isArray(response.items) ? response.items : []
   const data = rawGyms
     .filter(isActiveGym)
@@ -67,24 +60,29 @@ function normalizeGymsResponse(
 
   return {
     data,
-    pagination: buildPagination(data, params, response.nextCursor),
+    nextCursor: response.nextCursor ?? null,
   }
 }
 
-export async function fetchGyms(params: GymsParams = {}): Promise<PaginatedResponse<Gym>> {
+export async function fetchGyms(params: GymsParams = {}): Promise<GymsPage> {
   const response = await apiGet<RawGymsResponse>(
     '/coach/gyms',
     {
       ...(params.search ? { search: params.search } : {}),
       ...(params.city ? { city: params.city } : {}),
-      page: params.page ?? 1,
-      limit: params.limit ?? 20,
+      ...(params.cursor ? { cursor: params.cursor } : {}),
+      limit: params.limit ?? 5,
     },
     { role: 'coach' },
   )
-  return normalizeGymsResponse(response, params)
+  return normalizeGymsResponse(response)
 }
 
 export function suggestGym(payload: GymSuggestPayload) {
-  return apiPost<GymSuggestResponse>('/coach/gyms/suggest', payload, { role: 'coach' })
+  return apiPost<RawGymSuggestResponse>('/coach/gyms/suggest', payload, { role: 'coach' }).then(
+    (response) => ({
+      ...response,
+      data: normalizeSuggestedGym(response.data),
+    }),
+  )
 }

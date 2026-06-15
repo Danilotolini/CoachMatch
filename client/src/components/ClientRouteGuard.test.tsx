@@ -109,7 +109,7 @@ describe('ClientRouteGuard', () => {
 
   it('redireciona home para onboarding quando aluno está na etapa de perfil', async () => {
     loginAs('client')
-    mockClient('ONBOARDING_PROFILE')
+    mockClient('PENDING_PROFILE')
     renderGuard({ requireOnboarded: true })
     expect(await screen.findByText('onboarding aluno')).toBeInTheDocument()
   })
@@ -123,7 +123,7 @@ describe('ClientRouteGuard', () => {
 
   it('permanece na etapa correta quando guard sem requireOnboarded combina com status', async () => {
     loginAs('client')
-    mockClient('ONBOARDING_PROFILE')
+    mockClient('PENDING_PROFILE')
     renderGuard({ initialPath: '/client/onboarding', guardPath: '/client/onboarding' })
     expect(await screen.findByText('conteudo protegido')).toBeInTheDocument()
   })
@@ -133,6 +133,23 @@ describe('ClientRouteGuard', () => {
     mockClient('ONBOARDING_HEALTH')
     renderGuard({ initialPath: '/client/onboarding', guardPath: '/client/onboarding' })
     expect(await screen.findByText('saude aluno')).toBeInTheDocument()
+  })
+
+  it('trata status desconhecido como onboarding de perfil', async () => {
+    loginAs('client')
+    server.use(
+      http.get('*/student/me', () =>
+        HttpResponse.json({
+          clientId: 'client_demo',
+          email: 'aluno@coachmatch.app',
+          status: 'UNKNOWN',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        }),
+      ),
+    )
+    renderGuard({ requireOnboarded: true })
+    expect(await screen.findByText('onboarding aluno')).toBeInTheDocument()
   })
 
   it('redireciona aluno ACTIVE para /client quando está em etapa de onboarding', async () => {

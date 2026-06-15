@@ -33,7 +33,7 @@ const APP_ROUTE_GROUPS = [
 
 const COACH_STATUSES: CoachStatus[] = ['PENDING_PROFILE', 'APPROVED']
 
-const CLIENT_STATUSES: ClientStatus[] = ['ONBOARDING_PROFILE', 'ONBOARDING_HEALTH', 'ACTIVE']
+const CLIENT_STATUSES: ClientStatus[] = ['PENDING_PROFILE', 'ONBOARDING_HEALTH', 'ACTIVE']
 
 function hasMockingEnabled(): boolean {
   return import.meta.env.VITE_API_MOCKING === 'enabled'
