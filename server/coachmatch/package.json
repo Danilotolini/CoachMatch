@@ -1,8 +1,5 @@
 {
   "type": "module",
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "serverless", "unrs-resolver"]
-  },
   "scripts": {
     "dev": "serverless offline start",
     "test": "vitest run",
