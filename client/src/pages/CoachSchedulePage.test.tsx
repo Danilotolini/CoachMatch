@@ -116,7 +116,11 @@ describe('CoachSchedulePage', () => {
                 scheduleId: 'sch_req',
                 status: 'REQUESTED',
                 requests: [
-                  { studentId: 'student_001', status: 'REQUESTED', requestedAt: '2026-11-01T10:00:00Z' },
+                  {
+                    studentId: 'student_001',
+                    status: 'REQUESTED',
+                    requestedAt: '2026-11-01T10:00:00Z',
+                  },
                 ],
               }),
             ]),
