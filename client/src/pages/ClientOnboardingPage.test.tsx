@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { http, HttpResponse } from 'msw'
@@ -34,6 +34,13 @@ function mockCepSuccess() {
       }),
     ),
   )
+}
+
+function dateInputValue(date = new Date()) {
+  const year = String(date.getFullYear()).padStart(4, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 describe('ClientOnboardingPage', () => {
@@ -86,11 +93,53 @@ describe('ClientOnboardingPage', () => {
 
     await user.click(screen.getByRole('button', { name: /Continuar/i }))
 
-    expect(await screen.findByText('Telefone incompleto.')).toBeInTheDocument()
+    expect(await screen.findByText('Informe seu nome completo.')).toBeInTheDocument()
+    expect(screen.getByText('Telefone incompleto.')).toBeInTheDocument()
     expect(screen.getByText('Informe sua data de nascimento.')).toBeInTheDocument()
     expect(screen.getByText('Selecione uma opção.')).toBeInTheDocument()
     expect(screen.getByText('Informe um CEP válido.')).toBeInTheDocument()
     expect(screen.getByText('Escolha um objetivo principal.')).toBeInTheDocument()
+  })
+
+  it('limita o calendário de nascimento até a data atual', () => {
+    renderPage()
+
+    expect(screen.getByLabelText('Data de nascimento')).toHaveAttribute('max', dateInputValue())
+  })
+
+  it('não aceita ano de nascimento com mais de 4 dígitos', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const birthDate = screen.getByLabelText('Data de nascimento')
+
+    fireEvent.change(birthDate, { target: { value: '199999-05-20' } })
+    await user.click(screen.getByRole('button', { name: /Continuar/i }))
+
+    expect(birthDate).toHaveValue('')
+    expect(screen.getByText('Informe sua data de nascimento.')).toBeInTheDocument()
+  })
+
+  it('não aceita data de nascimento futura', async () => {
+    const user = userEvent.setup()
+    mockCepSuccess()
+    renderPage()
+
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    await user.type(screen.getByLabelText('Nome completo'), 'Ana Ferreira')
+    await user.type(screen.getByPlaceholderText('(11) 99999-9999'), '11987654321')
+    fireEvent.change(screen.getByLabelText('Data de nascimento'), {
+      target: { value: dateInputValue(tomorrow) },
+    })
+    await user.click(screen.getByRole('button', { name: 'Mulher' }))
+    await user.type(screen.getByPlaceholderText('00000-000'), '01310100')
+    await screen.findByDisplayValue('São Paulo')
+    await user.click(screen.getByRole('button', { name: /Hipertrofia/i }))
+    await user.click(screen.getByRole('button', { name: /Continuar/i }))
+
+    expect(await screen.findByText('Informe uma data de nascimento válida.')).toBeInTheDocument()
+    expect(screen.queryByText('saude page')).not.toBeInTheDocument()
   })
 
   it('navega para a etapa de saúde quando o formulário é válido', async () => {
@@ -98,6 +147,7 @@ describe('ClientOnboardingPage', () => {
     mockCepSuccess()
     renderPage()
 
+    await user.type(screen.getByLabelText('Nome completo'), 'Ana Ferreira')
     await user.type(screen.getByPlaceholderText('(11) 99999-9999'), '11987654321')
     await user.type(screen.getByLabelText('Data de nascimento'), '1990-05-20')
     await user.click(screen.getByRole('button', { name: 'Mulher' }))
@@ -115,6 +165,7 @@ describe('ClientOnboardingPage', () => {
     const user = userEvent.setup()
     renderPage()
 
+    await user.type(screen.getByLabelText('Nome completo'), 'Ana Ferreira')
     await user.type(screen.getByPlaceholderText('(11) 99999-9999'), '11987654321')
     await user.type(screen.getByLabelText('Data de nascimento'), '1990-05-20')
     await user.click(screen.getByRole('button', { name: 'Mulher' }))

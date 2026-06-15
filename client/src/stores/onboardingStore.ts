@@ -7,7 +7,6 @@ export interface SelectedGym {
   city: string
   state: string
   neighborhood: string
-  coordinates: { lat: number; lng: number }
 }
 
 export interface HomeArea {
@@ -18,6 +17,7 @@ export interface HomeArea {
 }
 
 export interface OnboardingFormState {
+  name: string
   phone: string
   instagram: string
   cref: string
@@ -38,6 +38,7 @@ interface OnboardingStore {
   setSpecialtySearch: (value: string) => void
   setGymSearch: (value: string) => void
   update: <K extends keyof OnboardingFormState>(key: K, value: OnboardingFormState[K]) => void
+  updateName: (value: string) => void
   updatePhone: (value: string) => void
   updateInstagram: (value: string) => void
   updateCref: (value: string) => void
@@ -53,6 +54,7 @@ interface OnboardingStore {
 }
 
 const initialForm: OnboardingFormState = {
+  name: '',
   phone: '',
   instagram: '',
   cref: '',
@@ -121,6 +123,10 @@ function validateForm(form: OnboardingFormState): FormErrors {
   const errors: FormErrors = {}
   const phoneDigits = onlyDigits(form.phone)
 
+  if (form.name.trim().length < 2) {
+    errors.name = 'Informe seu nome completo.'
+  }
+
   if (phoneDigits.length < 10 || phoneDigits.length > 11) {
     errors.phone = 'Informe um telefone com DDD.'
   }
@@ -170,18 +176,15 @@ function buildWorkLocation(form: OnboardingFormState): WorkLocation[] {
   return [...gymEntries, ...homeEntries]
 }
 
-export function buildCoachUpdatePayload(
-  form: OnboardingFormState,
-  authName: string | null,
-): CoachUpdatePayload {
+export function buildCoachUpdatePayload(form: OnboardingFormState): CoachUpdatePayload {
   const profile: Partial<CoachProfile> = {
+    name: form.name.trim(),
     phone: onlyDigits(form.phone),
     instagram: form.instagram ? `@${form.instagram}` : '',
     cref: form.cref,
     specialties: form.specialties,
     profile_video: !!form.videoKey,
   }
-  if (authName) profile.name = authName
 
   return {
     profile,
@@ -205,6 +208,9 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       form: { ...state.form, [key]: value },
       errors: clearError(state.errors, key),
     }))
+  },
+  updateName: (value) => {
+    get().update('name', value)
   },
   updatePhone: (value) => {
     get().update('phone', maskPhone(value))
@@ -238,7 +244,6 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
         city: gym.city,
         state: gym.state,
         neighborhood: gym.neighborhood,
-        coordinates: gym.coordinates,
       }
       return {
         form: { ...state.form, gyms: [...state.form.gyms, next] },

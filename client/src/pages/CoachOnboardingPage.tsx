@@ -1,10 +1,14 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Chip } from '@/components/ui/Chip'
-import { HomeServiceAreaPicker } from '@/components/onboarding/HomeServiceAreaPicker'
+import { Icon } from '@/components/ui/Icon'
+import { GymSuggestForm } from '@/components/onboarding/GymSuggestForm'
+// import { HomeServiceAreaPicker } from '@/components/onboarding/HomeServiceAreaPicker'
 import { getAuthUser } from '@/lib/auth'
-import { useGyms } from '@/hooks/useGyms'
+import { useGymSearch } from '@/hooks/useGyms'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useSpecialties } from '@/hooks/useSpecialties'
 import { useUpdateCoachMe } from '@/hooks/useCoachMe'
 import { useVideoUpload } from '@/hooks/useVideoUpload'
@@ -36,25 +40,41 @@ export default function CoachOnboardingPage() {
   const gymSearch = useOnboardingStore((state) => state.gymSearch)
   const setSpecialtySearch = useOnboardingStore((state) => state.setSpecialtySearch)
   const setGymSearch = useOnboardingStore((state) => state.setGymSearch)
+  const updateName = useOnboardingStore((state) => state.updateName)
   const updatePhone = useOnboardingStore((state) => state.updatePhone)
   const updateInstagram = useOnboardingStore((state) => state.updateInstagram)
   const updateCref = useOnboardingStore((state) => state.updateCref)
   const toggleSpecialty = useOnboardingStore((state) => state.toggleSpecialty)
   const addGym = useOnboardingStore((state) => state.addGym)
   const removeGym = useOnboardingStore((state) => state.removeGym)
-  const setGymError = useOnboardingStore((state) => state.setGymError)
   const setVideoKey = useOnboardingStore((state) => state.setVideoKey)
   const validate = useOnboardingStore((state) => state.validate)
   const resetOnboarding = useOnboardingStore((state) => state.reset)
   const { data: specialtiesData } = useSpecialties(specialtySearch)
-  const { data: gymsData } = useGyms(gymSearch)
+  const {
+    data: gymsData,
+    hasNextPage: hasMoreGyms,
+    fetchNextPage: fetchMoreGyms,
+    isFetchingNextPage: isFetchingMoreGyms,
+    isLoading: isSearchingGyms,
+  } = useGymSearch(gymSearch)
+
+  const { rootRef: gymListRef, sentinelRef: gymSentinelRef } = useInfiniteScroll({
+    hasMore: hasMoreGyms,
+    isLoading: isFetchingMoreGyms,
+    onLoadMore: () => void fetchMoreGyms(),
+  })
 
   const specialtyOptions = specialtiesData?.data ?? FALLBACK_SPECIALTIES
   const gymOptions = gymsData?.data ?? []
+  const availableGymOptions = gymOptions.filter(
+    (gym) => !form.gyms.some((selected) => selected.id === gym.gymId),
+  )
 
   const videoInputRef = useRef<HTMLInputElement>(null)
   const [videoFileName, setVideoFileName] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showGymSuggest, setShowGymSuggest] = useState(false)
 
   const isSubmitting = updateCoach.isPending
   const hasValidationErrors = Object.values(errors).some(Boolean)
@@ -76,7 +96,7 @@ export default function CoachOnboardingPage() {
     setSubmitError(null)
     if (!validate()) return
 
-    const payload = buildCoachUpdatePayload(form, authUser.name)
+    const payload = buildCoachUpdatePayload(form)
 
     updateCoach.mutate(payload, {
       onSuccess: () => {
@@ -156,8 +176,12 @@ export default function CoachOnboardingPage() {
                 <Input
                   label="Nome Completo"
                   type="text"
-                  value={authUser.name ?? 'Nome não informado'}
-                  disabled
+                  placeholder="Seu nome completo"
+                  value={form.name}
+                  error={errors.name}
+                  onChange={(e) => {
+                    updateName(e.target.value)
+                  }}
                 />
                 <Input
                   label="E-mail do treinador"
@@ -248,9 +272,7 @@ export default function CoachOnboardingPage() {
                 Selecione suas principais áreas de atuação.
               </p>
               <div className="bg-surface-container-highest rounded-full px-4 py-3 flex items-center border border-outline-variant/15 focus-within:border-primary/50 transition-colors">
-                <span className="material-symbols-outlined text-on-surface-variant mr-3">
-                  search
-                </span>
+                <Icon name="search" className="mr-3 text-on-surface-variant" />
                 <input
                   type="text"
                   placeholder="Buscar especialidade..."
@@ -304,9 +326,7 @@ export default function CoachOnboardingPage() {
               </p>
               <div className="ml-0 space-y-4">
                 <div className="bg-surface-container-highest rounded-t-lg border-b border-surface-variant focus-within:border-primary transition-colors p-3 flex items-center">
-                  <span className="material-symbols-outlined text-on-surface-variant mr-3">
-                    location_on
-                  </span>
+                  <Icon name="location_on" className="mr-3 text-on-surface-variant" />
                   <input
                     type="text"
                     placeholder="Buscar por nome da academia ou bairro..."
@@ -317,12 +337,14 @@ export default function CoachOnboardingPage() {
                     className="bg-transparent border-none w-full text-on-surface font-body text-sm focus:ring-0 focus:outline-none p-0 placeholder-on-surface-variant/50"
                   />
                 </div>
-                {gymSearch && gymOptions.length > 0 ? (
-                  <div className="space-y-2">
-                    {gymOptions
-                      .filter((gym) => !form.gyms.some((selected) => selected.id === gym.gymId))
-                      .slice(0, 5)
-                      .map((gym) => (
+                {gymSearch ? (
+                  isSearchingGyms ? (
+                    <p className="px-1 font-body text-xs text-on-surface-variant">
+                      Buscando academias...
+                    </p>
+                  ) : availableGymOptions.length > 0 ? (
+                    <div ref={gymListRef} className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                      {availableGymOptions.map((gym) => (
                         <button
                           key={gym.gymId}
                           type="button"
@@ -339,7 +361,25 @@ export default function CoachOnboardingPage() {
                           </span>
                         </button>
                       ))}
-                  </div>
+                      {hasMoreGyms ? (
+                        <div
+                          ref={gymSentinelRef}
+                          className="py-2 text-center font-body text-xs text-on-surface-variant"
+                        >
+                          {isFetchingMoreGyms ? 'Carregando...' : 'Role para ver mais'}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg bg-surface-container-low px-4 py-3 text-center">
+                      <p className="font-body text-sm text-on-surface">
+                        Nenhuma academia encontrada
+                      </p>
+                      <p className="mt-1 font-body text-xs text-on-surface-variant">
+                        Revise o nome ou sugira uma nova academia abaixo.
+                      </p>
+                    </div>
+                  )
                 ) : null}
                 {form.gyms.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
@@ -357,25 +397,38 @@ export default function CoachOnboardingPage() {
                           }}
                           className="text-on-surface-variant hover:text-error transition-colors ml-2"
                         >
-                          <span className="material-symbols-outlined text-[16px]">close</span>
+                          <Icon name="close" size={16} />
                         </button>
                       </div>
                     ))}
                   </div>
                 ) : null}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setGymError('Busque uma academia existente antes de concluir.')
-                  }}
-                  className="text-primary text-xs font-bold uppercase tracking-widest hover:underline"
-                >
-                  SUGERIR ACADEMIA
-                </button>
+                {showGymSuggest ? (
+                  <GymSuggestForm
+                    onCancel={() => {
+                      setShowGymSuggest(false)
+                    }}
+                    onSuggested={(gym) => {
+                      addGym(gym)
+                      setShowGymSuggest(false)
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowGymSuggest(true)
+                    }}
+                    className="text-primary text-xs font-bold uppercase tracking-widest hover:underline"
+                  >
+                    SUGERIR ACADEMIA
+                  </button>
+                )}
                 {errors.gyms ? <p className="font-body text-xs text-error">{errors.gyms}</p> : null}
               </div>
             </div>
 
+            {/* Atendimento Externo — temporariamente desativado
             <div className="bg-surface-container-low p-5 rounded-xl space-y-4">
               <h3 className="font-headline text-base font-semibold text-on-surface">
                 Atendimento Externo
@@ -389,20 +442,20 @@ export default function CoachOnboardingPage() {
             {errors.workLocation ? (
               <p className="font-body text-xs text-error">{errors.workLocation}</p>
             ) : null}
+            */}
           </Section>
 
           <div className="pt-4 pb-12">
-            <button
+            <Button
               type="button"
-              disabled={isSubmitting || videoUpload.isPending}
+              loading={isSubmitting}
+              disabled={videoUpload.isPending}
               onClick={submit}
-              className="w-full bg-linear-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-lg py-4 rounded-lg shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] flex items-center justify-center gap-2 uppercase tracking-wide disabled:opacity-60 disabled:pointer-events-none"
+              className="w-full text-lg"
+              icon="arrow_forward"
             >
               {isSubmitting ? 'ENVIANDO...' : 'CONCLUIR PERFIL'}
-              {!isSubmitting ? (
-                <span className="material-symbols-outlined">arrow_forward</span>
-              ) : null}
-            </button>
+            </Button>
             {hasValidationErrors ? (
               <p className="mt-4 text-center font-body text-xs text-error">
                 Existem erros no formulário. Revise os campos destacados acima.
@@ -412,14 +465,7 @@ export default function CoachOnboardingPage() {
               <p className="mt-4 text-center font-body text-xs text-error">{submitError}</p>
             ) : null}
             <p className="text-center font-body text-xs text-on-surface-variant mt-4">
-              Ao continuar, você aceita nossos{' '}
-              <a
-                className="text-primary underline decoration-primary/30 underline-offset-2"
-                href="#"
-              >
-                Termos de Curadoria
-              </a>
-              .
+              Ao continuar, você aceita os Termos de Curadoria do CoachMatch.
             </p>
           </div>
         </main>
@@ -473,11 +519,7 @@ function VideoUploadCard({
         className="bg-surface-container-low rounded-xl p-5 border border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center hover:bg-surface-container-highest transition-colors cursor-pointer group min-h-40 disabled:cursor-wait "
       >
         <div className="w-12 h-12 bg-surface-container-highest rounded-full flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-          <span
-            className={`material-symbols-outlined text-primary text-2xl ${uploading ? 'animate-spin' : ''}`}
-          >
-            {icon}
-          </span>
+          <Icon name={icon} className={`text-primary ${uploading ? 'animate-spin' : ''}`} />
         </div>
         <h3 className="font-headline text-sm font-semibold text-on-surface mb-1">
           Vídeo de Apresentação
@@ -504,7 +546,7 @@ function UploadCard({
       className="bg-surface-container-low rounded-xl p-5 border border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center hover:bg-surface-container-highest transition-colors cursor-pointer group min-h-40"
     >
       <div className="w-12 h-12 bg-surface-container-highest rounded-full flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-        <span className="material-symbols-outlined text-primary text-2xl">{icon}</span>
+        <Icon name={icon} className="text-primary" />
       </div>
       <h3 className="font-headline text-sm font-semibold text-on-surface mb-1">{title}</h3>
       <p className="font-body text-xs text-on-surface-variant max-w-50">{description}</p>
