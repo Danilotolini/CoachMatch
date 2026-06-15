@@ -1,11 +1,13 @@
 import { useMemo, useRef, useState, type SyntheticEvent } from 'react'
 import { maskCref } from '@/lib/cref'
 import { logout } from '@/lib/cognito'
+import { maskInstagram, maskPhone, onlyDigits } from '@/lib/formatters'
 import { parseApiErrors } from '@/lib/http'
 import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { Icon } from '@/components/ui/Icon'
 import { Input } from '@/components/ui/Input'
+import { VideoUploadCard } from '@/components/coach/VideoUploadCard'
 import { CoachBottomNav, CoachSideNav } from '@/components/layout/CoachNavigation'
 import { GymPicker, type GymOption } from '@/components/onboarding/GymPicker'
 import {
@@ -40,34 +42,12 @@ function initialsFromName(name: string): string {
   )
 }
 
-function onlyDigits(value: string): string {
-  return value.replace(/\D/g, '')
-}
-
-function maskPhone(value: string): string {
-  const digits = onlyDigits(value).slice(0, 11)
-  if (digits.length <= 2) return digits
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
-  if (digits.length <= 10) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
-  }
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
-}
-
-function normalizeInstagram(value: string): string {
-  return value
-    .replace(/^@+/, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9._]/g, '')
-    .slice(0, 30)
-}
-
 function profileToForm(profile: CoachProfile): CoachProfileFormState {
   return {
     name: profile.name,
     phone: maskPhone(profile.phone ?? ''),
     cref: maskCref(profile.cref),
-    instagram: normalizeInstagram(profile.instagram),
+    instagram: maskInstagram(profile.instagram),
     specialties: profile.specialties,
   }
 }
@@ -367,9 +347,9 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
                   placeholder="seu.perfil"
                   value={form.instagram}
                   error={errors.instagram}
-                  transform={normalizeInstagram}
+                  transform={maskInstagram}
                   onChange={(event) => {
-                    updateField('instagram', normalizeInstagram(event.target.value))
+                    updateField('instagram', maskInstagram(event.target.value))
                   }}
                 />
                 <Input
@@ -453,11 +433,17 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
               icon="videocam"
             >
               <VideoUploadCard
+                label={hasVideo ? 'Trocar vídeo' : 'Enviar vídeo'}
                 uploaded={hasVideo}
                 uploading={videoUpload.isPending}
                 progress={videoUpload.progress}
                 fileName={videoFileName}
                 error={videoUpload.isError ? 'Falha no upload. Tente outro arquivo.' : undefined}
+                hint={
+                  hasVideo && !videoUpload.isPending
+                    ? 'Salve o perfil para confirmar a publicação na vitrine.'
+                    : undefined
+                }
                 onPick={() => videoInputRef.current?.click()}
               />
               <input
@@ -505,59 +491,6 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
         </div>
       </form>
     </>
-  )
-}
-
-interface VideoUploadCardProps {
-  uploaded: boolean
-  uploading: boolean
-  progress: number
-  fileName: string | null
-  error?: string | undefined
-  onPick: () => void
-}
-
-function VideoUploadCard({
-  uploaded,
-  uploading,
-  progress,
-  fileName,
-  error,
-  onPick,
-}: VideoUploadCardProps) {
-  const status = uploading
-    ? `Enviando... ${String(progress)}%`
-    : uploaded
-      ? fileName
-        ? `Pronto: ${fileName}`
-        : 'Vídeo de apresentação publicado.'
-      : 'Faça upload de um vídeo curto (até 60s) mostrando sua energia.'
-
-  const icon = uploaded ? 'check_circle' : uploading ? 'progress_activity' : 'videocam'
-
-  return (
-    <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={onPick}
-        disabled={uploading}
-        className="group flex min-h-40 flex-col items-center justify-center rounded-xl border border-dashed border-outline-variant/30 bg-surface-container-low p-5 text-center transition-colors hover:bg-surface-container-highest disabled:cursor-wait"
-      >
-        <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-surface-container-highest transition-colors group-hover:bg-primary/20">
-          <Icon name={icon} className={`text-primary ${uploading ? 'animate-spin' : ''}`} />
-        </span>
-        <span className="font-headline text-sm font-semibold text-on-surface">
-          {uploaded ? 'Trocar vídeo' : 'Enviar vídeo'}
-        </span>
-        <span className="mt-1 max-w-52 font-body text-xs text-on-surface-variant">{status}</span>
-      </button>
-      {error ? <p className="font-body text-xs text-error">{error}</p> : null}
-      {uploaded && !uploading ? (
-        <p className="font-body text-xs text-on-surface-variant">
-          Salve o perfil para confirmar a publicação na vitrine.
-        </p>
-      ) : null}
-    </div>
   )
 }
 

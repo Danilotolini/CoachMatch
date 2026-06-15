@@ -40,6 +40,30 @@ beforeEach(() => {
 })
 
 describe('CoachProfilePage', () => {
+  it('mostra estados de carregamento e erro ao buscar perfil', async () => {
+    server.use(http.get('*/coach/me', () => HttpResponse.json({ error: 'boom' }, { status: 500 })))
+
+    renderPage()
+
+    expect(screen.getByText('Carregando seu perfil...')).toBeInTheDocument()
+    expect(await screen.findByText('Não foi possível carregar seu perfil.')).toBeInTheDocument()
+  })
+
+  it('exibe status pendente para coach ainda não aprovado', async () => {
+    server.use(
+      http.get('*/coach/me', () =>
+        HttpResponse.json<Coach>({
+          ...approvedCoach,
+          status: 'PENDING_PROFILE',
+        }),
+      ),
+    )
+
+    renderPage()
+
+    expect(await screen.findByText('Perfil pendente')).toBeInTheDocument()
+  })
+
   it('carrega o perfil e salva alterações em PUT /coach/me', async () => {
     let receivedPayload: CoachUpdatePayload | null = null
 
@@ -152,6 +176,40 @@ describe('CoachProfilePage', () => {
     expect(
       await screen.findByText('Selecione pelo menos uma academia parceira.'),
     ).toBeInTheDocument()
+    expect(putCalled).toBe(false)
+  })
+
+  it('valida campos obrigatórios e bloqueia envio quando dados estão inválidos', async () => {
+    let putCalled = false
+
+    server.use(
+      http.get('*/coach/me', () => HttpResponse.json<Coach>(approvedCoach)),
+      http.put('*/coach/me', () => {
+        putCalled = true
+        return HttpResponse.json<Coach>(approvedCoach)
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByDisplayValue('Marina Silva')
+    await user.clear(screen.getByLabelText('Nome completo'))
+    await user.clear(screen.getByLabelText('WhatsApp / telefone'))
+    await user.type(screen.getByLabelText('WhatsApp / telefone'), '123')
+    await user.clear(screen.getByLabelText('Registro CREF'))
+    await user.type(screen.getByLabelText('Registro CREF'), '123')
+    await user.clear(screen.getByLabelText('Instagram'))
+    await user.type(screen.getByLabelText('Instagram'), 'marina!*')
+    await user.click(screen.getByRole('button', { name: 'Remover Musculação' }))
+    await user.click(screen.getByRole('button', { name: 'Remover Smart Fit Paulista' }))
+    await user.click(screen.getByRole('button', { name: /SALVAR PERFIL/i }))
+
+    expect(await screen.findByText('Informe seu nome completo.')).toBeInTheDocument()
+    expect(screen.getByText('Informe um telefone com DDD.')).toBeInTheDocument()
+    expect(screen.getByText('Use o formato 000000-G/SP.')).toBeInTheDocument()
+    expect(screen.getByText('Selecione pelo menos uma especialidade.')).toBeInTheDocument()
+    expect(screen.getByText('Selecione pelo menos uma academia parceira.')).toBeInTheDocument()
     expect(putCalled).toBe(false)
   })
 })
