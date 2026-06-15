@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { maskCref } from '@/lib/cref'
+import { maskInstagram, maskPhone, onlyDigits } from '@/lib/formatters'
 import type { CoachProfile, CoachUpdatePayload, Gym, WorkLocation } from '@/types/api'
 
 export interface SelectedGym {
@@ -27,9 +28,7 @@ interface OnboardingStore {
   form: OnboardingFormState
   errors: FormErrors
   specialtySearch: string
-  gymSearch: string
   setSpecialtySearch: (value: string) => void
-  setGymSearch: (value: string) => void
   update: <K extends keyof OnboardingFormState>(key: K, value: OnboardingFormState[K]) => void
   updateName: (value: string) => void
   updatePhone: (value: string) => void
@@ -52,28 +51,6 @@ const initialForm: OnboardingFormState = {
   specialties: [],
   gyms: [],
   videoKey: null,
-}
-
-export function onlyDigits(value: string): string {
-  return value.replace(/\D/g, '')
-}
-
-function maskPhone(value: string): string {
-  const digits = onlyDigits(value).slice(0, 11)
-  if (digits.length <= 2) return digits
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
-  if (digits.length <= 10) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
-  }
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
-}
-
-function maskInstagram(value: string): string {
-  return value
-    .replace(/^@+/, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9._]/g, '')
-    .slice(0, 30)
 }
 
 function validateForm(form: OnboardingFormState): FormErrors {
@@ -144,12 +121,8 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   form: initialForm,
   errors: {},
   specialtySearch: '',
-  gymSearch: '',
   setSpecialtySearch: (value) => {
     set({ specialtySearch: value })
-  },
-  setGymSearch: (value) => {
-    set({ gymSearch: value })
   },
   update: (key, value) => {
     set((state) => ({
@@ -195,7 +168,6 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       }
       return {
         form: { ...state.form, gyms: [...state.form.gyms, next] },
-        gymSearch: '',
         errors: clearError(state.errors, 'gyms'),
       }
     })
@@ -224,6 +196,6 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
     return Object.keys(errors).length === 0
   },
   reset: () => {
-    set({ form: initialForm, errors: {}, specialtySearch: '', gymSearch: '' })
+    set({ form: initialForm, errors: {}, specialtySearch: '' })
   },
 }))

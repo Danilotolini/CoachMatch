@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Gym } from '@/types/api'
-import { buildCoachUpdatePayload, onlyDigits, useOnboardingStore } from './onboardingStore'
+import { onlyDigits } from '@/lib/formatters'
+import { buildCoachUpdatePayload, useOnboardingStore } from './onboardingStore'
 
 const baseGym: Gym = {
   gymId: 'gym-1',
@@ -143,8 +144,7 @@ describe('toggleSpecialty', () => {
 })
 
 describe('addGym / removeGym', () => {
-  it('adiciona uma academia, limpa busca e erros relacionados', () => {
-    useOnboardingStore.setState({ gymSearch: 'Smart' })
+  it('adiciona uma academia e limpa erros relacionados', () => {
     useOnboardingStore.getState().setGymError('Erro qualquer')
 
     useOnboardingStore.getState().addGym(baseGym)
@@ -156,7 +156,6 @@ describe('addGym / removeGym', () => {
       name: 'Smart Fit Boa Viagem',
       city: 'Recife',
     })
-    expect(state.gymSearch).toBe('')
     expect(state.errors.gyms).toBeUndefined()
     expect(state.errors.workLocation).toBeUndefined()
   })
@@ -191,14 +190,11 @@ describe('setVideoKey', () => {
   })
 })
 
-describe('setSpecialtySearch / setGymSearch', () => {
-  it('atualiza os campos de busca', () => {
+describe('setSpecialtySearch', () => {
+  it('atualiza o campo de busca de especialidades', () => {
     useOnboardingStore.getState().setSpecialtySearch('cross')
-    useOnboardingStore.getState().setGymSearch('smart')
 
-    const state = useOnboardingStore.getState()
-    expect(state.specialtySearch).toBe('cross')
-    expect(state.gymSearch).toBe('smart')
+    expect(useOnboardingStore.getState().specialtySearch).toBe('cross')
   })
 })
 
@@ -311,7 +307,6 @@ describe('reset', () => {
     })
     expect(state.errors).toEqual({})
     expect(state.specialtySearch).toBe('')
-    expect(state.gymSearch).toBe('')
   })
 })
 
