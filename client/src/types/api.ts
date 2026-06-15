@@ -1,4 +1,4 @@
-export type CoachStatus = 'PENDING_PROFILE' | 'ONBOARDING_PROFILE' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+export type CoachStatus = 'PENDING_PROFILE' | 'APPROVED'
 
 export type CoachVisibility = 'VISIBLE' | 'INVISIBLE'
 
@@ -66,6 +66,25 @@ export interface CoachListItem {
   photo: string | null
 }
 
+export interface CoachDetail extends CoachListItem {
+  cref: string
+  bio: string
+  experienceYears: number
+  sessionsCount: number
+  responseTime: string
+  serviceAreas: string[]
+  trainingStyles: string[]
+  languages: string[]
+  instagram: string | null
+  reviews: {
+    id: string
+    studentName: string
+    rating: number
+    comment: string
+    date: string
+  }[]
+}
+
 export interface CoachSearchFilters {
   q?: string | undefined
   specialties?: string[] | undefined
@@ -82,12 +101,7 @@ export type CoachSearchResponse = PaginatedResponse<CoachListItem>
 
 export type ClientGender = 'F' | 'M' | 'NB' | 'NA'
 
-export type ClientGoal =
-  | 'WEIGHT_LOSS'
-  | 'HYPERTROPHY'
-  | 'CONDITIONING'
-  | 'REHAB'
-  | 'PERFORMANCE'
+export type ClientGoal = 'WEIGHT_LOSS' | 'HYPERTROPHY' | 'CONDITIONING' | 'REHAB' | 'PERFORMANCE'
 
 /** Respostas PAR-Q armazenadas após a etapa de saúde */
 export interface ClientHealth {
@@ -97,7 +111,7 @@ export interface ClientHealth {
   medicalDisclaimer: boolean
 }
 
-/** Perfil completo do aluno retornado por GET/POST /clients/me */
+/** Perfil completo do aluno retornado por GET /student/me */
 export interface Client {
   clientId: string
   email: string
@@ -186,24 +200,170 @@ export interface UploadUrlResponse {
   }
 }
 
-export type PaymentStatus = 'approved' | 'refused' | 'pending'
-export type PaymentMethod = 'credit_card' | 'pix'
+// ── Schedule ──────────────────────────────────────────────────────────────────
 
-export interface CardInfo {
-  number: string
-  holder: string
-  expiryMonth: string
-  expiryYear: string
-  cvv: string
+export type ScheduleStatus =
+  | 'AVAILABLE'
+  | 'REQUESTED'
+  | 'BOOKED'
+  | 'CANCELLED'
+  | 'COMPLETED'
+  | 'NOSHOW'
+
+export type RequestStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED'
+export type ClassStatus = 'COMPLETED' | 'NOSHOW'
+
+export interface ScheduleRequest {
+  studentId: string
+  status: RequestStatus
+  requestedAt: string
+  alteredAt: string | null
+  studentName: string | null
 }
 
-export interface PaymentPayload {
+export interface Schedule {
+  scheduleId: string
+  coachId: string
+  gymId: string
+  specialtyId: string
+  startDateTime: string
+  endDateTime: string
+  price: string
+  status: ScheduleStatus
+  studentId: string | null
+  paymentStatus: string | null
+  rating: number | null
+  studentComment: string | null
+  requests: ScheduleRequest[] | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ScheduleCreatePayload {
+  gymId: string
+  specialtyId: string
+  startDateTime: string
+  endDateTime: string
+  price: string
+}
+
+export interface CoachScheduleResponse {
+  coachId: string
+  startDateTime: string
+  endDateTime: string
+  count: number
+  schedules: Schedule[]
+}
+
+export interface ScheduleRequestsResponse {
+  scheduleId: string
+  startDateTime: string
+  endDateTime: string
+  status: ScheduleStatus
+  count: number
+  requests: ScheduleRequest[]
+}
+
+export interface ScheduleRequestResult {
+  message: string
+  scheduleId: string
+  studentId: string
+  status: RequestStatus
+  requestedAt: string
+}
+
+export interface StudentScheduleItem {
+  scheduleId: string
+  coachId: string
+  gymId: string
+  specialtyId: string
+  price: string
+  startDateTime: string
+  endDateTime: string
+  scheduleStatus: ScheduleStatus
+  paymentStatus?: string | null
+  request: ScheduleRequest | null
+}
+
+export interface StudentSchedulesResponse {
+  studentId: string
+  count: number
+  schedules: StudentScheduleItem[]
+}
+
+export interface ScheduleApproveResult {
+  message: string
+  scheduleId: string
+  studentId: string
+  status: 'BOOKED'
+  updatedAt: string
+}
+
+export interface ScheduleCancelResult {
+  message: string
+  scheduleId: string
+  status: 'CANCELLED'
+  notifiedStudents?: number
+  cancelledAt: string
+}
+
+export interface CancelRequestResult {
+  message: string
+  scheduleId: string
+  studentId: string
+  scheduleStatus: ScheduleStatus
+  cancelledAt: string
+}
+
+export interface GymScheduleResponse {
+  gymId: string
+  startDateTime: string
+  endDateTime: string
+  count: number
+  schedules: Schedule[]
+}
+
+export interface ClassStatusResult {
+  message: string
+  scheduleId: string
+  status: ClassStatus
+  paymentStatus: 'PENDING'
+  updatedAt: string
+}
+
+// ── Pagamentos ────────────────────────────────────────────────────────────────
+
+export type TransactionStatus = 'approved' | 'refused' | 'refunded'
+export type PaymentMethod = 'credit_card' | 'pix'
+
+export interface CardPaymentPayload {
   sessionId: string
-  method: PaymentMethod
-  card?: CardInfo
-  amount: number
   coachId: string
   studentId: string
+  amount: number
+  method: 'credit_card'
+  card: {
+    number: string
+    holder: string
+    expiryMonth: string
+    expiryYear: string
+    cvv: string
+  }
+}
+
+export interface PixPaymentPayload {
+  sessionId: string
+  coachId: string
+  studentId: string
+  amount: number
+  method: 'pix'
+}
+
+export type PaymentPayload = CardPaymentPayload | PixPaymentPayload
+
+export interface PaymentSplit {
+  platform: number
+  coach: number
 }
 
 export interface Transaction {
@@ -213,11 +373,14 @@ export interface Transaction {
   studentId: string
   method: PaymentMethod
   amount: number
-  status: PaymentStatus
-  cardLastFour?: string
-  split?: {
-    platformFee: number
-    coachAmount: number
-  }
+  status: TransactionStatus
+  split?: PaymentSplit | null
+  cardLastFour?: string | null
+  refusalReason?: string | null
+  requires3ds?: boolean | null
+  pixCode?: string | null
+  expiresAt?: string | null
+  refundId?: string | null
+  refundedAt?: string | null
   createdAt: string
 }

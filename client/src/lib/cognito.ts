@@ -1,6 +1,6 @@
 import { env } from '@/lib/env'
 import { queryClient } from '@/lib/queryClient'
-import { type Role, useSessionStore } from '@/stores/sessionStore'
+import { clearPersistedSession, type Role, useSessionStore } from '@/stores/sessionStore'
 
 type ExternalAudience = 'coach' | 'student'
 
@@ -40,7 +40,7 @@ function clientConfig(role: Role): CognitoClientConfig {
 
   return {
     clientId: env.cognitoClientId,
-    clientSecret: null,
+    clientSecret: env.cognitoClientSecret,
     domain: env.cognitoDomain,
     redirectUri: redirectUri(role),
   }
@@ -67,6 +67,15 @@ export function getLogoutUrl(role: Role, returnPath: string = defaultReturnPath(
 // Limpa apenas a sessão do papel atual e redireciona para o /logout do
 // Cognito Hosted UI, que encerra a sessão lá e devolve o usuário à tela
 // de login do mesmo papel. Sessões de outros papéis permanecem ativas.
+//
+// A sessão é removida do storage persistido (via `clearPersistedSession`) em vez
+// de `endSession`: não mutamos o store em memória de propósito. Mutar dispararia
+// os route guards reativos, que redirecionam para a tela de login e iniciam um
+// novo /authorize antes de atingirmos o /logout do Cognito — essa segunda
+// navegação sobrescreve o redirect de logout e o Hosted UI devolve um code novo
+// (re-login silencioso), nunca encerrando a sessão. Como esta é a única
+// navegação, o Cognito de fato encerra a sessão; ao voltarmos, o store
+// re-hidrata do storage já sem a sessão do papel.
 export function logout(role: Role, returnPath: string = defaultReturnPath()): void {
   if (import.meta.env.DEV && import.meta.env.VITE_API_MOCKING === 'enabled') {
     useSessionStore.persist.clearStorage()
@@ -75,7 +84,7 @@ export function logout(role: Role, returnPath: string = defaultReturnPath()): vo
     return
   }
 
-  useSessionStore.getState().endSession(role)
+  clearPersistedSession(role)
   queryClient.clear()
   window.location.href = getLogoutUrl(role, returnPath)
 }

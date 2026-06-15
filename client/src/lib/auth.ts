@@ -1,4 +1,5 @@
 import { getActiveToken } from '@/stores/sessionStore'
+import type { Role } from '@/stores/sessionStore'
 
 export const SESSION_EXPIRED_EVENT = 'coachmatch:session-expired'
 
@@ -10,6 +11,7 @@ export interface AuthUser {
 export interface SessionExpiredDetail {
   reason: 'expired' | 'unauthorized'
   status?: number
+  role?: Role
 }
 
 export function getToken(): string | null {
