@@ -1620,7 +1620,7 @@ function AgendaTab({
     } catch (error) {
       setScheduleErrors((prev) => ({
         ...prev,
-        [slot.scheduleId]: parseApiErrors(error, 'Não foi possível atualizar a aula.'),
+        [slot.scheduleId]: parseApiErrors(error, 'Não foi possível atualizar a sessão.'),
       }))
     } finally {
       setBusyClassId(null)
@@ -1753,7 +1753,7 @@ function AgendaTab({
       <section className="flex flex-col gap-4 rounded-xl border border-outline-variant/10 bg-surface-container p-5">
         <div>
           <h2 className="font-headline text-sm font-semibold tracking-tight text-on-surface-variant uppercase">
-            Aulas para fechar
+            Sessões para fechar
           </h2>
           <p className="mt-1 font-label text-xs text-on-surface-variant">
             {actionableBookedSlots.length} sessões passadas em aberto
@@ -1762,7 +1762,7 @@ function AgendaTab({
 
         {actionableBookedSlots.length === 0 ? (
           <p className="rounded-lg bg-surface-container-low px-4 py-3 font-label text-sm text-on-surface-variant">
-            Nenhuma aula passada aguardando conclusão.
+            Nenhuma sessão passada aguardando conclusão.
           </p>
         ) : (
           <div className="flex flex-col gap-2">
@@ -1783,7 +1783,7 @@ function AgendaTab({
 
         {completedSlots.length > 0 && (
           <div className="rounded-lg bg-tertiary-container px-4 py-3 font-label text-xs text-on-tertiary-container">
-            {completedSlots.length} aulas fechadas no período com pagamento sob cuidado da
+            {completedSlots.length} sessões fechadas no período com pagamento sob cuidado da
             plataforma.
           </div>
         )}

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ProgressHeader } from '@/components/layout/ProgressHeader'
+import { Button } from '@/components/ui/Button'
+import { Icon } from '@/components/ui/Icon'
 import { useSubmitClientHealth } from '@/hooks/useClientMe'
 
 type Answer = 'YES' | 'NO'
@@ -174,7 +176,7 @@ export default function ClientHealthFormPage() {
             {errors.parq ? <p className="font-body text-xs text-error">{errors.parq}</p> : null}
             {flagged ? (
               <div className="bg-surface-container-low border border-primary/30 rounded-xl p-4 flex gap-3">
-                <span className="material-symbols-outlined text-primary">info</span>
+                <Icon name="info" className="text-primary" />
                 <p className="font-body text-xs text-on-surface-variant">
                   Como você respondeu sim a uma das perguntas, recomendamos uma avaliação médica
                   antes de começar. Continuar é sua escolha.
@@ -224,14 +226,7 @@ export default function ClientHealthFormPage() {
                 error={errors.lgpd}
               >
                 Autorizo o CoachMatch a compartilhar minhas respostas de saúde com o personal que eu
-                contratar, conforme a{' '}
-                <a
-                  href="#"
-                  className="text-primary underline decoration-primary/30 underline-offset-2"
-                >
-                  política de privacidade
-                </a>{' '}
-                (LGPD).
+                contratar, conforme a política de privacidade (LGPD).
               </ConsentRow>
 
               <ConsentRow
@@ -251,23 +246,24 @@ export default function ClientHealthFormPage() {
 
       <div className="fixed bottom-0 left-0 right-0 z-40 glass-header pb-safe">
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 flex gap-3 lg:justify-end">
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => {
               void navigate(-1)
             }}
-            className="bg-surface-container-high border border-outline-variant/30 text-on-surface font-headline font-bold text-sm uppercase tracking-wide py-4 px-5 rounded-lg transition-all active:scale-95 hover:border-primary/50"
+            className="px-5"
           >
-            Voltar
-          </button>
-          <button
+            VOLTAR
+          </Button>
+          <Button
             type="button"
             onClick={submit}
-            className="flex-1 lg:flex-none lg:min-w-64 bg-linear-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-sm uppercase tracking-wide py-4 px-8 rounded-lg shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:brightness-105 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="flex-1 lg:flex-none lg:min-w-64"
+            icon="check_circle"
           >
-            Concluir
-            <span className="material-symbols-outlined text-[20px]">check_circle</span>
-          </button>
+            CONCLUIR
+          </Button>
         </div>
       </div>
     </div>
@@ -295,11 +291,10 @@ function ConsentRow({
         }`}
       >
         <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
-        <span
-          className={`material-symbols-outlined mt-0.5 ${checked ? 'text-primary' : 'text-on-surface-variant'}`}
-        >
-          {checked ? 'check_box' : 'check_box_outline_blank'}
-        </span>
+        <Icon
+          name={checked ? 'check_box' : 'check_box_outline_blank'}
+          className={`mt-0.5 ${checked ? 'text-primary' : 'text-on-surface-variant'}`}
+        />
         <span className="font-body text-sm text-on-surface flex-1">{children}</span>
       </label>
       {error ? <p className="font-body text-xs text-error mt-2">{error}</p> : null}

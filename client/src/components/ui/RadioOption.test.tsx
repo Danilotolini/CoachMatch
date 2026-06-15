@@ -43,4 +43,10 @@ describe('RadioOption', () => {
     await userEvent.click(screen.getByText('Online'))
     expect(onChange).toHaveBeenCalledTimes(1)
   })
+
+  it('encaminha className adicional', () => {
+    render(<RadioOption label="Online" checked={false} onChange={vi.fn()} className="min-h-28" />)
+
+    expect(screen.getByText('Online').closest('label')).toHaveClass('min-h-28')
+  })
 })

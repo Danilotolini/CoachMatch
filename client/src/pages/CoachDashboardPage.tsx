@@ -449,19 +449,13 @@ function RequestCard({ name, message }: RequestCardProps) {
         <span className="font-headline text-base font-semibold">{name}</span>
       </div>
       <p className="flex-1 font-label text-sm text-on-surface-variant">"{message}"</p>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          className="flex-1 rounded-lg bg-primary py-2 font-headline text-sm font-bold tracking-wide text-on-primary-fixed uppercase transition-all hover:brightness-105 active:scale-[0.98]"
+      <div className="flex">
+        <Link
+          to="/coach/schedule"
+          className="flex-1 rounded-lg bg-primary py-2 text-center font-headline text-sm font-bold tracking-wide text-on-primary-fixed uppercase transition-all hover:brightness-105 active:scale-[0.98]"
         >
           RESPONDER
-        </button>
-        <button
-          type="button"
-          className="rounded-lg border border-outline-variant/30 px-4 font-label text-sm font-medium text-on-surface-variant transition-colors hover:border-outline"
-        >
-          DEPOIS
-        </button>
+        </Link>
       </div>
     </div>
   )
@@ -497,13 +491,6 @@ function ProfileCard({
         <ProfileStat label="Especialidades" value={String(specialtiesCount)} />
         <ProfileStat label={territoryLabel} value={territoryValue} />
       </div>
-      <button
-        type="button"
-        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-surface-container-high py-3 font-headline text-sm font-bold tracking-wide text-on-surface uppercase transition-all hover:bg-surface-container-highest active:scale-[0.99]"
-      >
-        VER PERFIL PÚBLICO
-        <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-      </button>
     </div>
   )
 }

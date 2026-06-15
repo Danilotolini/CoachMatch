@@ -55,5 +55,7 @@ describe('ClientHomePage', () => {
     expect(await screen.findByText('Priscila Duarte')).toBeInTheDocument()
     expect(screen.getAllByText('Buscar')).toHaveLength(2)
     expect(screen.getAllByText('Perfil')).toHaveLength(2)
+    expect(screen.queryByRole('button', { name: /Chat/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Favoritos/i })).not.toBeInTheDocument()
   })
 })

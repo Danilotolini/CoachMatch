@@ -6,6 +6,7 @@ import { ApiError } from '@/lib/http'
 import { type Role, useSessionStore } from '@/stores/sessionStore'
 import { getLoginUrl } from '@/lib/cognito'
 import { buildMockIdToken } from '@/dev/mockSession'
+import { Button } from '@/components/ui/Button'
 import type { Client } from '@/types/api'
 
 interface LoginPageProps {
@@ -122,14 +123,15 @@ export default function LoginPage({ audience }: LoginPageProps) {
     return (
       <main className="min-h-dvh flex flex-col items-center justify-center gap-4 p-6 bg-background">
         <p className="font-body text-sm text-error">Sessão encerrada pelo servidor.</p>
-        <button
+        <Button
+          type="button"
           onClick={() => {
             startSession(audience, buildMockIdToken(audience))
           }}
-          className="bg-primary text-on-primary-fixed font-headline font-bold py-3 px-6 rounded transition-all hover:brightness-110 active:scale-95"
+          className="py-3"
         >
           ENTRAR NOVAMENTE
-        </button>
+        </Button>
       </main>
     )
   }

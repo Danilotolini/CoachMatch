@@ -34,7 +34,7 @@ describe('CoachSchedulePage', () => {
           status: 'APPROVED',
           profile: {
             ...initialCoach.profile,
-            name: 'Derik Oliveira',
+            name: 'João Silva',
             specialties: ['MUSCULATION', 'FUNCTIONAL'],
           },
           work_location: [{ type: 'GYM', gymId: 'gym_smartfit_paulista' }],
