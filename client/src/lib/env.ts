@@ -1,5 +1,9 @@
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
 const cognitoClientId = import.meta.env.VITE_COGNITO_CLIENT_ID
+// O App Client do treinador na Cognito ainda exige client secret. Vite inlina
+// VITE_* no bundle, então isto fica legível em produção — dívida conhecida até
+// migrarmos o pool do coach para PKCE-only (igual ao do aluno).
+const cognitoClientSecret = import.meta.env.VITE_COGNITO_CLIENT_SECRET
 const cognitoDomain = import.meta.env.VITE_COGNITO_DOMAIN
 const cognitoStudentClientId = import.meta.env.VITE_COGNITO_STUDENT_CLIENT_ID
 const cognitoStudentDomain = import.meta.env.VITE_COGNITO_STUDENT_DOMAIN ?? cognitoDomain
@@ -17,6 +21,7 @@ if (!cognitoStudentDomain) {
 export const env = {
   apiBaseUrl,
   cognitoClientId,
+  cognitoClientSecret: cognitoClientSecret ?? null,
   cognitoDomain,
   cognitoStudentClientId,
   cognitoStudentDomain,
