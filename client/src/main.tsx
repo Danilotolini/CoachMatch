@@ -18,15 +18,20 @@ import CognitoCallbackPage from '@/pages/CognitoCallbackPage'
 import CoachOnboardingPage from '@/pages/CoachOnboardingPage'
 import ClientOnboardingPage from '@/pages/ClientOnboardingPage'
 import ClientHealthFormPage from '@/pages/ClientHealthFormPage'
-import CoachPendingReviewPage from '@/pages/CoachPendingReviewPage'
-import CoachRejectedPage from '@/pages/CoachRejectedPage'
 import CoachDashboardPage from '@/pages/CoachDashboardPage'
+import CoachSchedulePage from '@/pages/CoachSchedulePage'
+import CoachProfilePage from '@/pages/CoachProfilePage'
 import ClientHomePage from '@/pages/ClientHomePage'
+import ClientProfilePage from '@/pages/ClientProfilePage'
 import PaymentPage from '@/pages/PaymentPage'
 import { CoachRouteGuard } from '@/components/CoachRouteGuard'
+import { COACH_ONBOARDING_STATUSES } from '@/lib/coachStatus'
 import { ClientRouteGuard } from '@/components/ClientRouteGuard'
 import { AppShell } from '@/components/AppShell'
 import ClientSearchPage from '@/pages/ClientSearchPage'
+import ClientCoachDetailPage from '@/pages/ClientCoachDetailPage'
+import ClientSchedulePage from '@/pages/ClientSchedulePage'
+import NotFoundPage from '@/pages/NotFoundPage'
 
 function getDevRoutes() {
   if (!import.meta.env.DEV) return []
@@ -89,26 +94,34 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/client/schedule',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <ClientSchedulePage />
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/client/profile',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <ClientProfilePage />
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/client/coaches/:coachId',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <ClientCoachDetailPage />
+          </ClientRouteGuard>
+        ),
+      },
+      {
         path: '/coach/onboarding',
         element: (
-          <CoachRouteGuard allow={['ONBOARDING_PROFILE']}>
+          <CoachRouteGuard allow={COACH_ONBOARDING_STATUSES}>
             <CoachOnboardingPage />
-          </CoachRouteGuard>
-        ),
-      },
-      {
-        path: '/coach/pending-review',
-        element: (
-          <CoachRouteGuard allow={['PENDING_REVIEW']}>
-            <CoachPendingReviewPage />
-          </CoachRouteGuard>
-        ),
-      },
-      {
-        path: '/coach/rejected',
-        element: (
-          <CoachRouteGuard allow={['REJECTED']}>
-            <CoachRejectedPage />
           </CoachRouteGuard>
         ),
       },
@@ -121,6 +134,22 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/coach/schedule',
+        element: (
+          <CoachRouteGuard allow={['APPROVED']}>
+            <CoachSchedulePage />
+          </CoachRouteGuard>
+        ),
+      },
+      {
+        path: '/coach/profile',
+        element: (
+          <CoachRouteGuard allow={['APPROVED']}>
+            <CoachProfilePage />
+          </CoachRouteGuard>
+        ),
+      },
+      {
         path: '/pagamento/:sessionId',
         element: (
           <ClientRouteGuard requireOnboarded>
@@ -128,6 +157,7 @@ const router = createBrowserRouter([
           </ClientRouteGuard>
         ),
       },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])
