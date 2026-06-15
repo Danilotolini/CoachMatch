@@ -88,12 +88,9 @@ export default function CoachDashboardPage() {
   const profilePhoto: string | undefined = undefined
   const firstName = name?.split(' ')[0] ?? 'treinador'
   const specialtiesCount = profile?.specialties.length ?? 0
-  const homeService = data?.work_location.find((loc) => loc.type === 'HOME_SERVICE')
-  const gymsCount = data?.work_location.filter((loc) => loc.type === 'GYM').length ?? 0
-  const territoryLabel = homeService ? 'Bairros atendidos' : 'Academias'
-  const territoryValue = homeService
-    ? String(homeService.coverage.neighborhoods.length)
-    : String(gymsCount)
+  const gymsCount = data?.work_location.length ?? 0
+  const territoryLabel = 'Academias'
+  const territoryValue = String(gymsCount)
   const schedules = useMemo(
     () =>
       [...(scheduleQuery.data ?? [])].sort((a, b) =>

@@ -113,12 +113,7 @@ function getDefaultConfig(): GenerateConfig {
 }
 
 function getCoachGymIds(workLocations: WorkLocation[] | undefined): string[] {
-  const gymIds: string[] = []
-  for (const location of workLocations ?? []) {
-    if (location.type === 'GYM') {
-      gymIds.push(location.gymId)
-    }
-  }
+  const gymIds = (workLocations ?? []).map((location) => location.gymId)
   return [...new Set(gymIds)]
 }
 
