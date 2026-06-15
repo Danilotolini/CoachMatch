@@ -166,18 +166,21 @@ paths:
           schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
       responses:
         "200":
-          description: Lista paginada de academias.
+          description: Lista academias no formato cursor.
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/PaginatedEnvelope"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Gym"
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Gym"
+                  nextCursor:
+                    type: string
+                    nullable: true
+                    example: eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9
 
   /coach/gyms/suggest:
     post:
@@ -208,20 +211,19 @@ paths:
       tags: [Coach — Agenda]
       summary: Lista disponibilidades do treinador autenticado.
       operationId: getCoachSchedule
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                startDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-05-01T08:00:30-03:00"
-                endDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-06-06T08:00:30-03:00"
+      parameters:
+        - name: startDateTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+          example: "2026-05-01T08:00:30-03:00"
+        - name: endDateTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+          example: "2026-06-06T08:00:30-03:00"
       responses:
         "200":
           description: Lista de disponibilidades do treinador.
@@ -263,17 +265,13 @@ paths:
       tags: [Coach — Agenda]
       summary: Lista solicitações de agendamento recebidas pelo treinador.
       operationId: getCoachScheduleRequests
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [scheduleId]
-              properties:
-                scheduleId:
-                  type: string
-                  example: avl_6cb2b644248448c68e63f350119c032d
+      parameters:
+        - name: scheduleId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: avl_6cb2b644248448c68e63f350119c032d
       responses:
         "200":
           description: Solicitações do schedule, enriquecidas com o nome do aluno.
@@ -415,7 +413,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /student/profile:
+  /student/me/profile:
     post:
       tags: [Student — Perfil]
       summary: Conclui o cadastro de perfil do aluno.
@@ -438,7 +436,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /student/health:
+  /student/me/health:
     post:
       tags: [Student — Perfil]
       summary: Envia o questionário de saúde e consentimentos do aluno.
@@ -596,25 +594,27 @@ paths:
       tags: [Student — Agenda]
       summary: Lista disponibilidades em uma academia específica.
       operationId: getGymScheduleForStudent
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [gymId, startDateTime, endDateTime]
-              properties:
-                gymId:
-                  type: string
-                  example: gym_sp005
-                startDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-05-01T08:00:30-03:00"
-                endDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-06-06T08:00:30-03:00"
+      parameters:
+        - name: gymId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: gym_sp005
+        - name: startDateTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          example: "2026-05-01T08:00:30-03:00"
+        - name: endDateTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          example: "2026-06-06T08:00:30-03:00"
       responses:
         "200":
           description: Disponibilidades na academia (status AVAILABLE ou REQUESTED).
@@ -632,23 +632,27 @@ paths:
       tags: [Student — Agenda]
       summary: Lista disponibilidades de um treinador específico.
       operationId: getCoachSchedulesForStudent
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                coachId:
-                  type: string
-                  example: 83dcfaba-f0c1-705d-b109-2b381fed0971
-                startDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-05-01T08:00:30-03:00"
-                endDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-06-06T08:00:30-03:00"
+      parameters:
+        - name: coachId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: 83dcfaba-f0c1-705d-b109-2b381fed0971
+        - name: startDateTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          example: "2026-05-01T08:00:30-03:00"
+        - name: endDateTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          example: "2026-06-06T08:00:30-03:00"
       responses:
         "200":
           description: Lista de disponibilidades do treinador.
@@ -1175,7 +1179,11 @@ components:
     # ── Coach ─────────────────────────────────
     CoachStatus:
       type: string
-      enum: [ONBOARDING_PROFILE, PENDING_REVIEW, APPROVED, REJECTED]
+      description: >
+        Status público do treinador. Coaches recém-cadastrados ficam em
+        PENDING_PROFILE até completar o perfil; após salvar o perfil, ficam
+        ativos imediatamente como APPROVED.
+      enum: [PENDING_PROFILE, APPROVED]
 
     CoachVisibility:
       type: string
@@ -1192,7 +1200,7 @@ components:
         specialties:
           type: array
           items: { type: string }
-        cref: { type: string, example: "CREF 012345-G/SP" }
+        cref: { type: string, example: "012345-G/SP" }
         instagram: { type: string, example: "@treinador" }
         profile_video:
           type: boolean
@@ -1320,14 +1328,17 @@ components:
     # ── Gym ───────────────────────────────────
     Gym:
       type: object
-      required: [gymId, name, address, city, state, neighborhood, coordinates]
+      required: [id, name, active, address, city, state, neighborhood, coordinates]
       properties:
-        gymId: { type: string }
+        id: { type: string, example: gym_sp005 }
         name: { type: string }
         address: { type: string }
         city: { type: string }
         state: { type: string, minLength: 2, maxLength: 2 }
         neighborhood: { type: string }
+        active:
+          type: string
+          enum: ["True", "False"]
         coordinates:
           $ref: "#/components/schemas/Coordinates"
 
