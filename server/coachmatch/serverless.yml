@@ -1,3 +1,17 @@
+# API GATEWAY COMPARTILHADO (HTTP API qht6965nv9, sa-east-1)
+# ─────────────────────────────────────────────────────────────────────────────
+# Este stack divide o mesmo API Gateway com rotas/authorizers criados manualmente
+#
+# Por isso:
+#   • Atualizar código   → `serverless deploy function --function <fn> --stage dev`
+#                          (NÃO toca rotas/integrações/authorizers — uso diário)
+#   • Rodar local        → `serverless offline --stage local`
+#   • Deploy COMPLETO    → NUNCA às cegas. Gere o template (`serverless package`)
+#                          ou um change set do CloudFormation e revise antes.
+#                          Um `sls deploy` cru tenta criar /coach/gyms etc. que já
+#                          existem manualmente → ConflictException + rollback.
+#
+# ─────────────────────────────────────────────────────────────────────────────
 org: coachmatch
 app: coachmatchapp
 service: coachmatch
@@ -28,7 +42,18 @@ package:
     - '!node_modules/aws-sdk/**'
 
 build:
-  esbuild: false
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: false
+    #
+    # Projeto é "type": "module" e o SF v4 deploya o package.json junto, então
+    # o bundle .js roda como ESM no Lambda. Deps CommonJS (joi → @hapi/address)
+    # usam require() dinâmico, que o shim ESM do esbuild não provê — o banner
+    # recria require() via createRequire. É o padrão para ESM + esbuild no SF v4.
+    format: esm
+    banner:
+      js: "import { createRequire as topLevelCreateRequire } from 'module'; const require = topLevelCreateRequire(import.meta.url);"
 
 provider:
   runtime: nodejs18.x
@@ -44,12 +69,20 @@ provider:
   httpApi:
     id: ${param:apiGatewayId, ""}  # vazio no local = serverless-offline cuida
     authorizers:
+      # Pool CoachAccess (sa-east-1_2DDuPPtc0) — rotas /coach/*
       cognitoAuthorizer:
         type: jwt
         identitySource: $request.header.Authorization
         issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
         audience:
           - 76hul7797npfkmpoju0mbghti7
+      # Pool StudentAccess (sa-east-1_2DSfT6kmB) — rotas /student/*
+      cognitoStudentAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DSfT6kmB
+        audience:
+          - 3rjn45koljliioocd5usijdv9s
 
   iam:
     role:
@@ -70,7 +103,7 @@ provider:
 
 functions:
 
-  gymList:
+  gymGet:
     handler: src/gyms/list-gyms/handler.handler
     environment:
       STAGE: ${param:stage}
@@ -80,10 +113,15 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /gyms
+          path: /coach/gyms
           method: GET
           authorizer:
             name: cognitoAuthorizer
+      - httpApi:
+          path: /student/gyms
+          method: GET
+          authorizer:
+            name: cognitoStudentAuthorizer
 
   gymSuggest:
     handler: src/gyms/suggest-gym/handler.handler
@@ -95,10 +133,15 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /gyms/suggest
+          path: /coach/gyms/suggest
           method: POST
           authorizer:
             name: cognitoAuthorizer
+      - httpApi:
+          path: /student/gyms/suggest
+          method: POST
+          authorizer:
+            name: cognitoStudentAuthorizer
 
   coachGetMe:
     handler: src/coaches/get-coach/handler.handler
@@ -110,7 +153,7 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /coaches/me
+          path: /coach/me
           method: GET
           authorizer:
             name: cognitoAuthorizer
@@ -125,7 +168,7 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /coaches/me
+          path: /coach/me
           method: PUT
           authorizer:
             name: cognitoAuthorizer
@@ -153,8 +196,9 @@ functions:
       ACCESS_KEY_ID: ${param:access_key_id, ""}
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
+      # NOTA: esta rota NÃO existe no API Gateway (qht6965nv9), o coach é cadastrado como ativo.
       - httpApi:
-          path: /coaches/me/submit-for-review
+          path: /coach/me/submit-for-review
           method: POST
           authorizer:
             name: cognitoAuthorizer
@@ -183,10 +227,10 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /clients/me
+          path: /student/me
           method: GET
           authorizer:
-            name: cognitoAuthorizer
+            name: cognitoStudentAuthorizer
 
   studentUpdateProfile:
     handler: src/students/update-student-profile/handler.handler
@@ -198,10 +242,10 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /clients/me/profile
+          path: /student/me/profile
           method: POST
           authorizer:
-            name: cognitoAuthorizer
+            name: cognitoStudentAuthorizer
 
   studentUpdateHealth:
     handler: src/students/update-student-health/handler.handler
@@ -213,10 +257,10 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /clients/me/health
+          path: /student/me/health
           method: POST
           authorizer:
-            name: cognitoAuthorizer
+            name: cognitoStudentAuthorizer
 
   # ─── Pagamentos ────────────────────────────────────────────────────────────
 
