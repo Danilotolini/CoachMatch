@@ -1,41 +1,48 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: coachmatch
-# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
 app: coachmatchapp
-# "service" is the name of this project. This will also be added to your AWS resource names.
 service: coachmatch
-
-
 
 stages:
   # Stage para deploy real na AWS (CI/CD e deploys manuais do dev)
   dev:
     params:
-      stage: dev
-      region: sa-east-1   # região onde estão os recursos AWS do projeto
+      stage: ${self:custom.config.dev.stage}
+      region: ${self:custom.config.dev.region}
+      apiGatewayId: ${self:custom.config.dev.apiGatewayId}
   # Stage local — serverless-offline + DynamoDB Local (nunca faz deploy na AWS)
   local:
     params:
-      stage: local
-      region: us-east-1
-      endpoint: ${self:custom.config.endpoint}
-      access_key_id: ${self:custom.config.accessKeyId}
-      secret_access: ${self:custom.config.secretAccessKey}
+      stage: ${self:custom.config.local.stage}
+      region: ${self:custom.config.local.region}
+      endpoint: ${self:custom.config.local.endpoint}
+      access_key_id: ${self:custom.config.local.accessKeyId}
+      secret_access: ${self:custom.config.local.secretAccessKey}
 
 plugins:
   - serverless-dynamodb
   - serverless-offline
-  
+
+package:
+  individually: true
+  patterns:
+    - '!node_modules/aws-sdk/**'
+
+build:
+  esbuild: false
 
 provider:
+  runtime: nodejs18.x
   # Perfil AWS nomeado — só usado em deploys manuais locais.
   # CI/CD (GitHub Actions) usa AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
   # como variáveis de ambiente; profile vazio é ignorado pelo Serverless.
   profile: ${self:custom.awsProfile.${sls:stage}, ''}
   timeout: 30
   name: aws
+  stage: ${param:stage}
+  region: ${param:region}
 
   httpApi:
+    id: ${param:apiGatewayId, ""}  # vazio no local = serverless-offline cuida
     authorizers:
       cognitoAuthorizer:
         type: jwt
@@ -44,10 +51,6 @@ provider:
         audience:
           - 76hul7797npfkmpoju0mbghti7
 
-  # stage vem do --stage flag (ex: --stage dev); padrão: local
-  stage: ${opt:stage, 'local'}
-  # região sempre sa-east-1 onde os recursos AWS do projeto estão criados
-  region: sa-east-1
   iam:
     role:
       statements:
@@ -57,6 +60,7 @@ provider:
             - dynamodb:GetItem
             - dynamodb:UpdateItem
             - dynamodb:Query
+            - dynamodb:Scan
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
             - arn:aws:dynamodb:sa-east-1:138413505977:table/student
@@ -154,7 +158,7 @@ functions:
           method: POST
           authorizer:
             name: cognitoAuthorizer
-  
+
   studentCreate:
     handler: src/students/create-student/handler.handler
     environment:
@@ -306,9 +310,9 @@ functions:
           authorizer:
             name: cognitoAuthorizer
 
-resources: 
+resources:
   Conditions:
-    IsLocal: !Equals [ "${param:stage}", "local"]  
+    IsLocal: !Equals [ "${param:stage}", "local" ]
   Resources:
     gymsTable:
       Type: AWS::DynamoDB::Table
@@ -319,7 +323,7 @@ resources:
           - AttributeName: gymId
             AttributeType: S
         KeySchema:
-          - AttributeName: gymId  
+          - AttributeName: gymId
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
@@ -333,7 +337,7 @@ resources:
           - AttributeName: coachId
             AttributeType: S
         KeySchema:
-          - AttributeName: coachId  
+          - AttributeName: coachId
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
@@ -418,8 +422,6 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
 
-
-
 custom:
   config: ${file(./config.yml)}
 
@@ -434,6 +436,6 @@ custom:
     start:
       port: 8000
       inMemory: true
-      migrate: true  # cria as tabelas automaticamente
+      migrate: true
   serverless-offline:
     ignoreJWTSignature: true
