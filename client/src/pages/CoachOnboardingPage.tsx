@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Chip } from '@/components/ui/Chip'
 import { Icon } from '@/components/ui/Icon'
+import { VideoUploadCard } from '@/components/coach/VideoUploadCard'
 import { GymPicker } from '@/components/onboarding/GymPicker'
 import { getAuthUser } from '@/lib/auth'
 import { useSpecialties } from '@/hooks/useSpecialties'
@@ -214,6 +215,7 @@ export default function CoachOnboardingPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <VideoUploadCard
+                  label="Vídeo de Apresentação"
                   fileName={videoFileName}
                   uploaded={!!form.videoKey}
                   uploading={videoUpload.isPending}
@@ -348,52 +350,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </h2>
       {children}
     </section>
-  )
-}
-
-interface VideoUploadCardProps {
-  fileName: string | null
-  uploaded: boolean
-  uploading: boolean
-  progress: number
-  error?: string | undefined
-  onPick: () => void
-}
-
-function VideoUploadCard({
-  fileName,
-  uploaded,
-  uploading,
-  progress,
-  error,
-  onPick,
-}: VideoUploadCardProps) {
-  const status = uploading
-    ? `Enviando... ${String(progress)}%`
-    : uploaded
-      ? `Pronto: ${fileName ?? 'vídeo enviado'}`
-      : 'Faça upload de um vídeo curto (até 60s) mostrando sua energia.'
-
-  const icon = uploaded ? 'check_circle' : uploading ? 'progress_activity' : 'videocam'
-
-  return (
-    <div className="flex flex-col">
-      <button
-        type="button"
-        onClick={onPick}
-        disabled={uploading}
-        className="bg-surface-container-low rounded-xl p-5 border border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center hover:bg-surface-container-highest transition-colors cursor-pointer group min-h-40 disabled:cursor-wait "
-      >
-        <div className="w-12 h-12 bg-surface-container-highest rounded-full flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-          <Icon name={icon} className={`text-primary ${uploading ? 'animate-spin' : ''}`} />
-        </div>
-        <h3 className="font-headline text-sm font-semibold text-on-surface mb-1">
-          Vídeo de Apresentação
-        </h3>
-        <p className="font-body text-xs text-on-surface-variant max-w-50">{status}</p>
-      </button>
-      {error ? <p className="mt-2 font-body text-xs text-error">{error}</p> : null}
-    </div>
   )
 }
 
