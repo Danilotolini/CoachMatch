@@ -11,11 +11,14 @@ export function SessionExpiredRedirect() {
   useEffect(() => {
     function handleSessionExpired(event: Event) {
       const detail = (event as CustomEvent<SessionExpiredDetail>).detail
-      const loginPath = location.pathname.startsWith('/client') ? '/client/login' : '/coach/login'
+      const routeRole = location.pathname.startsWith('/client') ? 'client' : 'coach'
+      if (detail.role && detail.role !== routeRole) return
+
+      const loginPath = routeRole === 'client' ? '/client/login' : '/coach/login'
       queryClient.clear()
       void navigate(loginPath, {
         replace: true,
-        state: { sessionExpired: detail.reason },
+        state: { reason: detail.reason },
       })
     }
 

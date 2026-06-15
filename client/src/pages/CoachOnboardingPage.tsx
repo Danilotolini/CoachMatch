@@ -6,10 +6,10 @@ import { HomeServiceAreaPicker } from '@/components/onboarding/HomeServiceAreaPi
 import { getAuthUser } from '@/lib/auth'
 import { useGyms } from '@/hooks/useGyms'
 import { useSpecialties } from '@/hooks/useSpecialties'
-import { useSubmitCoachForReview, useUpdateCoachMe } from '@/hooks/useCoachMe'
+import { useUpdateCoachMe } from '@/hooks/useCoachMe'
 import { useVideoUpload } from '@/hooks/useVideoUpload'
 import { buildCoachUpdatePayload, useOnboardingStore } from '@/stores/onboardingStore'
-import type { Coach, Specialty } from '@/types/api'
+import type { Specialty } from '@/types/api'
 
 const HERO_MOBILE = '/assets/images/onboarding-hero-mobile.png'
 const HERO_DESKTOP = '/assets/images/onboarding-hero-desktop.png'
@@ -25,24 +25,10 @@ const FALLBACK_SPECIALTIES: Specialty[] = [
   { id: 'FUNCTIONAL', label: 'Funcional' },
 ]
 
-function statusToRoute(status: Coach['status']): string {
-  switch (status) {
-    case 'PENDING_REVIEW':
-      return '/coach/pending-review'
-    case 'APPROVED':
-      return '/coach'
-    case 'REJECTED':
-      return '/coach/rejected'
-    default:
-      return '/coach/onboarding'
-  }
-}
-
 export default function CoachOnboardingPage() {
   const navigate = useNavigate()
   const authUser = getAuthUser()
   const updateCoach = useUpdateCoachMe()
-  const submitForReview = useSubmitCoachForReview()
   const videoUpload = useVideoUpload()
   const form = useOnboardingStore((state) => state.form)
   const errors = useOnboardingStore((state) => state.errors)
@@ -70,7 +56,7 @@ export default function CoachOnboardingPage() {
   const [videoFileName, setVideoFileName] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const isSubmitting = updateCoach.isPending || submitForReview.isPending
+  const isSubmitting = updateCoach.isPending
   const hasValidationErrors = Object.values(errors).some(Boolean)
 
   const handleVideoFile = (file: File) => {
@@ -94,15 +80,8 @@ export default function CoachOnboardingPage() {
 
     updateCoach.mutate(payload, {
       onSuccess: () => {
-        submitForReview.mutate(undefined, {
-          onSuccess: (coach) => {
-            resetOnboarding()
-            void navigate(statusToRoute(coach.status), { replace: true })
-          },
-          onError: () => {
-            setSubmitError('Não foi possível enviar seu perfil para análise.')
-          },
-        })
+        resetOnboarding()
+        void navigate('/coach', { replace: true })
       },
       onError: () => {
         setSubmitError('Não foi possível salvar seu perfil. Revise os dados e tente novamente.')
@@ -312,13 +291,13 @@ export default function CoachOnboardingPage() {
 
           <Section title="Território">
             <p className="font-body text-sm text-on-surface-variant -mt-2">
-              Você pode atender em academias parceiras, em Atendimento Externo, ou nos dois modelos.
-              Adicione pelo menos uma opção.
+              Selecione pelo menos uma academia parceira. Atendimento Externo pode complementar seu
+              território.
             </p>
 
             <div className="bg-surface-container-low p-5 rounded-xl space-y-4">
               <h3 className="font-headline text-base font-semibold text-on-surface">
-                Academias Parceiras
+                Academias Parceiras *
               </h3>
               <p className="font-body text-xs text-on-surface-variant">
                 Atendo em academias específicas na minha região.

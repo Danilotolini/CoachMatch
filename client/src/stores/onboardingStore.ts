@@ -137,9 +137,8 @@ function validateForm(form: OnboardingFormState): FormErrors {
     errors.specialties = 'Selecione pelo menos uma especialidade.'
   }
 
-  if (form.gyms.length === 0 && form.homeAreas.length === 0) {
-    errors.workLocation =
-      'Selecione ao menos uma academia parceira ou adicione uma área de Atendimento Externo.'
+  if (form.gyms.length === 0) {
+    errors.gyms = 'Selecione pelo menos uma academia parceira.'
   }
 
   return errors
@@ -269,7 +268,6 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       const next: HomeArea = { id, ...area }
       return {
         form: { ...state.form, homeAreas: [...state.form.homeAreas, next] },
-        errors: clearError(state.errors, 'workLocation'),
       }
     })
   },

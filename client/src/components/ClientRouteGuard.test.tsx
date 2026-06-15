@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { http, HttpResponse } from 'msw'
@@ -8,6 +8,14 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { createWrapper } from '@/test/createWrapper'
 import { server } from '@/mocks/server'
 import type { Client, ClientStatus } from '@/types/api'
+
+function encodeJwt(payload: Record<string, unknown>): string {
+  const base64 = btoa(JSON.stringify(payload))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+  return `header.${base64}.signature`
+}
 
 interface RenderOptions {
   requireOnboarded?: boolean
@@ -45,7 +53,7 @@ function renderGuard({
 
 function mockClient(status: ClientStatus) {
   server.use(
-    http.get('*/clients/me', () =>
+    http.get('*/student/me', () =>
       HttpResponse.json<Client>({
         clientId: 'client_demo',
         email: 'aluno@coachmatch.app',
@@ -58,7 +66,7 @@ function mockClient(status: ClientStatus) {
 }
 
 function mockClientError(status: number) {
-  server.use(http.get('*/clients/me', () => HttpResponse.json({ error: 'boom' }, { status })))
+  server.use(http.get('*/student/me', () => HttpResponse.json({ error: 'boom' }, { status })))
 }
 
 describe('ClientRouteGuard', () => {
@@ -68,11 +76,17 @@ describe('ClientRouteGuard', () => {
   })
 
   it('redireciona para /client/login e encerra sessão quando token está expirado', async () => {
-    const expiredHeader = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }))
-    const expiredPayload = btoa(JSON.stringify({ exp: 1 }))
-    loginAs('client', `${expiredHeader}.${expiredPayload}.sig`)
+    const requestSpy = vi.fn()
+    server.use(
+      http.get('*/student/me', () => {
+        requestSpy()
+        return HttpResponse.json({ error: 'should not happen' }, { status: 500 })
+      }),
+    )
+    loginAs('client', encodeJwt({ exp: Math.floor(Date.now() / 1000) - 1 }))
     renderGuard()
     expect(await screen.findByText('login aluno')).toBeInTheDocument()
+    expect(requestSpy).not.toHaveBeenCalled()
   })
 
   it('renderiza children quando há sessão de aluno ativa', async () => {
@@ -128,7 +142,7 @@ describe('ClientRouteGuard', () => {
     expect(await screen.findByText('home aluno')).toBeInTheDocument()
   })
 
-  it('encerra sessão e redireciona para login em erro 401 do /clients/me', async () => {
+  it('encerra sessão e redireciona para login em erro 401 do /student/me', async () => {
     loginAs('client')
     mockClientError(401)
     renderGuard({ requireOnboarded: true })

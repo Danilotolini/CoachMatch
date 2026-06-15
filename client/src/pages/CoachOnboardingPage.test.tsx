@@ -8,8 +8,6 @@ import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
 import { loginAs } from '@/test/session'
 import { useOnboardingStore } from '@/stores/onboardingStore'
-import { initialCoach } from '@/mocks/fixtures'
-import type { Coach } from '@/types/api'
 
 function renderPage() {
   const { wrapper: QueryWrapper } = createWrapper()
@@ -18,7 +16,7 @@ function renderPage() {
       <MemoryRouter initialEntries={['/coach/onboarding']}>
         <Routes>
           <Route path="/coach/onboarding" element={<CoachOnboardingPage />} />
-          <Route path="/coach/pending-review" element={<div>analise page</div>} />
+          <Route path="/coach" element={<div>dashboard page</div>} />
         </Routes>
       </MemoryRouter>
     </QueryWrapper>,
@@ -73,7 +71,7 @@ describe('CoachOnboardingPage', () => {
     expect(await screen.findByText(/Existem erros no formulário/i)).toBeInTheDocument()
   })
 
-  it('submete o perfil e navega para /coach/pending-review quando válido', async () => {
+  it('submete o perfil e navega para /coach quando válido', async () => {
     const user = userEvent.setup()
 
     // pre-popula store com dados válidos
@@ -91,19 +89,12 @@ describe('CoachOnboardingPage', () => {
       coordinates: { lat: 0, lng: 0 },
     })
 
-    // mock para submitForReview retornar PENDING_REVIEW
-    server.use(
-      http.post('*/coaches/me/submit-for-review', () =>
-        HttpResponse.json<Coach>({ ...initialCoach, status: 'PENDING_REVIEW' }),
-      ),
-    )
-
     renderPage()
 
     await user.click(screen.getByRole('button', { name: /CONCLUIR PERFIL/i }))
 
     await waitFor(() => {
-      expect(screen.getByText('analise page')).toBeInTheDocument()
+      expect(screen.getByText('dashboard page')).toBeInTheDocument()
     })
   })
 
@@ -124,7 +115,7 @@ describe('CoachOnboardingPage', () => {
       coordinates: { lat: 0, lng: 0 },
     })
 
-    server.use(http.put('*/coaches/me', () => HttpResponse.json({ error: 'x' }, { status: 500 })))
+    server.use(http.put('*/coach/me', () => HttpResponse.json({ error: 'x' }, { status: 500 })))
 
     renderPage()
 
