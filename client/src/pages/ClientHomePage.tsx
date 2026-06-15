@@ -125,7 +125,7 @@ function FilterPill({ icon, label, to }: { icon: string; label: string; to: stri
 function NextSessionCard() {
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader title="Próxima sessão" action="Chat" icon="chat" />
+      <SectionHeader title="Próxima sessão" />
       <Card className="overflow-hidden p-0">
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary-fixed">
@@ -205,7 +205,7 @@ function CoachRail() {
 function ContinueExploring() {
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader title="Continuar explorando" action="Favoritos" icon="favorite" />
+      <SectionHeader title="Continuar explorando" />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {RECENT_COACHES.map((coach) => (
           <Card key={coach.id} className="p-4">
@@ -308,7 +308,7 @@ function SectionHeader({
   return (
     <div className="flex items-center justify-between gap-4">
       <h2 className="font-headline text-xl font-semibold tracking-tight">{title}</h2>
-      {action ? (
+      {action && onAction ? (
         <button
           type="button"
           onClick={onAction}

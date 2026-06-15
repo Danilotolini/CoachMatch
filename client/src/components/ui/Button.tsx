@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes } from 'react'
+import { Icon } from '@/components/ui/Icon'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost'
@@ -36,9 +37,7 @@ export function Button({
         <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
       ) : null}
       {children}
-      {!loading && icon ? (
-        <span className="material-symbols-outlined text-[20px]">{icon}</span>
-      ) : null}
+      {!loading && icon ? <Icon name={icon} size={20} /> : null}
     </button>
   )
 }
