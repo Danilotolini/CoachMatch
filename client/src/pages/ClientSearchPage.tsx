@@ -11,7 +11,6 @@ import { Card } from '@/components/ui/Card'
 import { Icon } from '@/components/ui/Icon'
 import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNavigation'
 import { useCoachSearch } from '@/hooks/useCoachSearch'
-import { logout } from '@/lib/cognito'
 import type { CoachSearchFilters, CoachSearchSort } from '@/types/api'
 
 const DEFAULT_LIMIT = 9
@@ -82,13 +81,9 @@ export default function ClientSearchPage() {
     setFiltersOpen(false)
   }
 
-  function handleLogout() {
-    logout('client', '/')
-  }
-
   return (
     <main className="relative flex min-h-[max(884px,100dvh)] w-full bg-surface text-on-surface">
-      <ClientSideNav onLogout={handleLogout} />
+      <ClientSideNav />
 
       <div className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">
         <header className="glass-header sticky top-0 z-20 flex items-center gap-3 px-4 py-4 sm:px-6 md:px-10 lg:relative lg:bg-transparent lg:px-10 lg:py-8 lg:backdrop-blur-none">
@@ -162,7 +157,12 @@ export default function ClientSearchPage() {
           ) : null}
 
           {!isLoading && !isError && coaches.length > 0 ? (
-            <SearchResultsList coaches={coaches} />
+            <SearchResultsList
+              coaches={coaches}
+              onCoachClick={(coachId) => {
+                void navigate(`/client/coaches/${coachId}`)
+              }}
+            />
           ) : null}
 
           {!isLoading && !isError && pagination?.hasNext ? (

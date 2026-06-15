@@ -3,11 +3,11 @@ import { useParams } from 'react-router'
 import { ProgressHeader } from '@/components/layout/ProgressHeader'
 import { useCreatePayment } from '@/hooks/useCreatePayment'
 import { useCoachMe } from '@/hooks/useCoachMe'
-import type { PaymentMethod, CardInfo } from '@/types/api'
+import type { PaymentMethod } from '@/types/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type CardStatus = 'idle' | 'loading' | 'approved' | 'refused' | 'pending'
+type CardStatus = 'idle' | 'loading' | 'approved' | 'refused' | 'refunded'
 
 interface CardForm {
   number: string
@@ -120,7 +120,7 @@ function PaymentResult({
   amount,
   onRetry,
 }: {
-  status: 'approved' | 'refused' | 'pending'
+  status: 'approved' | 'refused' | 'refunded'
   amount: number
   onRetry: () => void
 }) {
@@ -141,12 +141,12 @@ function PaymentResult({
       description: 'Verifique os dados do cartão ou tente outro método de pagamento.',
       cta: 'Tentar novamente' as string | null,
     },
-    pending: {
-      icon: 'pending',
+    refunded: {
+      icon: 'undo',
       iconColor: 'text-tertiary',
       bg: 'bg-tertiary/10',
-      title: 'Aguardando Confirmação',
-      description: 'Seu pagamento está em análise. Você será notificado em breve.',
+      title: 'Pagamento Estornado',
+      description: 'O valor foi estornado e será creditado em breve.',
       cta: null as string | null,
     },
   }
@@ -492,19 +492,17 @@ export default function PaymentPage() {
     setError(null)
     setCardStatus('loading')
 
-    const cardInfo: CardInfo = {
-      number: card.number,
-      holder: card.holder,
-      expiryMonth: card.expiryMonth,
-      expiryYear: card.expiryYear,
-      cvv: card.cvv,
-    }
-
     createPaymentMutation.mutate(
       {
         sessionId: params.sessionId ?? MOCK_SESSION.sessionId,
         method: 'credit_card',
-        card: cardInfo,
+        card: {
+          number: card.number,
+          holder: card.holder,
+          expiryMonth: card.expiryMonth,
+          expiryYear: card.expiryYear,
+          cvv: card.cvv,
+        },
         amount: MOCK_SESSION.amount,
         coachId: coach?.email ?? 'coach_mock',
         studentId: coach?.email ?? 'student_mock',
@@ -551,7 +549,7 @@ export default function PaymentPage() {
   }
 
   const showResult =
-    cardStatus === 'approved' || cardStatus === 'refused' || cardStatus === 'pending'
+    cardStatus === 'approved' || cardStatus === 'refused' || cardStatus === 'refunded'
 
   return (
     <div className="min-h-dvh flex flex-col bg-surface text-on-surface">

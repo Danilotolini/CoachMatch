@@ -1,13 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchClientMe, submitClientHealth, submitClientProfile } from '@/api/clients'
-import { getSessionToken } from '@/stores/sessionStore'
+import { isTokenExpired } from '@/lib/auth'
+import { useSessionStore } from '@/stores/sessionStore'
 import type { Client, ClientHealthPayload, ClientProfilePayload } from '@/types/api'
 
 export function useClientMe() {
+  const token = useSessionStore((state) => state.sessions.client?.token ?? null)
+
   return useQuery({
     queryKey: ['clientMe'],
     queryFn: fetchClientMe,
-    enabled: !!getSessionToken('client'),
+    enabled: !!token && !isTokenExpired(token),
     retry: false,
   })
 }
