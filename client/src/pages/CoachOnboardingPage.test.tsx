@@ -51,6 +51,15 @@ describe('CoachOnboardingPage', () => {
     expect(useOnboardingStore.getState().form.phone).toBe('(11) 98765-4321')
   })
 
+  it('permite editar o nome do treinador', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.type(screen.getByLabelText('Nome Completo'), 'João Silva')
+
+    expect(useOnboardingStore.getState().form.name).toBe('João Silva')
+  })
+
   it('seleciona especialidade ao clicar no chip', async () => {
     const user = userEvent.setup()
     renderPage()
@@ -76,6 +85,7 @@ describe('CoachOnboardingPage', () => {
 
     // pre-popula store com dados válidos
     const store = useOnboardingStore.getState()
+    store.updateName('João Silva')
     store.updatePhone('11987654321')
     store.updateCref('123456GSP')
     store.toggleSpecialty('MUSCULATION')
@@ -86,7 +96,7 @@ describe('CoachOnboardingPage', () => {
       city: 'São Paulo',
       state: 'SP',
       neighborhood: 'Bela Vista',
-      coordinates: { lat: 0, lng: 0 },
+      coordinates: null,
     })
 
     renderPage()
@@ -102,6 +112,7 @@ describe('CoachOnboardingPage', () => {
     const user = userEvent.setup()
 
     const store = useOnboardingStore.getState()
+    store.updateName('João Silva')
     store.updatePhone('11987654321')
     store.updateCref('123456GSP')
     store.toggleSpecialty('MUSCULATION')
@@ -112,7 +123,7 @@ describe('CoachOnboardingPage', () => {
       city: 'São Paulo',
       state: 'SP',
       neighborhood: 'Bela Vista',
-      coordinates: { lat: 0, lng: 0 },
+      coordinates: null,
     })
 
     server.use(http.put('*/coach/me', () => HttpResponse.json({ error: 'x' }, { status: 500 })))

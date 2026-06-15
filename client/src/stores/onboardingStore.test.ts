@@ -247,6 +247,7 @@ describe('validate', () => {
     const { errors } = useOnboardingStore.getState()
 
     expect(ok).toBe(false)
+    expect(errors.name).toBeDefined()
     expect(errors.phone).toBeDefined()
     expect(errors.cref).toBeDefined()
     expect(errors.specialties).toBeDefined()
@@ -285,6 +286,7 @@ describe('validate', () => {
 
   it('aceita formulário completo (true) e zera os erros', () => {
     const store = useOnboardingStore.getState()
+    store.updateName('João Silva')
     store.updatePhone('81999991234')
     store.updateCref('123456GSP')
     store.toggleSpecialty('Musculação')
@@ -343,6 +345,7 @@ describe('reset', () => {
 
     const state = useOnboardingStore.getState()
     expect(state.form).toEqual({
+      name: '',
       phone: '',
       instagram: '',
       cref: '',
@@ -360,6 +363,7 @@ describe('reset', () => {
 describe('buildCoachUpdatePayload', () => {
   it('monta payload com profile e work_location a partir do form', () => {
     const store = useOnboardingStore.getState()
+    store.updateName('João Silva')
     store.updatePhone('81999991234')
     store.updateInstagram('@meuperfil')
     store.update('cref', '123456-G/SP')
@@ -372,7 +376,7 @@ describe('buildCoachUpdatePayload', () => {
     })
     store.setVideoKey('uploads/v.mp4')
 
-    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form, 'Derik Oliveira')
+    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form)
 
     expect(payload.profile).toEqual({
       phone: '81999991234',
@@ -380,7 +384,7 @@ describe('buildCoachUpdatePayload', () => {
       cref: '123456-G/SP',
       specialties: ['Musculação'],
       profile_video: true,
-      name: 'Derik Oliveira',
+      name: 'João Silva',
     })
     expect(payload.work_location).toEqual([
       { type: 'GYM', gymId: 'gym-1' },
@@ -391,18 +395,19 @@ describe('buildCoachUpdatePayload', () => {
     ])
   })
 
-  it('omite name quando authName é null', () => {
-    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form, null)
-    expect(payload.profile?.name).toBeUndefined()
+  it('usa o nome editável do form', () => {
+    useOnboardingStore.getState().updateName('  João Silva  ')
+    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form)
+    expect(payload.profile?.name).toBe('João Silva')
   })
 
   it('deixa instagram vazio quando o form não tem handle', () => {
-    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form, null)
+    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form)
     expect(payload.profile?.instagram).toBe('')
   })
 
   it('marca profile_video=false quando não há videoKey', () => {
-    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form, null)
+    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form)
     expect(payload.profile?.profile_video).toBe(false)
   })
 })
