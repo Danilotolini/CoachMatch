@@ -176,6 +176,38 @@ describe('LoginPage', () => {
     expect(useSessionStore.getState().activeRole).toBe('client')
   })
 
+  it('redireciona aluno para health quando o backend pede a ficha', async () => {
+    loginAs('client')
+    useSessionStore.setState((state) => ({ ...state, activeRole: null }))
+    server.use(
+      http.get('*/student/me', () =>
+        HttpResponse.json<Client>({
+          clientId: 'client_demo',
+          email: 'aluno@coachmatch.app',
+          status: 'ONBOARDING_HEALTH',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        }),
+      ),
+    )
+
+    renderPage('client')
+
+    expect(await screen.findByText('client health')).toBeInTheDocument()
+  })
+
+  it('manda aluno para onboarding quando /student/me falha fora de 401/403', async () => {
+    loginAs('client')
+    useSessionStore.setState((state) => ({ ...state, activeRole: null }))
+    server.use(
+      http.get('*/student/me', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+    )
+
+    renderPage('client')
+
+    expect(await screen.findByText('client onboarding')).toBeInTheDocument()
+  })
+
   it('não redireciona para onboarding quando /student/me recusa a sessão', async () => {
     const url = 'https://student-cognito.test/oauth2/authorize?x=1'
     const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
@@ -207,5 +239,30 @@ describe('LoginPage', () => {
     expect(await screen.findByText('Sessão encerrada pelo servidor.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'ENTRAR NOVAMENTE' })).toBeInTheDocument()
     expect(useSessionStore.getState().sessions.client).toBeUndefined()
+  })
+
+  it('reconhece o formato legado de sessão encerrada', async () => {
+    vi.stubEnv('VITE_API_MOCKING', 'enabled')
+
+    render(
+      <MemoryRouter
+        initialEntries={[{ pathname: '/client/login', state: { sessionExpired: 'unauthorized' } }]}
+      >
+        <Routes>
+          <Route path="/client/login" element={<LoginPage audience="client" />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Sessão encerrada pelo servidor.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ENTRAR NOVAMENTE' })).toBeInTheDocument()
+  })
+
+  it('usa mensagem fallback quando getLoginUrl falha com valor não Error', async () => {
+    vi.spyOn(cognito, 'getLoginUrl').mockRejectedValue('falha desconhecida')
+
+    renderPage('coach')
+
+    expect(await screen.findByText('Erro ao iniciar login.')).toBeInTheDocument()
   })
 })

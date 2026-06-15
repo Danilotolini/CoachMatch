@@ -69,4 +69,18 @@ describe('useVideoUpload', () => {
       }),
     ).rejects.toThrow(/S3 upload failed/)
   })
+
+  it('usa content type fallback quando o arquivo vem sem tipo', async () => {
+    const fileWithoutType = new File([new Uint8Array([1, 2, 3])], 'sem-tipo.mp4')
+
+    const { wrapper } = createWrapper()
+    const { result } = renderHook(() => useVideoUpload(), { wrapper })
+
+    let key: string | undefined
+    await act(async () => {
+      key = await result.current.mutateAsync(fileWithoutType)
+    })
+
+    expect(key).toMatch(/^uploads\/.*sem-tipo\.mp4$/)
+  })
 })

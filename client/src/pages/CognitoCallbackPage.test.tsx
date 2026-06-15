@@ -28,6 +28,7 @@ function renderPage(audience: 'coach' | 'client' = 'coach') {
           <Route path="/coach/onboarding" element={<div>onboarding page</div>} />
           <Route path="/client/onboarding" element={<div>onboarding aluno page</div>} />
           <Route path="/client" element={<div>home aluno page</div>} />
+          <Route path="/client/health" element={<div>health aluno page</div>} />
           <Route path="/coach" element={<div>dashboard page</div>} />
         </Routes>
       </MemoryRouter>
@@ -55,6 +56,12 @@ describe('CognitoCallbackPage', () => {
     setLocationSearch('?error=access_denied&error_description=Usuário+negou+acesso')
     renderPage()
     expect(screen.getByText('Usuário negou acesso')).toBeInTheDocument()
+  })
+
+  it('usa o error param quando error_description não existe', () => {
+    setLocationSearch('?error=access_denied')
+    renderPage()
+    expect(screen.getByText('access_denied')).toBeInTheDocument()
   })
 
   it('mostra link de retry para login de cliente quando callback de aluno falha', () => {
@@ -137,6 +144,64 @@ describe('CognitoCallbackPage', () => {
 
     expect(await screen.findByText('home aluno page')).toBeInTheDocument()
     expect(getToken()).toBe('novo-token')
+  })
+
+  it('redireciona aluno para /client/health quando falta a ficha', async () => {
+    setLocationSearch('?code=abc&state=xyz')
+    vi.spyOn(cognito, 'exchangeCodeForTokens').mockResolvedValue({
+      id_token: 'student-health-token',
+      access_token: 'student-health-access-token',
+      expires_in: 3600,
+    })
+    server.use(
+      http.get('*/student/me', () =>
+        HttpResponse.json<Client>({
+          clientId: 'client_demo',
+          email: 'aluno@coachmatch.app',
+          status: 'ONBOARDING_HEALTH',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        }),
+      ),
+    )
+
+    renderPage('client')
+
+    expect(await screen.findByText('health aluno page')).toBeInTheDocument()
+  })
+
+  it('leva coach para onboarding quando /coach/me falha por rede', async () => {
+    setLocationSearch('?code=abc&state=xyz')
+    vi.spyOn(cognito, 'exchangeCodeForTokens').mockResolvedValue({
+      id_token: 'id-token-123',
+      access_token: 'access-token-123',
+      expires_in: 3600,
+    })
+    server.use(http.get('*/coach/me', () => HttpResponse.error()))
+
+    renderPage()
+
+    expect(await screen.findByText('onboarding page')).toBeInTheDocument()
+  })
+
+  it('mostra erro quando /student/me falha com erro inesperado', async () => {
+    setLocationSearch('?code=abc&state=xyz')
+    vi.spyOn(cognito, 'exchangeCodeForTokens').mockResolvedValue({
+      id_token: 'student-id-token-123',
+      access_token: 'student-access-token-123',
+      expires_in: 3600,
+    })
+    server.use(
+      http.get('*/student/me', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+    )
+
+    renderPage('client')
+
+    expect(await screen.findByRole('heading', { name: 'Erro na autenticação' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Tentar novamente' })).toHaveAttribute(
+      'href',
+      '/client/login',
+    )
   })
 
   it('mostra erro quando exchangeCodeForTokens falha', async () => {

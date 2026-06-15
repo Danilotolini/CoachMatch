@@ -85,4 +85,41 @@ describe('commitDraftSlots', () => {
       slots[3]?.startDateTime,
     ])
   })
+
+  it('retorna zero quando não existe slot elegível para envio', async () => {
+    const create = vi.fn()
+    const patch = vi.fn()
+    const onProgress = vi.fn()
+
+    const total = await commitDraftSlots({
+      slots: [
+        draft({ key: 'created', status: 'created', scheduleId: 'schedule_done' }),
+        draft({ key: 'duplicate', status: 'duplicate' }),
+      ],
+      create,
+      patch,
+      onProgress,
+    })
+
+    expect(total).toBe(0)
+    expect(create).not.toHaveBeenCalled()
+    expect(patch).not.toHaveBeenCalled()
+    expect(onProgress).not.toHaveBeenCalled()
+  })
+
+  it('usa a mensagem fallback quando a falha não vem da API', async () => {
+    const patch = vi.fn()
+
+    await commitDraftSlots({
+      slots: [draft({ key: 'network_error' })],
+      create: vi.fn().mockRejectedValue(new Error('socket hang up')),
+      patch,
+      limit: 1,
+    })
+
+    expect(patch).toHaveBeenCalledWith('network_error', {
+      status: 'error',
+      error: 'Falha de rede',
+    })
+  })
 })
