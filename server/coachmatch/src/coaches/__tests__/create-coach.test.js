@@ -29,6 +29,17 @@ describe('create-coach › schema', () => {
     expect(error).toBeUndefined();
   });
 
+  it('aceita email_verified e atributos extras enviados pelo Cognito', () => {
+    const { error, value } = cognitoAttributesSchema.validate({
+      ...validAttributes,
+      email_verified: 'false',
+      identities: '[{"providerName":"Google"}]',
+    });
+
+    expect(error).toBeUndefined();
+    expect(value.email_verified).toBe(false);
+  });
+
   it('rejeita sub que não é UUID', () => {
     const { error } = cognitoAttributesSchema.validate({ ...validAttributes, sub: 'nao-uuid' });
     expect(error?.details[0].path).toContain('sub');
