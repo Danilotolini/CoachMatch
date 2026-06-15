@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import ClientCoachDetailPage from './ClientCoachDetailPage'
+import { buildStudentCoachScheduleWindow } from './clientCoachDetailWindow'
 import { apiPost } from '@/lib/http'
 import { createWrapper } from '@/test/createWrapper'
 import { loginAs } from '@/test/session'
@@ -38,5 +39,12 @@ describe('ClientCoachDetailPage', () => {
     expect(
       await screen.findByText('Solicitação enviada. O treinador vai confirmar o agendamento.'),
     ).toBeInTheDocument()
+  })
+
+  it('gera a janela de busca com inicio e fim no fuso -03:00', () => {
+    expect(buildStudentCoachScheduleWindow(new Date('2026-06-16T01:30:00Z'))).toEqual({
+      startDateTime: '2026-06-15T00:00:00-03:00',
+      endDateTime: '2026-07-06T23:59:59-03:00',
+    })
   })
 })

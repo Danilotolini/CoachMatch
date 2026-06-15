@@ -5,34 +5,15 @@ import { getCoachSchedule, getCoachScheduleRequests } from '@/api/schedule'
 import { useCoachMe } from '@/hooks/useCoachMe'
 import { useGyms } from '@/hooks/useGyms'
 import { useSpecialties } from '@/hooks/useSpecialties'
+import { addDaysToYMD, formatScheduleDateTimeRange, getTodayBrazilYMD } from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
 import { CoachSideNav, CoachBottomNav } from '@/components/layout/CoachNavigation'
 import type { Schedule, ScheduleRequest, ScheduleRequestsResponse } from '@/types/api'
 
 const dashboardRangeDays = 14
 
-const dayFormatter = new Intl.DateTimeFormat('pt-BR', {
-  weekday: 'short',
-  day: '2-digit',
-  month: 'short',
-})
-
-const timeFormatter = new Intl.DateTimeFormat('pt-BR', {
-  hour: '2-digit',
-  minute: '2-digit',
-})
-
-function toApiDay(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${String(year)}-${month}-${day}`
-}
-
 function formatDateTimeRange(slot: Schedule): string {
-  const start = new Date(slot.startDateTime)
-  const end = new Date(slot.endDateTime)
-  return `${dayFormatter.format(start)} · ${timeFormatter.format(start)}-${timeFormatter.format(end)}`
+  return formatScheduleDateTimeRange(slot)
 }
 
 function getRequestedCount(slot: Schedule, details?: ScheduleRequestsResponse): number {
@@ -66,13 +47,12 @@ export default function CoachDashboardPage() {
   const { data: specialtiesData } = useSpecialties()
 
   const range = useMemo(() => {
-    const start = new Date()
-    const end = new Date()
-    end.setDate(end.getDate() + dashboardRangeDays)
+    const start = getTodayBrazilYMD()
+    const end = addDaysToYMD(start, dashboardRangeDays)
 
     return {
-      startDateTime: `${toApiDay(start)}T00:00:00-03:00`,
-      endDateTime: `${toApiDay(end)}T23:59:59-03:00`,
+      startDateTime: `${start}T00:00:00-03:00`,
+      endDateTime: `${end}T23:59:59-03:00`,
     }
   }, [])
 

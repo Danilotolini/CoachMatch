@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/Icon'
 import { fetchAddressByCep } from '@/api/viacep'
 import { useSubmitClientProfile } from '@/hooks/useClientMe'
 import { getAuthUser } from '@/lib/auth'
+import { getTodayBrazilYMD } from '@/lib/dateTime'
 
 type Gender = 'F' | 'M' | 'NB' | 'NA'
 type Goal = 'WEIGHT_LOSS' | 'HYPERTROPHY' | 'CONDITIONING' | 'REHAB' | 'PERFORMANCE'
@@ -48,13 +49,6 @@ const GOALS: { id: Goal; label: string; description: string }[] = [
 const RADII: Radius[] = [5, 10, 20]
 const DATE_INPUT_RE = /^\d{4}-\d{2}-\d{2}$/
 
-function formatDateInputValue(date: Date): string {
-  const year = String(date.getFullYear()).padStart(4, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
 function isValidBirthDate(value: string, maxDate: string): boolean {
   if (!DATE_INPUT_RE.test(value)) return false
   return value <= maxDate
@@ -79,7 +73,7 @@ export default function ClientOnboardingPage() {
   const authUser = getAuthUser()
   const submitProfile = useSubmitClientProfile()
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const maxBirthDate = useMemo(() => formatDateInputValue(new Date()), [])
+  const maxBirthDate = useMemo(() => getTodayBrazilYMD(), [])
 
   const [form, setForm] = useState<FormState>({
     photoDataUrl: null,

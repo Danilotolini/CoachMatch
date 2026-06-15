@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { http, HttpResponse } from 'msw'
 import CoachDashboardPage from './CoachDashboardPage'
+import * as dateTime from '@/lib/dateTime'
 import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
 import { initialCoach } from '@/mocks/fixtures'
@@ -66,5 +67,29 @@ describe('CoachDashboardPage', () => {
 
     expect((await screen.findAllByText('Seu perfil')).length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: /VER PERFIL PÚBLICO/i })).not.toBeInTheDocument()
+  })
+
+  it('consulta a agenda com query params no dia brasileiro esperado', async () => {
+    let capturedStart: string | null = null
+    let capturedEnd: string | null = null
+
+    vi.spyOn(dateTime, 'getTodayBrazilYMD').mockReturnValue('2026-06-15')
+
+    server.use(
+      http.get('*/coach/me', () => HttpResponse.json<Coach>(approvedCoach)),
+      http.get('*/coach/schedule', ({ request }) => {
+        const url = new URL(request.url)
+        capturedStart = url.searchParams.get('startDateTime')
+        capturedEnd = url.searchParams.get('endDateTime')
+        return HttpResponse.json([])
+      }),
+    )
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(capturedStart).toBe('2026-06-15T00:00:00-03:00')
+      expect(capturedEnd).toBe('2026-06-29T23:59:59-03:00')
+    })
   })
 })
