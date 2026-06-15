@@ -1,0 +1,410 @@
+import { useMemo, useState } from 'react'
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router'
+import { fetchCoachDetail } from '@/api/coaches'
+import { getStudentScheduleRequests } from '@/api/schedule'
+import { StudentPaymentSimulator } from '@/components/client/StudentPaymentSimulator'
+import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNavigation'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { Icon } from '@/components/ui/Icon'
+import { parseApiErrors } from '@/lib/http'
+import type { CoachDetail, RequestStatus, ScheduleStatus, StudentScheduleItem } from '@/types/api'
+
+type ScheduleFilter = 'upcoming' | 'requests' | 'history'
+
+interface ScheduleViewItem {
+  schedule: StudentScheduleItem
+  coach: CoachDetail | undefined
+}
+
+const filterOptions: { value: ScheduleFilter; label: string }[] = [
+  { value: 'upcoming', label: 'Próximas' },
+  { value: 'requests', label: 'Pedidos' },
+  { value: 'history', label: 'Histórico' },
+]
+
+const scheduleStatusLabels: Record<ScheduleStatus, string> = {
+  AVAILABLE: 'Disponível',
+  REQUESTED: 'Pendente',
+  BOOKED: 'Confirmado',
+  CANCELLED: 'Cancelado',
+  COMPLETED: 'Concluído',
+  NOSHOW: 'Não compareceu',
+}
+
+const requestStatusLabels: Record<RequestStatus, string> = {
+  REQUESTED: 'Aguardando treinador',
+  APPROVED: 'Aprovado',
+  REJECTED: 'Recusado',
+}
+
+const dayFormatter = new Intl.DateTimeFormat('pt-BR', {
+  weekday: 'short',
+  day: '2-digit',
+  month: 'short',
+})
+
+const timeFormatter = new Intl.DateTimeFormat('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+function formatMoney(value: string): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 0,
+  }).format(Number(value))
+}
+
+function formatDay(value: string): string {
+  return dayFormatter.format(new Date(value))
+}
+
+function formatTimeRange(schedule: StudentScheduleItem): string {
+  return `${timeFormatter.format(new Date(schedule.startDateTime))}-${timeFormatter.format(
+    new Date(schedule.endDateTime),
+  )}`
+}
+
+function getFilter(schedule: StudentScheduleItem): ScheduleFilter {
+  if (schedule.scheduleStatus === 'REQUESTED' || schedule.request?.status === 'REQUESTED') {
+    return 'requests'
+  }
+  if (schedule.scheduleStatus === 'BOOKED') return 'upcoming'
+  return 'history'
+}
+
+function getStatusTone(schedule: StudentScheduleItem): string {
+  if (schedule.scheduleStatus === 'COMPLETED' && schedule.paymentStatus === 'PENDING') {
+    return 'bg-secondary-container text-on-secondary-container'
+  }
+  if (schedule.scheduleStatus === 'COMPLETED' && schedule.paymentStatus === 'PAID') {
+    return 'bg-tertiary-container text-on-tertiary-container'
+  }
+  if (schedule.scheduleStatus === 'BOOKED') return 'bg-primary-container text-on-primary-container'
+  if (schedule.scheduleStatus === 'REQUESTED' || schedule.request?.status === 'REQUESTED') {
+    return 'bg-secondary-container text-on-secondary-container'
+  }
+  if (schedule.scheduleStatus === 'CANCELLED' || schedule.request?.status === 'REJECTED') {
+    return 'bg-error-container text-on-error-container'
+  }
+  return 'bg-surface-container-high text-on-surface-variant'
+}
+
+function getStatusLabel(schedule: StudentScheduleItem): string {
+  if (schedule.scheduleStatus === 'COMPLETED' && schedule.paymentStatus === 'PENDING') {
+    return 'Pagamento pendente'
+  }
+  if (schedule.scheduleStatus === 'COMPLETED' && schedule.paymentStatus === 'PAID') return 'Pago'
+  if (schedule.request?.status) return requestStatusLabels[schedule.request.status]
+  return scheduleStatusLabels[schedule.scheduleStatus]
+}
+
+export default function ClientSchedulePage() {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [activeFilter, setActiveFilter] = useState<ScheduleFilter>('upcoming')
+  const scheduleQuery = useQuery({
+    queryKey: ['student-schedule-requests'],
+    queryFn: getStudentScheduleRequests,
+    staleTime: 20 * 1000,
+  })
+
+  const schedules = useMemo(() => scheduleQuery.data?.schedules ?? [], [scheduleQuery.data])
+  const coachIds = useMemo(
+    () => [...new Set(schedules.map((schedule) => schedule.coachId))],
+    [schedules],
+  )
+  const coachQueries = useQueries({
+    queries: coachIds.map((coachId) => ({
+      queryKey: ['coach-detail', coachId],
+      queryFn: () => fetchCoachDetail(coachId),
+      staleTime: 60 * 1000,
+    })),
+  })
+  const coachesById = useMemo(() => {
+    const entries = coachIds.map((coachId, index) => [coachId, coachQueries[index]?.data] as const)
+    return new Map<string, CoachDetail | undefined>(entries)
+  }, [coachIds, coachQueries])
+
+  const viewItems = useMemo<ScheduleViewItem[]>(
+    () =>
+      schedules
+        .map((schedule) => ({
+          schedule,
+          coach: coachesById.get(schedule.coachId),
+        }))
+        .filter((item) => getFilter(item.schedule) === activeFilter),
+    [activeFilter, coachesById, schedules],
+  )
+
+  const nextSession = useMemo(
+    () => schedules.find((schedule) => schedule.scheduleStatus === 'BOOKED'),
+    [schedules],
+  )
+  const pendingCount = schedules.filter(
+    (schedule) =>
+      schedule.scheduleStatus === 'REQUESTED' || schedule.request?.status === 'REQUESTED',
+  ).length
+
+  return (
+    <main className="relative flex min-h-[max(884px,100dvh)] w-full bg-surface text-on-surface">
+      <ClientSideNav />
+
+      <div className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">
+        <header className="glass-header sticky top-0 z-20 flex items-center justify-between gap-4 px-4 py-4 sm:px-6 md:px-10 lg:relative lg:bg-transparent lg:px-10 lg:py-8 lg:backdrop-blur-none">
+          <div className="min-w-0">
+            <h1 className="truncate font-headline text-2xl font-bold tracking-tight lg:text-3xl">
+              Suas sessões
+            </h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => void scheduleQuery.refetch()}
+            aria-label="Atualizar agenda"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container-high"
+          >
+            <Icon name="refresh" size={21} />
+          </button>
+        </header>
+
+        <section className="mx-auto grid w-full max-w-6xl flex-1 gap-5 px-4 pb-12 sm:px-6 md:px-10 lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className="flex min-w-0 flex-col gap-5">
+            <section className="grid gap-3 md:grid-cols-3">
+              <SummaryTile
+                icon="event_available"
+                label="Próxima"
+                value={nextSession ? formatDay(nextSession.startDateTime) : 'Sem sessão'}
+              />
+              <SummaryTile icon="pending_actions" label="Pedidos" value={String(pendingCount)} />
+              <SummaryTile
+                icon="payments"
+                label="Investimento"
+                value={nextSession ? formatMoney(nextSession.price) : 'R$ 0'}
+              />
+            </section>
+
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {filterOptions.map((option) => {
+                const selected = option.value === activeFilter
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setActiveFilter(option.value)
+                    }}
+                    aria-pressed={selected}
+                    className={`shrink-0 rounded-full px-4 py-2 font-label text-xs font-semibold uppercase transition-colors ${
+                      selected
+                        ? 'bg-primary text-on-primary-fixed'
+                        : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {scheduleQuery.isLoading ? <ScheduleSkeleton /> : null}
+
+            {scheduleQuery.isError ? (
+              <Card className="p-6 text-center">
+                <Icon name="error" size={34} className="mx-auto mb-3 text-primary" />
+                <h2 className="font-headline text-xl font-semibold">Agenda fora do ar</h2>
+                <p className="mt-2 font-body text-sm text-on-surface-variant">
+                  {parseApiErrors(scheduleQuery.error, 'Não foi possível carregar seus pedidos.')}
+                </p>
+                <Button
+                  type="button"
+                  onClick={() => void scheduleQuery.refetch()}
+                  className="mt-5 w-full sm:w-auto"
+                >
+                  TENTAR DE NOVO
+                </Button>
+              </Card>
+            ) : null}
+
+            {!scheduleQuery.isLoading && !scheduleQuery.isError && viewItems.length === 0 ? (
+              <EmptyState filter={activeFilter} />
+            ) : null}
+
+            {viewItems.length > 0 ? (
+              <div className="grid gap-3">
+                {viewItems.map((item) => (
+                  <ScheduleCard
+                    key={item.schedule.scheduleId}
+                    item={item}
+                    studentId={scheduleQuery.data?.studentId ?? ''}
+                    onPaymentUpdated={() => {
+                      void queryClient.invalidateQueries({
+                        queryKey: ['student-schedule-requests'],
+                      })
+                    }}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="hidden lg:block">
+            <Card className="sticky top-8 overflow-hidden p-0">
+              <div className="kinetic-grid relative min-h-72 bg-surface-container p-5">
+                <div className="relative z-10 flex h-full flex-col justify-between gap-10">
+                  <div>
+                    <span className="font-label text-xs text-on-surface-variant">Fluxo</span>
+                    <h2 className="mt-1 font-headline text-2xl font-bold tracking-tight">
+                      Pedido feito. Treinador decide.
+                    </h2>
+                    <p className="mt-3 font-body text-sm text-on-surface-variant">
+                      Quando uma solicitação é aprovada, ela sobe para próximas sessões.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    icon="search"
+                    onClick={() => void navigate('/client/search')}
+                    className="w-full"
+                  >
+                    BUSCAR PERSONAL
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </aside>
+        </section>
+      </div>
+
+      <ClientBottomNav />
+    </main>
+  )
+}
+
+function SummaryTile({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-surface-container-high text-primary">
+          <Icon name={icon} size={21} />
+        </div>
+        <div className="min-w-0">
+          <span className="font-label text-xs text-on-surface-variant">{label}</span>
+          <p className="truncate font-headline text-lg font-bold">{value}</p>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function ScheduleCard({
+  item,
+  studentId,
+  onPaymentUpdated,
+}: {
+  item: ScheduleViewItem
+  studentId: string
+  onPaymentUpdated: () => void
+}) {
+  const { schedule, coach } = item
+  const specialty = coach?.specialties.find(Boolean) ?? schedule.specialtyId
+  const canPay = schedule.scheduleStatus === 'COMPLETED' && schedule.paymentStatus === 'PENDING'
+
+  return (
+    <Card className="p-4 transition-colors hover:bg-surface-container">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 gap-4">
+            <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-primary text-on-primary-fixed">
+              <span className="font-label text-[10px] font-bold uppercase">
+                {formatDay(schedule.startDateTime).split(',')[0]}
+              </span>
+              <span className="font-headline text-xl font-black">
+                {new Date(schedule.startDateTime).getDate()}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <h2 className="font-headline text-lg font-semibold">
+                  {coach?.name ?? 'Treinador'}
+                </h2>
+                <span
+                  className={`rounded-full px-2 py-0.5 font-label text-[10px] font-semibold uppercase ${getStatusTone(
+                    schedule,
+                  )}`}
+                >
+                  {getStatusLabel(schedule)}
+                </span>
+              </div>
+              <p className="font-body text-sm text-on-surface-variant">
+                {specialty} · {formatDay(schedule.startDateTime)} · {formatTimeRange(schedule)}
+              </p>
+              <p className="mt-1 font-body text-sm text-on-surface-variant">
+                {formatMoney(schedule.price)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 sm:justify-end">
+            <span className="font-label text-xs text-on-surface-variant">
+              {schedule.request?.requestedAt
+                ? `Pedido em ${formatDay(schedule.request.requestedAt)}`
+                : scheduleStatusLabels[schedule.scheduleStatus]}
+            </span>
+            <Icon name="chevron_right" size={20} className="text-on-surface-variant" />
+          </div>
+        </div>
+        {canPay ? (
+          <StudentPaymentSimulator
+            scheduleId={schedule.scheduleId}
+            coachId={schedule.coachId}
+            studentId={studentId}
+            amountCents={Math.round(parseFloat(schedule.price) * 100)}
+            amountLabel={formatMoney(schedule.price)}
+            onPaid={onPaymentUpdated}
+          />
+        ) : null}
+      </div>
+    </Card>
+  )
+}
+
+function EmptyState({ filter }: { filter: ScheduleFilter }) {
+  const navigate = useNavigate()
+  const copy =
+    filter === 'requests'
+      ? 'Nenhum pedido pendente agora.'
+      : filter === 'history'
+        ? 'Seu histórico aparece depois das primeiras sessões.'
+        : 'Você ainda não tem sessão confirmada.'
+
+  return (
+    <Card className="p-6 text-center">
+      <Icon name="calendar_month" size={36} className="mx-auto text-primary" />
+      <h2 className="mt-3 font-headline text-xl font-semibold">{copy}</h2>
+      <p className="mx-auto mt-2 max-w-md font-body text-sm text-on-surface-variant">
+        Solicite um horário no perfil de um treinador e acompanhe o pedido por aqui.
+      </p>
+      <Button
+        type="button"
+        onClick={() => void navigate('/client/search')}
+        className="mt-5 w-full sm:w-auto"
+        icon="search"
+      >
+        BUSCAR PERSONAL
+      </Button>
+    </Card>
+  )
+}
+
+function ScheduleSkeleton() {
+  return (
+    <div className="grid gap-3">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="h-28 animate-pulse rounded-xl bg-surface-container-low" />
+      ))}
+    </div>
+  )
+}

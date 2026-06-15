@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { Icon } from '@/components/ui/Icon'
 import type { Schedule, ScheduleStatus } from '@/types/api'
 
 const HOUR_HEIGHT = 72 // px per hour
-const START_HOUR = 6
-const END_HOUR = 22
+const START_HOUR = 0
+const END_HOUR = 24
 const TOTAL_HOURS = END_HOUR - START_HOUR
 const GRID_HEIGHT = TOTAL_HOURS * HOUR_HEIGHT
 
@@ -59,7 +59,7 @@ const STATUS_LABELS: Record<ScheduleStatus, string> = {
   REQUESTED: 'Solicitado',
   BOOKED: 'Agendado',
   COMPLETED: 'Concluído',
-  NOSHOW: 'No-show',
+  NOSHOW: 'Aluno Ausente',
   CANCELLED: 'Cancelado',
 }
 
@@ -96,6 +96,23 @@ function slotTopPx(iso: string): number {
 function slotHeightPx(isoStart: string, isoEnd: string): number {
   const dur = isoDisplayMinutes(isoEnd) - isoDisplayMinutes(isoStart)
   return Math.max(26, (dur / 60) * HOUR_HEIGHT)
+}
+
+function minutesToTime(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+function getTimeSelection(date: string, y: number): CalendarTimeSelection {
+  const rawMinutes = START_HOUR * 60 + (y / HOUR_HEIGHT) * 60
+  const snappedStart = Math.min((END_HOUR - 1) * 60, Math.max(0, Math.floor(rawMinutes / 15) * 15))
+  const snappedEnd = Math.min(END_HOUR * 60, snappedStart + 60)
+  return {
+    date,
+    start: minutesToTime(snappedStart),
+    end: minutesToTime(snappedEnd),
+  }
 }
 
 function nowTopPx(): number | null {
@@ -190,7 +207,10 @@ function SlotBlock({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(event) => {
+        event.stopPropagation()
+        onClick?.()
+      }}
       style={{ top, height }}
       className={`absolute inset-x-1 overflow-hidden rounded-r-md px-1.5 py-1 text-left transition-all hover:brightness-110 active:scale-[0.97] ${bg} ${border} ${text}`}
     >
@@ -219,20 +239,31 @@ function SlotBlock({
 }
 
 function DayColumn({
+  date,
   slots,
   specialtyLabels,
   isToday,
   isLast,
   onSlotClick,
+  onTimeClick,
 }: {
+  date: string
   slots: Schedule[]
   specialtyLabels: Map<string, string>
   isToday: boolean
   isLast: boolean
   onSlotClick?: (slot: Schedule) => void
+  onTimeClick?: (selection: CalendarTimeSelection) => void
 }) {
+  function handleGridClick(event: MouseEvent<HTMLDivElement>) {
+    if (!onTimeClick) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    onTimeClick(getTimeSelection(date, event.clientY - rect.top))
+  }
+
   return (
     <div
+      onClick={handleGridClick}
       className={`relative flex-1 ${isToday ? 'bg-primary/4' : ''} ${!isLast ? 'border-r border-outline-variant/10' : ''}`}
       style={{ height: GRID_HEIGHT }}
     >
@@ -250,27 +281,26 @@ function DayColumn({
   )
 }
 
-const ALL_VISIBLE_STATUSES: ScheduleStatus[] = [
-  'AVAILABLE',
-  'REQUESTED',
-  'BOOKED',
-  'COMPLETED',
-  'NOSHOW',
-]
-
 interface Props {
   slots: Schedule[]
   specialtyLabels: Map<string, string>
-  gymLabels: Map<string, string>
   onSlotClick?: (slot: Schedule) => void
-  visibleStatuses?: ScheduleStatus[]
+  onTimeClick?: (selection: CalendarTimeSelection) => void
+  visibleStatuses: ScheduleStatus[]
+}
+
+export interface CalendarTimeSelection {
+  date: string
+  start: string
+  end: string
 }
 
 export default function ScheduleCalendar({
   slots,
   specialtyLabels,
   onSlotClick,
-  visibleStatuses = ALL_VISIBLE_STATUSES,
+  onTimeClick,
+  visibleStatuses,
 }: Props) {
   const today = useMemo(() => {
     const d = new Date()
@@ -279,8 +309,15 @@ export default function ScheduleCalendar({
   }, [])
   const todayStr = useMemo(() => dateToYMD(today), [today])
 
-  const [weekStart, setWeekStart] = useState(() => getWeekStart(today))
   const [activeDay, setActiveDay] = useState(() => today)
+  const weekStart = useMemo(() => getWeekStart(activeDay), [activeDay])
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!scrollRef.current) return
+    const top = nowTopPx() ?? 8 * HOUR_HEIGHT
+    scrollRef.current.scrollTop = Math.max(0, top - HOUR_HEIGHT)
+  }, [])
 
   const activeDayStr = dateToYMD(activeDay)
 
@@ -292,14 +329,14 @@ export default function ScheduleCalendar({
   const slotsByDate = useMemo(() => {
     const map = new Map<string, Schedule[]>()
     for (const slot of slots) {
-      if (slot.status === 'CANCELLED') continue
+      if (!visibleStatuses.includes(slot.status)) continue
       const date = slot.startDateTime.slice(0, 10)
       const arr = map.get(date) ?? []
       arr.push(slot)
       map.set(date, arr)
     }
     return map
-  }, [slots])
+  }, [slots, visibleStatuses])
 
   const activeDaySlots = slotsByDate.get(activeDayStr) ?? []
 
@@ -312,16 +349,16 @@ export default function ScheduleCalendar({
     return `${MONTHS[s.getMonth()]} – ${MONTHS[e.getMonth()]} ${String(e.getFullYear())}`
   })()
 
+  // desktop → mobile: mantém activeDay no mesmo dia-da-semana da nova semana
   function prevWeek() {
-    setWeekStart((d) => addDays(d, -7))
+    setActiveDay((d) => addDays(d, -7))
   }
   function nextWeek() {
-    setWeekStart((d) => addDays(d, 7))
+    setActiveDay((d) => addDays(d, 7))
   }
   function goToday() {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
-    setWeekStart(getWeekStart(d))
     setActiveDay(d)
   }
 
@@ -446,6 +483,7 @@ export default function ScheduleCalendar({
 
       {/* Grade de horários */}
       <div
+        ref={scrollRef}
         className="overflow-y-auto rounded-xl border border-outline-variant/10 bg-surface-container-low"
         style={{ maxHeight: '480px' }}
       >
@@ -453,11 +491,13 @@ export default function ScheduleCalendar({
         <div className="flex md:hidden">
           <TimeGutter />
           <DayColumn
+            date={activeDayStr}
             slots={activeDaySlots}
             specialtyLabels={specialtyLabels}
             isToday={activeDayStr === todayStr}
             isLast
             {...(onSlotClick !== undefined ? { onSlotClick } : {})}
+            {...(onTimeClick !== undefined ? { onTimeClick } : {})}
           />
         </div>
 
@@ -469,11 +509,13 @@ export default function ScheduleCalendar({
             return (
               <DayColumn
                 key={dStr}
+                date={dStr}
                 slots={slotsByDate.get(dStr) ?? []}
                 specialtyLabels={specialtyLabels}
                 isToday={dStr === todayStr}
                 isLast={i === 6}
                 {...(onSlotClick !== undefined ? { onSlotClick } : {})}
+                {...(onTimeClick !== undefined ? { onTimeClick } : {})}
               />
             )
           })}
