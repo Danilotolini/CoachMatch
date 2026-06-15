@@ -122,12 +122,11 @@ function getCoachGymIds(workLocations: WorkLocation[] | undefined): string[] {
   return [...new Set(gymIds)]
 }
 
-function buildCoachGyms(
-  coachGymIds: string[],
-  gyms: ScheduleGymOption[],
-): ScheduleGymOption[] {
+function buildCoachGyms(coachGymIds: string[], gyms: ScheduleGymOption[]): ScheduleGymOption[] {
   const gymsById = new Map(gyms.map((gym) => [gym.gymId, gym]))
-  return coachGymIds.map((gymId) => gymsById.get(gymId) ?? { gymId, name: gymId, neighborhood: '', city: '' })
+  return coachGymIds.map(
+    (gymId) => gymsById.get(gymId) ?? { gymId, name: gymId, neighborhood: '', city: '' },
+  )
 }
 
 function buildCoachSpecialties(
@@ -1054,7 +1053,10 @@ function GerarTab({
 
   const gyms = useMemo(() => gymsData?.data ?? [], [gymsData?.data])
   const specialties = useMemo(() => specialtiesData?.data ?? [], [specialtiesData?.data])
-  const coachGymIds = useMemo(() => getCoachGymIds(coachMe?.work_location), [coachMe?.work_location])
+  const coachGymIds = useMemo(
+    () => getCoachGymIds(coachMe?.work_location),
+    [coachMe?.work_location],
+  )
   const coachGyms = useMemo(() => buildCoachGyms(coachGymIds, gyms), [coachGymIds, gyms])
   const coachSpecialties = useMemo(
     () => buildCoachSpecialties(coachMe?.profile.specialties, specialties),
@@ -1081,7 +1083,9 @@ function GerarTab({
   const winStartMin = wsh * 60 + wsm
   const winEndMin = weh * 60 + wem
   const hasAllowedGym = coachGyms.some((gym) => gym.gymId === config.gymId)
-  const hasAllowedSpecialty = coachSpecialties.some((specialty) => specialty.id === config.specialtyId)
+  const hasAllowedSpecialty = coachSpecialties.some(
+    (specialty) => specialty.id === config.specialtyId,
+  )
 
   const canGenerate =
     hasAllowedGym &&
@@ -1518,7 +1522,10 @@ function AgendaTab({
 
   const specialties = useMemo(() => specialtiesData?.data ?? [], [specialtiesData?.data])
   const gyms = useMemo(() => gymsData?.data ?? [], [gymsData?.data])
-  const coachGymIds = useMemo(() => getCoachGymIds(coachMe?.work_location), [coachMe?.work_location])
+  const coachGymIds = useMemo(
+    () => getCoachGymIds(coachMe?.work_location),
+    [coachMe?.work_location],
+  )
   const coachGyms = useMemo(() => buildCoachGyms(coachGymIds, gyms), [coachGymIds, gyms])
   const coachSpecialties = useMemo(
     () => buildCoachSpecialties(coachMe?.profile.specialties, specialties),
