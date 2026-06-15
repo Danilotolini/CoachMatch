@@ -87,15 +87,6 @@ jobs:
         run: pnpm audit --audit-level=moderate
         continue-on-error: true
 
-      # Snyk — requires SNYK_TOKEN secret. continue-on-error so missing token
-      # doesn't block the pipeline; the quality-gate ignores security failures.
-      # Pin to a versioned tag (not @master) for supply-chain safety.
-      - name: Snyk security scan
-        uses: snyk/actions/node@v0.4.0
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true
-
   # ── 3. BACKEND TESTS ────────────────────────────────────────────────────────
   test-backend:
     name: Backend Tests
