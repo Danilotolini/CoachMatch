@@ -83,7 +83,12 @@ paths:
   /coach/upload-url:
     post:
       tags: [Coach — Uploads]
-      summary: Gera URL pré-assinada (POST policy do S3) para upload de vídeo.
+      summary: Gera URL pré-assinada (POST policy do S3) para upload de arquivos estáticos.
+      description: >-
+        Apesar do uso atual ser o vídeo de apresentação do treinador, não é
+        específica de vídeo: aceita qualquer tipo de arquivo (o `contentType` vem
+        da requisição), limitada apenas pelo tamanho máximo configurado e pelo
+        prefixo `uploads/` na key.
       operationId: createCoachUploadUrl
       requestBody:
         required: true
@@ -469,6 +474,10 @@ paths:
     post:
       tags: [Student — Uploads]
       summary: Gera URL pré-assinada (POST policy do S3) para upload de arquivos do aluno.
+      description: >-
+        Aceita qualquer tipo de arquivo (o `contentType` vem da requisição),
+        limitada apenas pelo tamanho máximo configurado e pelo prefixo `uploads/`
+        na key.
       operationId: createStudentUploadUrl
       requestBody:
         required: true
@@ -1210,7 +1219,7 @@ components:
           type: boolean
           description: Indica se há vídeo de apresentação enviado.
 
-    WorkLocationGym:
+    WorkLocation:
       type: object
       required: [type, gymId]
       properties:
@@ -1218,36 +1227,6 @@ components:
           type: string
           enum: [GYM]
         gymId: { type: string }
-
-    HomeServiceCoverage:
-      type: object
-      required: [city, state, neighborhoods]
-      properties:
-        city: { type: string }
-        state: { type: string, minLength: 2, maxLength: 2 }
-        neighborhoods:
-          type: array
-          items: { type: string }
-
-    WorkLocationHomeService:
-      type: object
-      required: [type, coverage]
-      properties:
-        type:
-          type: string
-          enum: [HOME_SERVICE]
-        coverage:
-          $ref: "#/components/schemas/HomeServiceCoverage"
-
-    WorkLocation:
-      oneOf:
-        - $ref: "#/components/schemas/WorkLocationGym"
-        - $ref: "#/components/schemas/WorkLocationHomeService"
-      discriminator:
-        propertyName: type
-        mapping:
-          GYM: "#/components/schemas/WorkLocationGym"
-          HOME_SERVICE: "#/components/schemas/WorkLocationHomeService"
 
     Coach:
       type: object
