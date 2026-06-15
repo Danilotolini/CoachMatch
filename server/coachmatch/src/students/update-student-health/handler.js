@@ -13,7 +13,12 @@ export const handler = async (event) => {
     return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado' }) };
   }
 
-  const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+  let body;
+  try {
+    body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body ?? {};
+  } catch {
+    return { statusCode: 400, body: JSON.stringify({ message: 'Body inválido.' }) };
+  }
 
   try {
     await updateHealth(studentId, body);

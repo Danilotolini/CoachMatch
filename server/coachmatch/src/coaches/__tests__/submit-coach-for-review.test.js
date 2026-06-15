@@ -69,6 +69,14 @@ describe('submit-coach-for-review › index (submitForReview)', () => {
     findCoachById.mockResolvedValue(null);
     await expect(submitForReview(COACH_ID)).rejects.toBeInstanceOf(NotFoundException);
   });
+
+  it('converte ConditionalCheckFailedException em ConflictException (race condition)', async () => {
+    const raceErr = Object.assign(new Error('ConditionalCheckFailedException'), {
+      name: 'ConditionalCheckFailedException',
+    });
+    transitionToReview.mockRejectedValue(raceErr);
+    await expect(submitForReview(COACH_ID)).rejects.toBeInstanceOf(ConflictException);
+  });
 });
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
@@ -106,6 +114,15 @@ describe('submit-coach-for-review › handler', () => {
     expect(response.statusCode).toBe(409);
     const body = JSON.parse(response.body);
     expect(body.message).toMatch(/APPROVED/);
+  });
+
+  it('retorna 409 em race condition (ConditionalCheckFailedException)', async () => {
+    const raceErr = Object.assign(new Error('ConditionalCheckFailedException'), {
+      name: 'ConditionalCheckFailedException',
+    });
+    transitionToReview.mockRejectedValue(raceErr);
+    const response = await handler(buildAuthEvent());
+    expect(response.statusCode).toBe(409);
   });
 
   it('propaga erros inesperados', async () => {

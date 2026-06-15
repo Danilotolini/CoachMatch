@@ -29,6 +29,7 @@ export const transitionToReview = async (coachId) => {
       TableName: TABLE,
       Key: { coachId },
       UpdateExpression: 'SET #status = :status, #updatedAt = :updatedAt',
+      ConditionExpression: '#status IN (:pending, :rejected)',
       ExpressionAttributeNames: {
         '#status':    'status',
         '#updatedAt': 'updatedAt',
@@ -36,6 +37,8 @@ export const transitionToReview = async (coachId) => {
       ExpressionAttributeValues: {
         ':status':    'PENDING_REVIEW',
         ':updatedAt': now,
+        ':pending':   'PENDING_PROFILE',
+        ':rejected':  'REJECTED',
       },
     })
   );

@@ -18,10 +18,11 @@ export const findCoachById = async (coachId) => {
 
 /**
  * Persiste o perfil atualizado do coach e registra o timestamp de atualização.
+ * Não toca no status — a transição é responsabilidade exclusiva de submit-for-review.
  * @param {string} coachId
- * @param {object} payload - { profile, work_location, status }
+ * @param {object} payload - { profile, work_location }
  */
-export const persistCoachUpdate = async (coachId, { profile, work_location, status }) => {
+export const persistCoachUpdate = async (coachId, { profile, work_location }) => {
   const docClient = createClient();
   const now = new Date().toISOString();
 
@@ -30,17 +31,15 @@ export const persistCoachUpdate = async (coachId, { profile, work_location, stat
       TableName: TABLE,
       Key: { coachId },
       UpdateExpression:
-        'SET #profile = :profile, #work_location = :work_location, #status = :status, #updatedAt = :updatedAt',
+        'SET #profile = :profile, #work_location = :work_location, #updatedAt = :updatedAt',
       ExpressionAttributeNames: {
         '#profile':       'profile',
         '#work_location': 'work_location',
-        '#status':        'status',
         '#updatedAt':     'updatedAt',
       },
       ExpressionAttributeValues: {
         ':profile':       profile,
         ':work_location': work_location,
-        ':status':        status,
         ':updatedAt':     now,
       },
     })

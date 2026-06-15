@@ -13,20 +13,25 @@ import {
   PaymentAlreadyRefundedException,
   PaymentNotRefundableException,
   InvalidRefundAmountException,
+  PaymentForbiddenException,
 } from '../shared/exceptions.js';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
-const CALLER_ID     = '323e4567-e89b-12d3-a456-426614174000';
+const STUDENT_ID     = '323e4567-e89b-12d3-a456-426614174000';
+const COACH_ID       = '223e4567-e89b-12d3-a456-426614174000';
+const OUTSIDER_ID    = '999e4567-e89b-12d3-a456-426614174000';
 const TRANSACTION_ID = 'txn_abc123';
 
 const approvedTransaction = {
   transactionId: TRANSACTION_ID,
-  status: 'approved',
-  amount: 50000,
+  status:        'approved',
+  amount:        50000,
+  studentId:     STUDENT_ID,
+  coachId:       COACH_ID,
 };
 
-const buildEvent = (body, transactionId = TRANSACTION_ID, callerId = CALLER_ID) => ({
+const buildEvent = (body, transactionId = TRANSACTION_ID, callerId = STUDENT_ID) => ({
   requestContext: { authorizer: { jwt: { claims: { sub: callerId } } } },
   pathParameters: { transactionId },
   body: JSON.stringify(body),
@@ -42,7 +47,7 @@ describe('refund-payment › index (refundPayment)', () => {
   });
 
   it('estorna transação aprovada com sucesso', async () => {
-    const result = await refundPayment(TRANSACTION_ID, 50000, 'Pedido do cliente');
+    const result = await refundPayment(TRANSACTION_ID, STUDENT_ID, 50000, 'Pedido do cliente');
     expect(result.status).toBe('refunded');
     expect(result.amount).toBe(50000);
     expect(result.reason).toBe('Pedido do cliente');
@@ -50,17 +55,22 @@ describe('refund-payment › index (refundPayment)', () => {
   });
 
   it('aceita estorno parcial', async () => {
-    const result = await refundPayment(TRANSACTION_ID, 20000);
+    const result = await refundPayment(TRANSACTION_ID, STUDENT_ID, 20000);
     expect(result.amount).toBe(20000);
   });
 
   it('aceita estorno sem reason', async () => {
-    const result = await refundPayment(TRANSACTION_ID, 50000);
+    const result = await refundPayment(TRANSACTION_ID, STUDENT_ID, 50000);
     expect(result.reason).toBeNull();
   });
 
+  it('coach pode estornar sua própria transação', async () => {
+    const result = await refundPayment(TRANSACTION_ID, COACH_ID, 50000);
+    expect(result.status).toBe('refunded');
+  });
+
   it('chama markAsRefunded com os dados corretos incluindo amount', async () => {
-    await refundPayment(TRANSACTION_ID, 50000, 'Motivo');
+    await refundPayment(TRANSACTION_ID, STUDENT_ID, 50000, 'Motivo');
     expect(markAsRefunded).toHaveBeenCalledWith(
       TRANSACTION_ID,
       expect.objectContaining({
@@ -72,32 +82,37 @@ describe('refund-payment › index (refundPayment)', () => {
     );
   });
 
+  it('lança PaymentForbiddenException quando chamador não é participante (IDOR)', async () => {
+    await expect(refundPayment(TRANSACTION_ID, OUTSIDER_ID, 50000)).rejects.toBeInstanceOf(PaymentForbiddenException);
+    expect(markAsRefunded).not.toHaveBeenCalled();
+  });
+
   it('lança PaymentNotFoundException quando transação não existe', async () => {
     findPaymentById.mockResolvedValue(null);
-    await expect(refundPayment(TRANSACTION_ID, 50000)).rejects.toBeInstanceOf(PaymentNotFoundException);
+    await expect(refundPayment(TRANSACTION_ID, STUDENT_ID, 50000)).rejects.toBeInstanceOf(PaymentNotFoundException);
   });
 
   it('lança PaymentAlreadyRefundedException quando já estornada', async () => {
     findPaymentById.mockResolvedValue({ ...approvedTransaction, status: 'refunded' });
-    await expect(refundPayment(TRANSACTION_ID, 50000)).rejects.toBeInstanceOf(PaymentAlreadyRefundedException);
+    await expect(refundPayment(TRANSACTION_ID, STUDENT_ID, 50000)).rejects.toBeInstanceOf(PaymentAlreadyRefundedException);
   });
 
   it('lança PaymentNotRefundableException para transação recusada', async () => {
     findPaymentById.mockResolvedValue({ ...approvedTransaction, status: 'refused' });
-    await expect(refundPayment(TRANSACTION_ID, 50000)).rejects.toBeInstanceOf(PaymentNotRefundableException);
+    await expect(refundPayment(TRANSACTION_ID, STUDENT_ID, 50000)).rejects.toBeInstanceOf(PaymentNotRefundableException);
   });
 
   it('lança PaymentNotRefundableException para transação pendente', async () => {
     findPaymentById.mockResolvedValue({ ...approvedTransaction, status: 'pending' });
-    await expect(refundPayment(TRANSACTION_ID, 50000)).rejects.toBeInstanceOf(PaymentNotRefundableException);
+    await expect(refundPayment(TRANSACTION_ID, STUDENT_ID, 50000)).rejects.toBeInstanceOf(PaymentNotRefundableException);
   });
 
   it('lança InvalidRefundAmountException quando valor supera o original', async () => {
-    await expect(refundPayment(TRANSACTION_ID, 60000)).rejects.toBeInstanceOf(InvalidRefundAmountException);
+    await expect(refundPayment(TRANSACTION_ID, STUDENT_ID, 60000)).rejects.toBeInstanceOf(InvalidRefundAmountException);
   });
 
   it('lança ValidationException com amount inválido', async () => {
-    await expect(refundPayment(TRANSACTION_ID, 0)).rejects.toThrow();
+    await expect(refundPayment(TRANSACTION_ID, STUDENT_ID, 0)).rejects.toThrow();
   });
 });
 
@@ -118,6 +133,12 @@ describe('refund-payment › handler', () => {
     expect(body.refundId).toMatch(/^refund_/);
   });
 
+  it('retorna 403 quando chamador não é participante da transação (IDOR)', async () => {
+    const res = await handler(buildEvent({ amount: 50000 }, TRANSACTION_ID, OUTSIDER_ID));
+    expect(res.statusCode).toBe(403);
+    expect(markAsRefunded).not.toHaveBeenCalled();
+  });
+
   it('retorna 401 quando sub está ausente', async () => {
     const res = await handler({
       requestContext: { authorizer: { jwt: { claims: {} } } },
@@ -130,7 +151,7 @@ describe('refund-payment › handler', () => {
 
   it('retorna 400 com body inválido JSON', async () => {
     const res = await handler({
-      requestContext: { authorizer: { jwt: { claims: { sub: CALLER_ID } } } },
+      requestContext: { authorizer: { jwt: { claims: { sub: STUDENT_ID } } } },
       pathParameters: { transactionId: TRANSACTION_ID },
       body: 'not-json',
     });

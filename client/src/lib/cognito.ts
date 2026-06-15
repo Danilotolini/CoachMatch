@@ -1,4 +1,5 @@
 import { env } from '@/lib/env'
+import { queryClient } from '@/lib/queryClient'
 import { type Role, useSessionStore } from '@/stores/sessionStore'
 
 type ExternalAudience = 'coach' | 'student'
@@ -39,7 +40,7 @@ function clientConfig(role: Role): CognitoClientConfig {
 
   return {
     clientId: env.cognitoClientId,
-    clientSecret: env.cognitoClientSecret,
+    clientSecret: null,
     domain: env.cognitoDomain,
     redirectUri: redirectUri(role),
   }
@@ -69,11 +70,13 @@ export function getLogoutUrl(role: Role, returnPath: string = defaultReturnPath(
 export function logout(role: Role, returnPath: string = defaultReturnPath()): void {
   if (import.meta.env.DEV && import.meta.env.VITE_API_MOCKING === 'enabled') {
     useSessionStore.persist.clearStorage()
+    queryClient.clear()
     window.location.replace(returnPath)
     return
   }
 
   useSessionStore.getState().endSession(role)
+  queryClient.clear()
   window.location.href = getLogoutUrl(role, returnPath)
 }
 

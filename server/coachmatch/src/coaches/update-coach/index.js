@@ -39,7 +39,5 @@ export const updateCoachProfile = async (coachId, body) => {
       instagram: normalizedInstagram,
     },
     work_location,
-    // Preserva o status atual — submit-for-review é quem transiciona
-    status: current.status,
   });
 };

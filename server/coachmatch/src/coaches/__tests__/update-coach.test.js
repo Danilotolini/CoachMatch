@@ -159,17 +159,10 @@ describe('update-coach › index (updateCoachProfile)', () => {
     expect(work_location).toEqual([{ type: 'GYM', gymId: 'gym-1' }]);
   });
 
-  it('NÃO altera o status do coach (submit-for-review é quem faz isso)', async () => {
+  it('NÃO inclui status na chamada ao persistCoachUpdate (DynamoDB preserva o valor)', async () => {
     await updateCoachProfile(COACH_ID, validBody);
-    const { status } = persistCoachUpdate.mock.calls[0][1];
-    expect(status).toBe('PENDING_PROFILE');   // preserva o status atual
-  });
-
-  it('preserva status APPROVED ao atualizar', async () => {
-    findCoachById.mockResolvedValue({ ...currentCoach, status: 'APPROVED' });
-    await updateCoachProfile(COACH_ID, validBody);
-    const { status } = persistCoachUpdate.mock.calls[0][1];
-    expect(status).toBe('APPROVED');
+    const args = persistCoachUpdate.mock.calls[0][1];
+    expect(args.status).toBeUndefined();
   });
 
   it('lança NotFoundException quando coach não existe', async () => {
@@ -204,6 +197,16 @@ describe('update-coach › handler', () => {
     const event = { ...buildAuthEvent(), body: validBody };
     const response = await handler(event);
     expect(response.statusCode).toBe(200);
+  });
+
+  it('retorna 400 com body JSON malformado', async () => {
+    const event = {
+      requestContext: { authorizer: { jwt: { claims: { sub: COACH_ID } } } },
+      body: 'not-json',
+    };
+    const response = await handler(event);
+    expect(response.statusCode).toBe(400);
+    expect(persistCoachUpdate).not.toHaveBeenCalled();
   });
 
   it('retorna 401 quando sub está ausente', async () => {
