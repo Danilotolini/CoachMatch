@@ -182,9 +182,9 @@ describe('addGym / removeGym', () => {
 })
 
 describe('addHomeArea / removeHomeArea', () => {
-  it('adiciona área com id gerado e limpa erro de workLocation', () => {
-    useOnboardingStore.getState().validate() // gera erro de workLocation
-    expect(useOnboardingStore.getState().errors.workLocation).toBeDefined()
+  it('adiciona área com id gerado sem substituir a academia obrigatória', () => {
+    useOnboardingStore.getState().validate() // gera erro de academia obrigatória
+    expect(useOnboardingStore.getState().errors.gyms).toBeDefined()
 
     useOnboardingStore.getState().addHomeArea({
       city: 'Recife',
@@ -200,7 +200,7 @@ describe('addHomeArea / removeHomeArea', () => {
       state: 'PE',
       neighborhoods: ['Boa Viagem', 'Pina'],
     })
-    expect(state.errors.workLocation).toBeUndefined()
+    expect(state.errors.gyms).toBeDefined()
   })
 
   it('remove pelo id', () => {
@@ -250,7 +250,7 @@ describe('validate', () => {
     expect(errors.phone).toBeDefined()
     expect(errors.cref).toBeDefined()
     expect(errors.specialties).toBeDefined()
-    expect(errors.workLocation).toBeDefined()
+    expect(errors.gyms).toBeDefined()
     // instagram vazio é válido
     expect(errors.instagram).toBeUndefined()
   })
@@ -295,7 +295,7 @@ describe('validate', () => {
     expect(useOnboardingStore.getState().errors).toEqual({})
   })
 
-  it('aceita apenas área de atendimento externo (sem academia)', () => {
+  it('exige academia mesmo com área de atendimento externo preenchida', () => {
     const store = useOnboardingStore.getState()
     store.updatePhone('81999991234')
     store.updateCref('123456GSP')
@@ -306,7 +306,8 @@ describe('validate', () => {
       neighborhoods: ['Boa Viagem'],
     })
 
-    expect(useOnboardingStore.getState().validate()).toBe(true)
+    expect(useOnboardingStore.getState().validate()).toBe(false)
+    expect(useOnboardingStore.getState().errors.gyms).toBeDefined()
   })
 
   it('valida instagram quando preenchido com caracteres inválidos', () => {

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { useCoachMe, useSubmitCoachForReview, useUpdateCoachMe } from './useCoachMe'
+import { useCoachMe, useUpdateCoachMe } from './useCoachMe'
 import type { Coach } from '@/types/api'
 import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
@@ -21,7 +21,7 @@ describe('useCoachMe', () => {
     })
 
     expect(result.current.data?.email).toBe('mock@coachmatch.app')
-    expect(result.current.data?.status).toBe('ONBOARDING_PROFILE')
+    expect(result.current.data?.status).toBe('PENDING_PROFILE')
   })
 
   it('fica idle sem token', () => {
@@ -35,7 +35,7 @@ describe('useCoachMe', () => {
   it('não tenta novamente em caso de erro (retry: false)', async () => {
     let calls = 0
     server.use(
-      http.get('*/coaches/me', () => {
+      http.get('*/coach/me', () => {
         calls += 1
         return HttpResponse.json({ error: 'boom' }, { status: 500 })
       }),
@@ -66,36 +66,5 @@ describe('useUpdateCoachMe', () => {
     const cached = queryClient.getQueryData<Coach>(['coachMe'])
     expect(cached?.profile.phone).toBe('81999991234')
     expect(cached?.profile.cref).toBe('123456-G/SP')
-  })
-})
-
-describe('useSubmitCoachForReview', () => {
-  it('muda o status para PENDING_REVIEW e atualiza o cache', async () => {
-    const { wrapper, queryClient } = createWrapper()
-    const { result } = renderHook(() => useSubmitCoachForReview(), { wrapper })
-
-    await act(async () => {
-      await result.current.mutateAsync()
-    })
-
-    const cached = queryClient.getQueryData<Coach>(['coachMe'])
-    expect(cached?.status).toBe('PENDING_REVIEW')
-  })
-
-  it('propaga erro 409 quando o estado atual não permite submissão', async () => {
-    server.use(
-      http.post('*/coaches/me/submit-for-review', () =>
-        HttpResponse.json({ error: 'conflict' }, { status: 409 }),
-      ),
-    )
-
-    const { wrapper } = createWrapper()
-    const { result } = renderHook(() => useSubmitCoachForReview(), { wrapper })
-
-    await expect(
-      act(async () => {
-        await result.current.mutateAsync()
-      }),
-    ).rejects.toThrow()
   })
 })

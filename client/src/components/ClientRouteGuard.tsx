@@ -50,14 +50,25 @@ export function ClientRouteGuard({ children, requireOnboarded = false }: ClientR
     }
   }, [expired, isUnauthorized, endSession])
 
-  if (!token || expired) return <Navigate to="/client/login" replace />
+  if (!token || expired) {
+    return (
+      <Navigate
+        to="/client/login"
+        replace
+        state={
+          expired ? { reason: 'expired' } : isUnauthorized ? { reason: 'unauthorized' } : undefined
+        }
+      />
+    )
+  }
 
   if (activeRole !== 'client') return <Spinner />
 
   if (isLoading) return <Spinner />
 
   if (isError) {
-    if (isUnauthorized) return <Navigate to="/client/login" replace />
+    if (isUnauthorized)
+      return <Navigate to="/client/login" replace state={{ reason: 'unauthorized' }} />
     if (requireOnboarded) return <Navigate to="/client/onboarding" replace />
     return <>{children}</>
   }

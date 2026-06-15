@@ -28,9 +28,7 @@ function renderPage(audience: 'coach' | 'client' = 'coach') {
           <Route path="/coach/onboarding" element={<div>onboarding page</div>} />
           <Route path="/client/onboarding" element={<div>onboarding aluno page</div>} />
           <Route path="/client" element={<div>home aluno page</div>} />
-          <Route path="/coach/pending-review" element={<div>analise page</div>} />
           <Route path="/coach" element={<div>dashboard page</div>} />
-          <Route path="/coach/rejected" element={<div>reprovado page</div>} />
         </Routes>
       </MemoryRouter>
     </QueryWrapper>,
@@ -76,7 +74,7 @@ describe('CognitoCallbackPage', () => {
       expires_in: 3600,
     })
     server.use(
-      http.get('*/coaches/me', () =>
+      http.get('*/coach/me', () =>
         HttpResponse.json<Coach>({ ...initialCoach, status: 'APPROVED' }),
       ),
     )
@@ -87,14 +85,14 @@ describe('CognitoCallbackPage', () => {
     expect(getToken()).toBe('id-token-123')
   })
 
-  it('redireciona para onboarding em 404 do coaches/me', async () => {
+  it('redireciona para onboarding em 404 do coach/me', async () => {
     setLocationSearch('?code=abc&state=xyz')
     vi.spyOn(cognito, 'exchangeCodeForTokens').mockResolvedValue({
       id_token: 'id-token-123',
       access_token: 'access-token-123',
       expires_in: 3600,
     })
-    server.use(http.get('*/coaches/me', () => HttpResponse.json({ error: 'nf' }, { status: 404 })))
+    server.use(http.get('*/coach/me', () => HttpResponse.json({ error: 'nf' }, { status: 404 })))
 
     renderPage()
 
@@ -124,7 +122,7 @@ describe('CognitoCallbackPage', () => {
       expires_in: 3600,
     })
     server.use(
-      http.get('*/clients/me', () =>
+      http.get('*/student/me', () =>
         HttpResponse.json<Client>({
           clientId: 'client_demo',
           email: 'aluno@coachmatch.app',

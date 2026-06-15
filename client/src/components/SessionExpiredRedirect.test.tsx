@@ -48,4 +48,18 @@ describe('SessionExpiredRedirect', () => {
 
     expect(await screen.findByText('login aluno')).toBeInTheDocument()
   })
+
+  it('ignora expiração de aluno enquanto usuário está em rota de treinador', async () => {
+    renderWithRoutes('/coach')
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(SESSION_EXPIRED_EVENT, {
+          detail: { reason: 'expired', status: 401, role: 'client' },
+        }),
+      )
+    })
+
+    expect(await screen.findByText('dashboard page')).toBeInTheDocument()
+  })
 })

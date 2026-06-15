@@ -3,19 +3,20 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { useCoachMe } from '../useCoachMe'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
+import { useSessionStore } from '@/stores/sessionStore'
 
 vi.mock('@/api/coaches', () => ({
   fetchCoachMe: vi.fn(),
   updateCoachMe: vi.fn(),
 }))
 
-vi.mock('@/lib/auth', () => ({
-  getToken: vi.fn(() => 'mock-token'),
-}))
-
 describe('useCoachMe', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useSessionStore.setState({
+      activeRole: 'coach',
+      sessions: { coach: { token: 'mock-token' } },
+    })
   })
 
   it('retorna dados do coach quando query tem sucesso', async () => {
