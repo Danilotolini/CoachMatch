@@ -77,6 +77,24 @@ describe('update-student-health › schema (PAR-Q)', () => {
     expect(error?.details[0].path).toContain('answers');
   });
 
+  it('rejeita quando uma das 5 perguntas PAR-Q está ausente', () => {
+    const { heart: _omit, ...answersWithoutHeart } = validHealthData.answers;
+    const { error } = studentHealthSchema.validate({
+      ...validHealthData,
+      answers: answersWithoutHeart,
+    });
+    expect(error).toBeDefined();
+    expect(error?.details[0].path).toContain('heart');
+  });
+
+  it('rejeita resposta inválida (não YES/NO)', () => {
+    const { error } = studentHealthSchema.validate({
+      ...validHealthData,
+      answers: { ...validHealthData.answers, heart: 'MAYBE' },
+    });
+    expect(error).toBeDefined();
+  });
+
   it('usa string vazia como default para notes ausente', () => {
     const { error, value } = studentHealthSchema.validate({
       answers: validHealthData.answers,
@@ -153,6 +171,15 @@ describe('update-student-health › handler', () => {
     const event = { ...buildAuthEvent(), body: validHealthData };
     const response = await handler(event);
     expect(response.statusCode).toBe(200);
+  });
+
+  it('retorna 400 com body JSON malformado', async () => {
+    const response = await handler({
+      requestContext: { authorizer: { jwt: { claims: { sub: STUDENT_ID } } } },
+      body: 'not-json',
+    });
+    expect(response.statusCode).toBe(400);
+    expect(updateStudentHealth).not.toHaveBeenCalled();
   });
 
   it('retorna 401 quando não há sub no JWT', async () => {

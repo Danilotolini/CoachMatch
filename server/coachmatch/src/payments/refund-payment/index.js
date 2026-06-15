@@ -7,6 +7,7 @@ import {
   PaymentAlreadyRefundedException,
   PaymentNotRefundableException,
   InvalidRefundAmountException,
+  PaymentForbiddenException,
 } from '../shared/exceptions.js';
 import { ValidationException } from '../../shared/exceptions.js';
 
@@ -18,13 +19,16 @@ import { ValidationException } from '../../shared/exceptions.js';
  * @param {string} [reason] - Motivo do estorno (opcional).
  * @returns {object} Dados do estorno.
  */
-export const refundPayment = async (transactionId, amount, reason) => {
+export const refundPayment = async (transactionId, callerId, amount, reason) => {
   const { error } = refundSchema.validate({ amount, reason });
   if (error) throw new ValidationException(error.message, error.details);
 
   const transaction = await findPaymentById(transactionId);
 
   if (!transaction)             throw new PaymentNotFoundException(transactionId);
+  if (callerId !== transaction.studentId && callerId !== transaction.coachId) {
+    throw new PaymentForbiddenException();
+  }
   if (isRefunded(transaction))  throw new PaymentAlreadyRefundedException(transactionId);
   if (!isRefundable(transaction)) throw new PaymentNotRefundableException(transaction.status);
   if (!canRefundAmount(transaction, amount)) throw new InvalidRefundAmountException(amount, transaction.amount);

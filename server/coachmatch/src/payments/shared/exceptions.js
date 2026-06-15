@@ -29,3 +29,11 @@ export class InvalidRefundAmountException extends Error {
     this.statusCode = 422;
   }
 }
+
+export class PaymentForbiddenException extends Error {
+  constructor() {
+    super('Acesso negado a esta transação.');
+    this.name       = 'PaymentForbiddenException';
+    this.statusCode = 403;
+  }
+}

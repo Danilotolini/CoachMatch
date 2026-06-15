@@ -33,7 +33,7 @@ function buildUrl(path: string, params?: QueryParams): string {
 
 async function request<T>(url: string, init: RequestInit): Promise<T> {
   const token = getToken()
-  if (isTokenExpired(token)) {
+  if (token && isTokenExpired(token)) {
     useSessionStore.getState().endActiveSession()
     notifySessionExpired({ reason: 'expired', status: 401 })
     throw new ApiError(401, 'Sessão expirada.')

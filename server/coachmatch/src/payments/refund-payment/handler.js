@@ -5,6 +5,7 @@ import {
   PaymentAlreadyRefundedException,
   PaymentNotRefundableException,
   InvalidRefundAmountException,
+  PaymentForbiddenException,
 } from '../shared/exceptions.js';
 
 const PAYMENT_EXCEPTIONS = [
@@ -12,6 +13,7 @@ const PAYMENT_EXCEPTIONS = [
   PaymentAlreadyRefundedException,
   PaymentNotRefundableException,
   InvalidRefundAmountException,
+  PaymentForbiddenException,
 ];
 
 export const handler = async (event) => {
@@ -33,7 +35,7 @@ export const handler = async (event) => {
   }
 
   try {
-    const result = await refundPayment(transactionId, body.amount, body.reason);
+    const result = await refundPayment(transactionId, callerId, body.amount, body.reason);
     return { statusCode: 200, body: JSON.stringify(result) };
   } catch (err) {
     if (err instanceof ValidationException) {

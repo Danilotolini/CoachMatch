@@ -9,6 +9,10 @@ export function getPayment(transactionId: string): Promise<Transaction> {
   return apiGet<Transaction>(`/payments/${transactionId}`)
 }
 
-export function refundPayment(transactionId: string): Promise<Transaction> {
-  return apiPost<Transaction>(`/payments/${transactionId}/refund`)
+export function refundPayment(
+  transactionId: string,
+  amount: number,
+  reason?: string,
+): Promise<Transaction> {
+  return apiPost<Transaction>(`/payments/${transactionId}/refund`, { amount, reason })
 }

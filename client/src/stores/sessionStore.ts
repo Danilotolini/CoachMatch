@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
 export type Role = 'coach' | 'client'
 
@@ -77,7 +77,7 @@ export const useSessionStore = create<SessionStore>()(
         })
       },
     }),
-    { name: 'coachmatch:session' },
+    { name: 'coachmatch:session', storage: createJSONStorage(() => sessionStorage) },
   ),
 )
 

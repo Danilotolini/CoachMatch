@@ -1,4 +1,4 @@
-export type CoachStatus = 'ONBOARDING_PROFILE' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+export type CoachStatus = 'PENDING_PROFILE' | 'ONBOARDING_PROFILE' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
 
 export type CoachVisibility = 'VISIBLE' | 'INVISIBLE'
 

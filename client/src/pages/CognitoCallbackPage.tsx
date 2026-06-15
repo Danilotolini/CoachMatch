@@ -10,6 +10,8 @@ import type { ClientStatus, CoachStatus } from '@/types/api'
 
 function statusRoute(status: CoachStatus): string {
   switch (status) {
+    case 'PENDING_PROFILE':
+      return '/coach/onboarding'
     case 'ONBOARDING_PROFILE':
       return '/coach/onboarding'
     case 'PENDING_REVIEW':

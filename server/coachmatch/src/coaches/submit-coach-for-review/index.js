@@ -26,5 +26,14 @@ export const submitForReview = async (coachId) => {
     );
   }
 
-  await transitionToReview(coachId);
+  try {
+    await transitionToReview(coachId);
+  } catch (err) {
+    if (err.name === 'ConditionalCheckFailedException') {
+      throw new ConflictException(
+        `Estado atual não permite submissão para revisão (race condition detectada).`
+      );
+    }
+    throw err;
+  }
 };

@@ -49,7 +49,7 @@ function stringClaim(claims: Record<string, unknown>, key: string): string | nul
 }
 
 export function isTokenExpired(token: string | null = getToken(), now = Date.now()): boolean {
-  if (!token) return false
+  if (!token) return true
 
   const claims = getTokenClaims(token)
   const exp = claims?.['exp']

@@ -7,12 +7,14 @@ import Joi from 'joi';
 const PARQ_QUESTION_IDS = ['heart', 'chest_pain', 'dizziness', 'bone_joint', 'medication'];
 
 export const studentHealthSchema = Joi.object({
-  // Mapa de respostas ao questionário PAR-Q: { heart: 'NO', chest_pain: 'NO', ... }
-  answers: Joi.object()
-    .pattern(
-      Joi.string().valid(...PARQ_QUESTION_IDS),
-      Joi.string().valid('YES', 'NO').required()
-    )
+  // Mapa de respostas ao questionário PAR-Q: todas as 5 perguntas são obrigatórias
+  answers: Joi.object({
+    heart:      Joi.string().valid('YES', 'NO').required(),
+    chest_pain: Joi.string().valid('YES', 'NO').required(),
+    dizziness:  Joi.string().valid('YES', 'NO').required(),
+    bone_joint: Joi.string().valid('YES', 'NO').required(),
+    medication: Joi.string().valid('YES', 'NO').required(),
+  })
     .required()
     .messages({ 'object.base': 'Respostas ao PAR-Q são obrigatórias' }),
 

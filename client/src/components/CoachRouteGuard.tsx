@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router'
 import { useCoachMe } from '@/hooks/useCoachMe'
-import { getToken } from '@/lib/auth'
-import { useSessionStore } from '@/stores/sessionStore'
+import { useSessionStore, getSessionToken } from '@/stores/sessionStore'
 import { ApiError } from '@/lib/http'
 import type { CoachStatus } from '@/types/api'
 
 const STATUS_ROUTE: Record<CoachStatus, string> = {
+  PENDING_PROFILE: '/coach/onboarding',
   ONBOARDING_PROFILE: '/coach/onboarding',
   PENDING_REVIEW: '/coach/pending-review',
   APPROVED: '/coach',
@@ -27,7 +27,7 @@ function Spinner() {
 }
 
 export function CoachRouteGuard({ allow, children }: RouteGuardProps) {
-  const hasToken = !!getToken()
+  const hasToken = !!getSessionToken('coach')
   const { data, isLoading, isError, error } = useCoachMe()
 
   if (!hasToken) return <Navigate to="/coach/login" replace />
