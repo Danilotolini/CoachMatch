@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { http, HttpResponse } from 'msw'
 import ClientOnboardingPage from './ClientOnboardingPage'
 import { server } from '@/mocks/server'
+import { addDaysToYMD, getTodayBrazilYMD } from '@/lib/dateTime'
 import { createWrapper } from '@/test/createWrapper'
 
 function renderPage() {
@@ -34,13 +35,6 @@ function mockCepSuccess() {
       }),
     ),
   )
-}
-
-function dateInputValue(date = new Date()) {
-  const year = String(date.getFullYear()).padStart(4, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 describe('ClientOnboardingPage', () => {
@@ -104,7 +98,7 @@ describe('ClientOnboardingPage', () => {
   it('limita o calendário de nascimento até a data atual', () => {
     renderPage()
 
-    expect(screen.getByLabelText('Data de nascimento')).toHaveAttribute('max', dateInputValue())
+    expect(screen.getByLabelText('Data de nascimento')).toHaveAttribute('max', getTodayBrazilYMD())
   })
 
   it('não aceita ano de nascimento com mais de 4 dígitos', async () => {
@@ -124,13 +118,12 @@ describe('ClientOnboardingPage', () => {
     mockCepSuccess()
     renderPage()
 
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    const tomorrow = addDaysToYMD(getTodayBrazilYMD(), 1)
 
     await user.type(screen.getByLabelText('Nome completo'), 'Ana Ferreira')
     await user.type(screen.getByPlaceholderText('(11) 99999-9999'), '11987654321')
     fireEvent.change(screen.getByLabelText('Data de nascimento'), {
-      target: { value: dateInputValue(tomorrow) },
+      target: { value: tomorrow },
     })
     await user.click(screen.getByRole('button', { name: 'Mulher' }))
     await user.type(screen.getByPlaceholderText('00000-000'), '01310100')

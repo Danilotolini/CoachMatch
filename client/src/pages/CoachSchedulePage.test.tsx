@@ -207,7 +207,7 @@ describe('CoachSchedulePage', () => {
 
       // Expande o grupo externo e depois o dia para revelar a linha do horário.
       await userEvent.click(await screen.findByRole('button', { name: /lista de horários/i }))
-      await userEvent.click(await screen.findByRole('button', { name: /1 dez/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /01 de dez/i }))
 
       await userEvent.click(await screen.findByRole('button', { name: 'Cancelar horário' }))
 

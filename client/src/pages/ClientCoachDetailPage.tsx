@@ -9,19 +9,10 @@ import { Card } from '@/components/ui/Card'
 import { Icon } from '@/components/ui/Icon'
 import { getStudentCoachSchedules, requestStudentSchedule } from '@/api/schedule'
 import { useCoachDetail } from '@/hooks/useCoachDetail'
+import { formatCoachScheduleSlot } from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
 import type { CoachScheduleSlot } from '@/types/api'
-
-const dayFormatter = new Intl.DateTimeFormat('pt-BR', {
-  weekday: 'short',
-  day: '2-digit',
-  month: 'short',
-})
-
-const timeFormatter = new Intl.DateTimeFormat('pt-BR', {
-  hour: '2-digit',
-  minute: '2-digit',
-})
+import { buildStudentCoachScheduleWindow } from './clientCoachDetailWindow'
 
 function formatMoney(value: number | string): string {
   const amount = typeof value === 'number' ? value : Number(value)
@@ -33,20 +24,7 @@ function formatMoney(value: number | string): string {
 }
 
 function formatSlot(schedule: CoachScheduleSlot): string {
-  const start = new Date(schedule.startDateTime)
-  const end = new Date(schedule.endDateTime)
-  return `${dayFormatter.format(start)}, ${timeFormatter.format(start)}-${timeFormatter.format(end)}`
-}
-
-function nextWindow() {
-  const start = new Date()
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(start)
-  end.setDate(end.getDate() + 21)
-  return {
-    startDateTime: start.toISOString(),
-    endDateTime: end.toISOString(),
-  }
+  return formatCoachScheduleSlot(schedule)
 }
 
 export default function ClientCoachDetailPage() {
@@ -55,7 +33,7 @@ export default function ClientCoachDetailPage() {
   const queryClient = useQueryClient()
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null)
   const [successScheduleId, setSuccessScheduleId] = useState<string | null>(null)
-  const windowParams = useMemo(() => nextWindow(), [])
+  const windowParams = useMemo(() => buildStudentCoachScheduleWindow(), [])
   const detailQuery = useCoachDetail(coachId)
   const scheduleQuery = useQuery({
     queryKey: ['student-coach-schedules', coachId, windowParams],

@@ -13,6 +13,7 @@ import {
   useCoachScheduleRequests,
   useUpdateCoachClassStatus,
 } from '@/hooks/useCoachSchedule'
+import { addDaysToYMD, formatBrazilDay, getTodayBrazilYMD } from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
 import { generateDrafts, markDuplicates } from '@/lib/generateDrafts'
 import { runPool } from '@/lib/runPool'
@@ -95,9 +96,7 @@ function toDisplayPrice(apiPrice: string): string {
 }
 
 function getDefaultConfig(): GenerateConfig {
-  const today = new Date().toISOString().slice(0, 10)
-  const end = new Date(`${today}T12:00:00Z`)
-  end.setUTCDate(end.getUTCDate() + 28)
+  const today = getTodayBrazilYMD()
   return {
     gymId: '',
     specialtyId: '',
@@ -105,7 +104,7 @@ function getDefaultConfig(): GenerateConfig {
     durationMinutes: 60,
     weekdays: [1, 2, 3, 4, 5],
     startDate: today,
-    endDate: end.toISOString().slice(0, 10),
+    endDate: addDaysToYMD(today, 28),
     windowStart: '08:00',
     windowEnd: '17:00',
     gapMinutes: 0,
@@ -144,23 +143,7 @@ function formatSlotTime(iso: string): string {
 }
 
 function formatDayHeader(dateStr: string): string {
-  const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-  const months = [
-    'jan',
-    'fev',
-    'mar',
-    'abr',
-    'mai',
-    'jun',
-    'jul',
-    'ago',
-    'set',
-    'out',
-    'nov',
-    'dez',
-  ]
-  const d = new Date(`${dateStr}T12:00:00Z`)
-  return `${weekdays[d.getUTCDay()]}, ${String(d.getUTCDate())} ${months[d.getUTCMonth()]}`
+  return formatBrazilDay(`${dateStr}T12:00:00-03:00`)
 }
 
 function formatDateTime(iso: string): string {
@@ -433,7 +416,7 @@ function QuickSlotForm({
   const [gymId, setGymId] = useState('')
   const [specialtyId, setSpecialtyId] = useState('')
   const [price, setPrice] = useState('')
-  const [date, setDate] = useState(() => initialSlot?.date ?? new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(() => initialSlot?.date ?? getTodayBrazilYMD())
   const [start, setStart] = useState(initialSlot?.start ?? '08:00')
   const [end, setEnd] = useState(initialSlot?.end ?? '09:00')
   const [busy, setBusy] = useState(false)
@@ -462,7 +445,7 @@ function QuickSlotForm({
       setGymId('')
       setSpecialtyId('')
       setPrice('')
-      setDate(initialSlot?.date ?? new Date().toISOString().slice(0, 10))
+      setDate(initialSlot?.date ?? getTodayBrazilYMD())
       setStart(initialSlot?.start ?? '08:00')
       setEnd(initialSlot?.end ?? '09:00')
     } catch (e) {
@@ -689,7 +672,7 @@ function AddSlotForm({
   onAdd: (slot: DraftSlot) => void
 }) {
   const [open, setOpen] = useState(false)
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(() => getTodayBrazilYMD())
   const [start, setStart] = useState('08:00')
   const [end, setEnd] = useState('09:00')
   const [price, setPrice] = useState(config.price)
@@ -1673,7 +1656,7 @@ function AgendaTab({
 
       <section className="flex flex-col gap-2 rounded-xl border border-outline-variant/10 bg-surface-container p-5 xl:col-span-2">
         <DayGroup
-          date={new Date().toISOString().slice(0, 10)}
+          date={getTodayBrazilYMD()}
           count={visibleExistingSlots.length}
           initialOpen={false}
           label="Lista de horários"

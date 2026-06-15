@@ -8,6 +8,11 @@ import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNaviga
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Icon } from '@/components/ui/Icon'
+import {
+  formatBrazilDay,
+  formatBrazilDayOfMonth,
+  formatStudentScheduleTimeRange,
+} from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
 import type { CoachDetail, RequestStatus, ScheduleStatus, StudentScheduleItem } from '@/types/api'
 
@@ -39,17 +44,6 @@ const requestStatusLabels: Record<RequestStatus, string> = {
   REJECTED: 'Recusado',
 }
 
-const dayFormatter = new Intl.DateTimeFormat('pt-BR', {
-  weekday: 'short',
-  day: '2-digit',
-  month: 'short',
-})
-
-const timeFormatter = new Intl.DateTimeFormat('pt-BR', {
-  hour: '2-digit',
-  minute: '2-digit',
-})
-
 function formatMoney(value: string): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -59,13 +53,11 @@ function formatMoney(value: string): string {
 }
 
 function formatDay(value: string): string {
-  return dayFormatter.format(new Date(value))
+  return formatBrazilDay(value)
 }
 
 function formatTimeRange(schedule: StudentScheduleItem): string {
-  return `${timeFormatter.format(new Date(schedule.startDateTime))}-${timeFormatter.format(
-    new Date(schedule.endDateTime),
-  )}`
+  return formatStudentScheduleTimeRange(schedule)
 }
 
 function getFilter(schedule: StudentScheduleItem): ScheduleFilter {
@@ -323,7 +315,7 @@ function ScheduleCard({
                 {formatDay(schedule.startDateTime).split(',')[0]}
               </span>
               <span className="font-headline text-xl font-black">
-                {new Date(schedule.startDateTime).getDate()}
+                {formatBrazilDayOfMonth(schedule.startDateTime)}
               </span>
             </div>
             <div className="min-w-0">
