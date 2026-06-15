@@ -47,7 +47,7 @@ describe('useSpecialties', () => {
 
   it('marca isError quando a API falha', async () => {
     server.use(
-      http.get('*/specialties', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+      http.get('*/coach/specialties', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
     )
 
     const { wrapper } = createWrapper()

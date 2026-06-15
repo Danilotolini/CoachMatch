@@ -131,12 +131,35 @@ describe('LoginPage', () => {
     expect(getLoginUrlSpy).not.toHaveBeenCalled()
   })
 
+  it('não volta para /coach quando login recebe sessão encerrada com token antigo', async () => {
+    const url = 'https://cognito.test/oauth2/authorize?x=1'
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+    loginAs('coach', 'stale-token')
+
+    render(
+      <MemoryRouter
+        initialEntries={[{ pathname: '/coach/login', state: { reason: 'unauthorized' } }]}
+      >
+        <Routes>
+          <Route path="/coach/login" element={<LoginPage audience="coach" />} />
+          <Route path="/coach" element={<div>coach dashboard</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
+    expect(screen.queryByText('coach dashboard')).not.toBeInTheDocument()
+    expect(useSessionStore.getState().sessions.coach).toBeUndefined()
+    expect(window.location.href).toBe(url)
+    expect(getLoginUrlSpy).toHaveBeenCalledTimes(1)
+  })
+
   it('reativa sessão de aluno e redireciona conforme backend', async () => {
     vi.spyOn(cognito, 'getLoginUrl')
     loginAs('client')
     useSessionStore.setState((state) => ({ ...state, activeRole: null }))
     server.use(
-      http.get('*/clients/me', () =>
+      http.get('*/student/me', () =>
         HttpResponse.json<Client>({
           clientId: 'client_demo',
           email: 'aluno@coachmatch.app',
@@ -151,5 +174,38 @@ describe('LoginPage', () => {
 
     expect(await screen.findByText('client home')).toBeInTheDocument()
     expect(useSessionStore.getState().activeRole).toBe('client')
+  })
+
+  it('não redireciona para onboarding quando /student/me recusa a sessão', async () => {
+    const url = 'https://student-cognito.test/oauth2/authorize?x=1'
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+    loginAs('client', 'invalid-token')
+    server.use(
+      http.get('*/student/me', () => HttpResponse.json({ error: 'unauthorized' }, { status: 401 })),
+    )
+
+    renderPage('client')
+
+    expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
+    expect(screen.queryByText('client onboarding')).not.toBeInTheDocument()
+    expect(useSessionStore.getState().sessions.client).toBeUndefined()
+    expect(window.location.href).toBe(url)
+    expect(getLoginUrlSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('em mock, pede novo login quando chega por sessão expirada', async () => {
+    vi.stubEnv('VITE_API_MOCKING', 'enabled')
+
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/client/login', state: { reason: 'expired' } }]}>
+        <Routes>
+          <Route path="/client/login" element={<LoginPage audience="client" />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Sessão encerrada pelo servidor.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ENTRAR NOVAMENTE' })).toBeInTheDocument()
+    expect(useSessionStore.getState().sessions.client).toBeUndefined()
   })
 })

@@ -2,7 +2,11 @@ import { apiPost } from '@/lib/http'
 import type { UploadUrlResponse } from '@/types/api'
 
 export function fetchUploadUrl(filename: string, contentType: string) {
-  return apiPost<UploadUrlResponse>('/upload-url', { filename, contentType })
+  return apiPost<UploadUrlResponse>(
+    '/coach/upload-url',
+    { filename, contentType },
+    { role: 'coach' },
+  )
 }
 
 export function uploadToS3(

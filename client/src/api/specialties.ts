@@ -8,9 +8,25 @@ export interface SpecialtiesParams {
 }
 
 export function fetchSpecialties(params: SpecialtiesParams = {}) {
-  return apiGet<PaginatedResponse<Specialty>>('/specialties', {
-    search: params.search,
-    page: params.page ?? 1,
-    limit: params.limit ?? 20,
-  })
+  return apiGet<PaginatedResponse<Specialty>>(
+    '/coach/specialties',
+    {
+      search: params.search,
+      page: params.page ?? 1,
+      limit: params.limit ?? 20,
+    },
+    { role: 'coach' },
+  )
+}
+
+export function fetchStudentSpecialties(params: SpecialtiesParams = {}) {
+  return apiGet<PaginatedResponse<Specialty>>(
+    '/student/specialties',
+    {
+      search: params.search,
+      page: params.page ?? 1,
+      limit: params.limit ?? 20,
+    },
+    { role: 'client' },
+  )
 }

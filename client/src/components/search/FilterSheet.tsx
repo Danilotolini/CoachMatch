@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { Icon } from '@/components/ui/Icon'
-import { useSpecialties } from '@/hooks/useSpecialties'
+import { useStudentSpecialties } from '@/hooks/useStudentSpecialties'
 import type { CoachSearchFilters } from '@/types/api'
 
 interface FilterSheetProps {
@@ -46,7 +46,7 @@ function FilterSheetContent({
   onClear,
 }: Omit<FilterSheetProps, 'open'>) {
   const [draft, setDraft] = useState(filters)
-  const { data: specialtiesData } = useSpecialties()
+  const { data: specialtiesData } = useStudentSpecialties()
   const specialties = specialtiesData?.data ?? []
 
   const selectedSpecialties = draft.specialties ?? []

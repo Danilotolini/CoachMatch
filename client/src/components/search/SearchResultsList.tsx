@@ -3,9 +3,10 @@ import type { CoachListItem } from '@/types/api'
 
 interface SearchResultsListProps {
   coaches: CoachListItem[]
+  onCoachClick?: (coachId: string) => void
 }
 
-export function SearchResultsList({ coaches }: SearchResultsListProps) {
+export function SearchResultsList({ coaches, onCoachClick }: SearchResultsListProps) {
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
       {coaches.map((coach) => (
@@ -18,6 +19,13 @@ export function SearchResultsList({ coaches }: SearchResultsListProps) {
           {...(coach.photo ? { image: coach.photo } : {})}
           location={`${coach.neighborhood}, ${coach.city}`}
           availability={coach.nextAvailability}
+          {...(onCoachClick
+            ? {
+                onClick: () => {
+                  onCoachClick(coach.coachId)
+                },
+              }
+            : {})}
         />
       ))}
     </div>

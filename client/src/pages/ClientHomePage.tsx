@@ -5,7 +5,6 @@ import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNaviga
 import { Card } from '@/components/ui/Card'
 import { useCoachSearch } from '@/hooks/useCoachSearch'
 import { getAuthUser } from '@/lib/auth'
-import { logout } from '@/lib/cognito'
 
 interface RecentCoach {
   id: number
@@ -33,16 +32,12 @@ export default function ClientHomePage() {
   const user = getAuthUser()
   const firstName = useMemo(() => user.name?.split(' ')[0] ?? 'aluno', [user.name])
 
-  function handleLogout() {
-    logout('client', '/')
-  }
-
   return (
     <main className="relative flex min-h-[max(884px,100dvh)] w-full bg-surface text-on-surface">
-      <ClientSideNav onLogout={handleLogout} />
+      <ClientSideNav />
 
       <div className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">
-        <ClientTopBar firstName={firstName} onLogout={handleLogout} />
+        <ClientTopBar firstName={firstName} />
 
         <div className="flex min-w-0 flex-1 flex-col lg:flex-row">
           <section className="flex min-w-0 flex-1 flex-col gap-8 px-4 pb-12 sm:px-6 md:px-10 lg:mx-auto lg:max-w-4xl lg:px-10">
@@ -65,7 +60,7 @@ export default function ClientHomePage() {
   )
 }
 
-function ClientTopBar({ firstName, onLogout }: { firstName: string; onLogout: () => void }) {
+function ClientTopBar({ firstName }: { firstName: string }) {
   return (
     <header className="glass-header sticky top-0 z-20 flex items-center justify-between px-4 py-4 sm:px-6 md:px-10 lg:relative lg:bg-transparent lg:px-10 lg:py-8 lg:backdrop-blur-none">
       <div className="flex min-w-0 flex-col">
@@ -73,23 +68,6 @@ function ClientTopBar({ firstName, onLogout }: { firstName: string; onLogout: ()
         <h1 className="truncate font-headline text-2xl font-bold tracking-tight lg:text-3xl">
           Oi, {firstName}
         </h1>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container-high"
-          aria-label="Notificacoes"
-        >
-          <span className="material-symbols-outlined text-[22px]">notifications</span>
-        </button>
-        <button
-          type="button"
-          onClick={onLogout}
-          className="font-label text-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface lg:hidden"
-        >
-          Sair
-        </button>
       </div>
     </header>
   )
@@ -213,6 +191,9 @@ function CoachRail() {
                   {...(coach.photo ? { image: coach.photo } : {})}
                   location={`${coach.neighborhood}, ${coach.city}`}
                   availability={coach.nextAvailability}
+                  onClick={() => {
+                    void navigate(`/client/coaches/${coach.coachId}`)
+                  }}
                 />
               </div>
             ))}

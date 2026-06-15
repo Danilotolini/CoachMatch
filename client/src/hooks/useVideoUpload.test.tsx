@@ -42,9 +42,9 @@ describe('useVideoUpload', () => {
     })
   })
 
-  it('propaga erro quando o /upload-url falha', async () => {
+  it('propaga erro quando o /coach/upload-url falha', async () => {
     server.use(
-      http.post('*/upload-url', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+      http.post('*/coach/upload-url', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
     )
 
     const { wrapper } = createWrapper()

@@ -1,9 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import ClientHomePage from './ClientHomePage'
-import * as cognito from '@/lib/cognito'
 import { createWrapper } from '@/test/createWrapper'
 import { loginAs } from '@/test/session'
 
@@ -57,16 +55,5 @@ describe('ClientHomePage', () => {
     expect(await screen.findByText('Priscila Duarte')).toBeInTheDocument()
     expect(screen.getAllByText('Buscar')).toHaveLength(2)
     expect(screen.getAllByText('Perfil')).toHaveLength(2)
-  })
-
-  it('chama logout de aluno ao clicar em Sair', async () => {
-    const logoutSpy = vi.spyOn(cognito, 'logout').mockImplementation(() => undefined)
-    loginAs('client', makeIdToken({ name: 'Ana Paula' }))
-
-    renderClientHome()
-
-    await userEvent.click(screen.getAllByRole('button', { name: 'Sair' })[0])
-
-    expect(logoutSpy).toHaveBeenCalledWith('client', '/')
   })
 })

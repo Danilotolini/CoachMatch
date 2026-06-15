@@ -49,7 +49,9 @@ describe('useSuggestGym', () => {
 
   it('propaga erro quando o servidor falha', async () => {
     server.use(
-      http.post('*/gyms/suggest', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+      http.post('*/coach/gyms/suggest', () =>
+        HttpResponse.json({ error: 'boom' }, { status: 500 }),
+      ),
     )
 
     const { wrapper } = createWrapper()
