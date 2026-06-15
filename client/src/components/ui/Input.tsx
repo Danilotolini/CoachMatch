@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react'
+import { useLayoutEffect, useRef, type ChangeEvent, type InputHTMLAttributes } from 'react'
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix'> {
   label?: string | undefined
@@ -6,6 +6,12 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix
   helpText?: string | undefined
   icon?: string | undefined
   prefix?: string | undefined
+  /**
+   * Sanitizador aplicado ao valor pelo pai (ex.: máscara/uppercase). Quando
+   * informado, o caret é preservado após a transformação, evitando que ele
+   * salte para o fim quando o valor digitado é alterado.
+   */
+  transform?: ((raw: string) => string) | undefined
 }
 
 export function Input({
@@ -14,12 +20,33 @@ export function Input({
   helpText,
   icon,
   prefix,
+  transform,
   disabled,
   className = '',
   id,
+  onChange,
   ...props
 }: InputProps) {
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const caretRef = useRef<number | null>(null)
+
+  useLayoutEffect(() => {
+    const el = inputRef.current
+    if (el && caretRef.current !== null && document.activeElement === el) {
+      el.setSelectionRange(caretRef.current, caretRef.current)
+    }
+    caretRef.current = null
+  })
+
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (transform) {
+      const { value, selectionStart } = event.target
+      const caret = selectionStart ?? value.length
+      caretRef.current = transform(value.slice(0, caret)).length
+    }
+    onChange?.(event)
+  }
 
   const borderColor = error
     ? 'border-error'
@@ -51,6 +78,8 @@ export function Input({
         ) : null}
         <input
           {...props}
+          ref={inputRef}
+          onChange={handleChange}
           id={inputId}
           disabled={disabled}
           className={`bg-transparent border-none w-full text-on-surface font-body focus:ring-0 focus:outline-none p-0 placeholder-on-surface-variant/50 ${disabled ? 'opacity-70 cursor-not-allowed' : ''} ${className}`}
