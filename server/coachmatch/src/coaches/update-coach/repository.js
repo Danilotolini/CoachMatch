@@ -17,8 +17,9 @@ export const findCoachById = async (coachId) => {
 };
 
 /**
- * Persiste o perfil atualizado do coach e registra o timestamp de atualização.
- * Não toca no status — a transição é responsabilidade exclusiva de submit-for-review.
+ * Persiste o perfil atualizado do coach, ativa o cadastro e registra o timestamp.
+ * Ao preencher o perfil o coach já é marcado como APPROVED (ativo), sem passar
+ * por revisão manual.
  * @param {string} coachId
  * @param {object} payload - { profile, work_location }
  */
@@ -31,15 +32,17 @@ export const persistCoachUpdate = async (coachId, { profile, work_location }) =>
       TableName: TABLE,
       Key: { coachId },
       UpdateExpression:
-        'SET #profile = :profile, #work_location = :work_location, #updatedAt = :updatedAt',
+        'SET #profile = :profile, #work_location = :work_location, #status = :status, #updatedAt = :updatedAt',
       ExpressionAttributeNames: {
         '#profile':       'profile',
         '#work_location': 'work_location',
+        '#status':        'status',
         '#updatedAt':     'updatedAt',
       },
       ExpressionAttributeValues: {
         ':profile':       profile,
         ':work_location': work_location,
+        ':status':        'APPROVED',
         ':updatedAt':     now,
       },
     })

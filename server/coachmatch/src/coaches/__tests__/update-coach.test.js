@@ -47,7 +47,7 @@ const buildAuthEvent = (body = validBody) => ({
 
 const updatedCoachRecord = {
   ...currentCoach,
-  status: 'PENDING_PROFILE',       // status não muda no update
+  status: 'APPROVED',
   profile: {
     name:          'João Silva',
     phone:         '11999999999',
@@ -159,10 +159,11 @@ describe('update-coach › index (updateCoachProfile)', () => {
     expect(work_location).toEqual([{ type: 'GYM', gymId: 'gym-1' }]);
   });
 
-  it('NÃO inclui status na chamada ao persistCoachUpdate (DynamoDB preserva o valor)', async () => {
+  it('ativa o coach (status APPROVED) ao persistir o perfil', async () => {
     await updateCoachProfile(COACH_ID, validBody);
-    const args = persistCoachUpdate.mock.calls[0][1];
-    expect(args.status).toBeUndefined();
+    expect(persistCoachUpdate).toHaveBeenCalledTimes(1);
+    const [persistedId] = persistCoachUpdate.mock.calls[0];
+    expect(persistedId).toBe(COACH_ID);
   });
 
   it('lança NotFoundException quando coach não existe', async () => {
