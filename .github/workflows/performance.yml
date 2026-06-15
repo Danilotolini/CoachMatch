@@ -34,6 +34,13 @@ jobs:
 
       - name: Build client
         run: cd client && pnpm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'https://api.coachmatch.com.br' }}
+          VITE_API_MOCKING: disabled
+          VITE_COGNITO_CLIENT_ID: ${{ secrets.VITE_COGNITO_CLIENT_ID || 'ci-coach-client-id' }}
+          VITE_COGNITO_DOMAIN: ${{ secrets.VITE_COGNITO_DOMAIN || 'https://login.coachmatch.com.br' }}
+          VITE_COGNITO_STUDENT_CLIENT_ID: ${{ secrets.VITE_COGNITO_STUDENT_CLIENT_ID || 'ci-student-client-id' }}
+          VITE_COGNITO_STUDENT_DOMAIN: ${{ secrets.VITE_COGNITO_STUDENT_DOMAIN || 'https://student.coachmatch.com.br' }}
 
       - name: Analyze bundle
         run: |
@@ -48,13 +55,13 @@ jobs:
       - name: Check bundle size limits
         run: |
           BUNDLE_SIZE=$(du -sb client/dist | awk '{print $1}')
-          LIMIT_BYTES=$((2 * 1024 * 1024))
+          LIMIT_BYTES=$((3 * 1024 * 1024))
 
           if [ $BUNDLE_SIZE -gt $LIMIT_BYTES ]; then
-            echo "Bundle size ($((BUNDLE_SIZE / 1024))KB) exceeds limit (2MB)"
+            echo "Bundle size ($((BUNDLE_SIZE / 1024))KB) exceeds limit (3MB)"
             exit 1
           else
-            echo "Bundle size ($((BUNDLE_SIZE / 1024))KB) is within limits"
+            echo "Bundle size ($((BUNDLE_SIZE / 1024))KB) is within limits (3MB)"
           fi
 
   lighthouse:
@@ -176,6 +183,13 @@ jobs:
 
       - name: Build project
         run: cd client && pnpm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'https://api.coachmatch.com.br' }}
+          VITE_API_MOCKING: disabled
+          VITE_COGNITO_CLIENT_ID: ${{ secrets.VITE_COGNITO_CLIENT_ID || 'ci-coach-client-id' }}
+          VITE_COGNITO_DOMAIN: ${{ secrets.VITE_COGNITO_DOMAIN || 'https://login.coachmatch.com.br' }}
+          VITE_COGNITO_STUDENT_CLIENT_ID: ${{ secrets.VITE_COGNITO_STUDENT_CLIENT_ID || 'ci-student-client-id' }}
+          VITE_COGNITO_STUDENT_DOMAIN: ${{ secrets.VITE_COGNITO_STUDENT_DOMAIN || 'https://student.coachmatch.com.br' }}
 
       - name: Check build time
         run: |

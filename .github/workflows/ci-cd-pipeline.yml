@@ -110,9 +110,10 @@ jobs:
       - name: Install root workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      # server/coachmatch é uma workspace pnpm aninhada — instalar separadamente
+      # server/coachmatch tem package-lock.json próprio — usar npm ci para evitar
+      # conflito com pnpm v10 que bloqueia build scripts de esbuild/serverless.
       - name: Install coachmatch dependencies
-        run: cd server/coachmatch && pnpm install --frozen-lockfile
+        run: cd server/coachmatch && npm ci
 
       # Vitest — todas as Lambdas (coaches, students, gyms, payments)
       - name: Test coachmatch lambdas (Vitest)
