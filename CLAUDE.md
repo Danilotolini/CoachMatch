@@ -6,9 +6,7 @@
 
 Público: alunos buscando profissionais de educação física.
 
-O trabalho ativo de frontend fica em `client/`. Para tarefas de UI, use esse caminho como referência e evite mexer em backend, scripts globais ou workflows não relacionados.
-
-## Fontes de verdade
+## Fontes da verdade
 
 | Tema | Fonte |
 | --- | --- |
@@ -21,5 +19,3 @@ O trabalho ativo de frontend fica em `client/`. Para tarefas de UI, use esse cam
 ## Regras rápidas
 
 - Sempre rode comandos do frontend dentro de `client/`.
-- Use sempre `pnpm`, respeitando o `packageManager` em [`client/package.json`](client/package.json).
-- Após mudanças no frontend: rode `pnpm test`, depois `pnpm lint` e, se ambos passarem, rode `pnpm format`.
