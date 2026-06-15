@@ -46,12 +46,7 @@ describe('SearchControls', () => {
     const onChange = vi.fn()
     const onOpenFilters = vi.fn()
     render(
-      <SearchHeader
-        type="search"
-        value=""
-        onChange={onChange}
-        onOpenFilters={onOpenFilters}
-      />,
+      <SearchHeader type="search" value="" onChange={onChange} onOpenFilters={onOpenFilters} />,
     )
 
     fireEvent.change(screen.getByLabelText('Nome, modalidade ou bairro'), {

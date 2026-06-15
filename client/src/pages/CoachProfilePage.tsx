@@ -60,7 +60,10 @@ function normalizeInstagram(value: string): string {
 }
 
 function normalizeCref(value: string): string {
-  return value.toUpperCase().replace(/[^0-9A-Z/-]/g, '').slice(0, 11)
+  return value
+    .toUpperCase()
+    .replace(/[^0-9A-Z/-]/g, '')
+    .slice(0, 11)
 }
 
 function profileToForm(profile: CoachProfile): CoachProfileFormState {
@@ -181,7 +184,8 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
   const { data: specialtiesData } = useSpecialties()
 
   const labelById = useMemo(
-    () => new Map((specialtiesData?.data ?? []).map((specialty) => [specialty.id, specialty.label])),
+    () =>
+      new Map((specialtiesData?.data ?? []).map((specialty) => [specialty.id, specialty.label])),
     [specialtiesData?.data],
   )
 
@@ -198,11 +202,7 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
   const primarySpecialty = form.specialties[0]
     ? formatSpecialtyLabel(form.specialties[0], labelById)
     : 'Especialidade em aberto'
-  const meta = [
-    form.cref || 'CREF em aberto',
-    primarySpecialty,
-    formatWorkLocation(coach),
-  ]
+  const meta = [form.cref || 'CREF em aberto', primarySpecialty, formatWorkLocation(coach)]
 
   const updateField = <K extends keyof CoachProfileFormState>(
     key: K,

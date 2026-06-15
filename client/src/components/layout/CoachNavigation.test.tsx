@@ -40,10 +40,7 @@ describe('CoachNavigation', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('button', { name: /Agenda/i })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    expect(screen.getByRole('button', { name: /Agenda/i })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: /Início/i })).not.toHaveAttribute('aria-current')
   })
 

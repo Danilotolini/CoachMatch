@@ -79,7 +79,10 @@ describe('useInfiniteScroll', () => {
     render(<Harness hasMore isLoading={false} onLoadMore={onLoadMore} />)
 
     act(() => {
-      callback?.([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver)
+      callback?.(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      )
     })
 
     expect(onLoadMore).toHaveBeenCalledTimes(1)
