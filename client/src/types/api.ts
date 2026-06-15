@@ -23,18 +23,7 @@ export interface WorkLocationGym {
   gymId: string
 }
 
-export interface HomeServiceCoverage {
-  city: string
-  state: string
-  neighborhoods: string[]
-}
-
-export interface WorkLocationHomeService {
-  type: 'HOME_SERVICE'
-  coverage: HomeServiceCoverage
-}
-
-export type WorkLocation = WorkLocationGym | WorkLocationHomeService
+export type WorkLocation = WorkLocationGym
 
 export interface Coach {
   coachId: string
