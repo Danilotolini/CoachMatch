@@ -125,6 +125,23 @@ describe('apiGet', () => {
     expect(getSessionToken('coach')).toBe('coach-token')
   })
 
+  it('limpa apenas a sessão informada em 401 quando request tem role', async () => {
+    loginAs('coach', 'coach-token')
+    loginAs('client', 'client-token')
+    server.use(
+      http.get('http://api.test/secure', () =>
+        HttpResponse.json({ error: 'unauthorized' }, { status: 401 }),
+      ),
+    )
+
+    await expect(apiGet('/secure', undefined, { role: 'coach' })).rejects.toMatchObject({
+      status: 401,
+    })
+    expect(getSessionToken('coach')).toBeNull()
+    expect(getSessionToken('client')).toBe('client-token')
+    expect(getToken()).toBe('client-token')
+  })
+
   it('não chama API quando token local já expirou', async () => {
     const listener = vi.fn()
     const requestSpy = vi.fn()
@@ -143,6 +160,34 @@ describe('apiGet', () => {
     expect((listener.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
       reason: 'expired',
       status: 401,
+    })
+    window.removeEventListener(SESSION_EXPIRED_EVENT, listener)
+  })
+
+  it('não chama API e encerra apenas a role informada quando esse token já expirou', async () => {
+    const listener = vi.fn()
+    const requestSpy = vi.fn()
+    loginAs('coach', encodeJwt({ exp: Math.floor(Date.now() / 1000) - 1 }))
+    loginAs('client', 'client-token')
+    window.addEventListener(SESSION_EXPIRED_EVENT, listener)
+    server.use(
+      http.get('http://api.test/secure', () => {
+        requestSpy()
+        return HttpResponse.json({})
+      }),
+    )
+
+    await expect(apiGet('/secure', undefined, { role: 'coach' })).rejects.toMatchObject({
+      status: 401,
+    })
+    expect(requestSpy).not.toHaveBeenCalled()
+    expect(getSessionToken('coach')).toBeNull()
+    expect(getSessionToken('client')).toBe('client-token')
+    expect(getToken()).toBe('client-token')
+    expect((listener.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
+      reason: 'expired',
+      status: 401,
+      role: 'coach',
     })
     window.removeEventListener(SESSION_EXPIRED_EVENT, listener)
   })

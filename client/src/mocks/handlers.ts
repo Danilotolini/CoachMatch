@@ -1,31 +1,46 @@
 import { http, HttpResponse, delay } from 'msw'
 import type {
+  CancelRequestResult,
+  ClassStatusResult,
   Client,
   ClientHealthPayload,
   ClientProfilePayload,
   ClientStatus,
   Coach,
+  CoachDetail,
   CoachListItem,
   CoachSearchSort,
   CoachStatus,
+  CoachScheduleResponse,
   CoachVisibility,
   CoachUpdatePayload,
   Gym,
   GymSuggestPayload,
   GymSuggestResponse,
   PaginatedResponse,
+  Schedule,
+  ScheduleApproveResult,
+  ScheduleCancelResult,
+  ScheduleCreatePayload,
+  ScheduleRequestResult,
+  ScheduleRequest,
+  ScheduleRequestsResponse,
+  ScheduleStatus,
+  StudentScheduleItem,
+  StudentSchedulesResponse,
   Specialty,
   UploadUrlResponse,
   PaymentPayload,
   Transaction,
 } from '@/types/api'
-import { gyms, initialCoach, specialties } from '@/mocks/fixtures'
+import { gyms, initialCoach, initialSchedules, specialties } from '@/mocks/fixtures'
 
 const wait = (ms: number) => (import.meta.env.MODE === 'test' ? Promise.resolve() : delay(ms))
 
 const MOCK_S3_URL = 'https://mock-s3.local/upload'
 const MOCK_COACH_STORAGE_KEY = 'coachmatch:mock:coach'
 const MOCK_CLIENT_STORAGE_KEY = 'coachmatch:mock:client'
+const MOCK_SCHEDULE_STORAGE_KEY = 'coachmatch:mock:schedules'
 
 const coachSearchFixtures: CoachListItem[] = [
   {
@@ -162,6 +177,46 @@ const coachSearchFixtures: CoachListItem[] = [
   },
 ]
 
+const coachDetailFixtures: Partial<Record<string, CoachDetail>> = Object.fromEntries(
+  coachSearchFixtures.map((coach, index) => {
+    const serviceAreas = [
+      `${coach.neighborhood}, ${coach.city}`,
+      coach.city === 'São Paulo' ? 'Atendimento em academia parceira' : 'Treinos presenciais',
+    ]
+    return [
+      coach.coachId,
+      {
+        ...coach,
+        cref: `CREF ${String(100000 + index * 137)}-G/SP`,
+        bio: `${coach.name.split(' ')[0]} monta treinos objetivos, com progressão clara e acompanhamento próximo para você evoluir sem adivinhação.`,
+        experienceYears: 5 + (index % 8),
+        sessionsCount: 140 + index * 38,
+        responseTime: index % 3 === 0 ? '1h' : '3h',
+        serviceAreas,
+        trainingStyles: ['Plano progressivo', 'Correção técnica', 'Ajustes semanais'],
+        languages: ['Português'],
+        instagram: `@${normalizeText(coach.name).replace(/\s+/g, '.')}`,
+        reviews: [
+          {
+            id: `${coach.coachId}_review_1`,
+            studentName: 'Ana Ferreira',
+            rating: Math.min(5, coach.rating),
+            comment: 'Treino bem explicado, pontualidade e ajustes certeiros durante a sessão.',
+            date: '2026-05-20',
+          },
+          {
+            id: `${coach.coachId}_review_2`,
+            studentName: 'Bruno Oliveira',
+            rating: Math.max(4.5, coach.rating - 0.1),
+            comment: 'Gostei da clareza no plano e da atenção com postura e carga.',
+            date: '2026-05-02',
+          },
+        ],
+      },
+    ]
+  }),
+)
+
 function buildInitialCoach(): Coach {
   return {
     ...initialCoach,
@@ -172,8 +227,8 @@ function buildInitialCoach(): Coach {
 
 function buildInitialClient(): Client {
   return {
-    clientId: 'client_demo',
-    email: 'aluno@coachmatch.app',
+    clientId: 'client_derik',
+    email: 'derikoliveira03@gmail.com',
     status: 'ONBOARDING_PROFILE',
     name: null,
     phone: null,
@@ -224,9 +279,32 @@ function writeStoredClient(client: Client): void {
   localStorage.setItem(MOCK_CLIENT_STORAGE_KEY, JSON.stringify(client))
 }
 
+function buildInitialSchedules(): Map<string, Schedule> {
+  return new Map(initialSchedules.map((s) => [s.scheduleId, s]))
+}
+
+function readStoredSchedules(): Map<string, Schedule> | null {
+  if (typeof localStorage === 'undefined') return null
+  const raw = localStorage.getItem(MOCK_SCHEDULE_STORAGE_KEY)
+  if (!raw) return null
+  try {
+    const arr = JSON.parse(raw) as Schedule[]
+    return new Map(arr.map((s) => [s.scheduleId, s]))
+  } catch {
+    localStorage.removeItem(MOCK_SCHEDULE_STORAGE_KEY)
+    return null
+  }
+}
+
+function writeStoredSchedules(schedules: Map<string, Schedule>): void {
+  if (typeof localStorage === 'undefined') return
+  localStorage.setItem(MOCK_SCHEDULE_STORAGE_KEY, JSON.stringify([...schedules.values()]))
+}
+
 const state = {
   coach: readStoredCoach() ?? buildInitialCoach(),
   client: readStoredClient() ?? buildInitialClient(),
+  schedules: readStoredSchedules() ?? buildInitialSchedules(),
   transactions: new Map<string, Transaction>(),
 }
 
@@ -250,6 +328,33 @@ function resetClient(): Client {
   return setClient(buildInitialClient())
 }
 
+function resetSchedules(): void {
+  state.schedules = buildInitialSchedules()
+  writeStoredSchedules(state.schedules)
+}
+
+function hasScheduleConflict(
+  coachId: string,
+  startDateTime: string,
+  endDateTime: string,
+  excludeId?: string,
+): boolean {
+  const newStart = new Date(startDateTime).getTime()
+  const newEnd = new Date(endDateTime).getTime()
+  for (const [id, s] of state.schedules) {
+    if (excludeId && id === excludeId) continue
+    if (s.coachId !== coachId || s.status === 'CANCELLED') continue
+    const existStart = new Date(s.startDateTime).getTime()
+    const existEnd = new Date(s.endDateTime).getTime()
+    if (newStart < existEnd && newEnd > existStart) return true
+  }
+  return false
+}
+
+function newScheduleId(): string {
+  return `avl_${crypto.randomUUID().replace(/-/g, '')}`
+}
+
 function paginate<T>(items: T[], page: number, limit: number): PaginatedResponse<T> {
   const total = items.length
   const totalPages = Math.max(1, Math.ceil(total / limit))
@@ -264,6 +369,35 @@ function paginate<T>(items: T[], page: number, limit: number): PaginatedResponse
       hasNext: page < totalPages,
       hasPrev: page > 1,
     },
+  }
+}
+
+type GymListItem = Omit<Gym, 'gymId'> & {
+  id: string
+  active: 'True' | 'False'
+}
+
+function toGymListItem(gym: Gym): GymListItem {
+  return {
+    id: gym.gymId,
+    name: gym.name,
+    address: gym.address,
+    city: gym.city,
+    state: gym.state,
+    neighborhood: gym.neighborhood,
+    coordinates: gym.coordinates,
+    active: 'True',
+  }
+}
+
+function cursorPage<T extends { id: string }>(items: T[], page: number, limit: number) {
+  const start = (page - 1) * limit
+  const pageItems = items.slice(start, start + limit)
+  const hasNext = start + limit < items.length
+  const lastItem = pageItems.at(-1)
+  return {
+    items: pageItems,
+    nextCursor: hasNext && lastItem ? btoa(JSON.stringify({ gymId: lastItem.id })) : null,
   }
 }
 
@@ -291,6 +425,31 @@ function normalizeText(value: string): string {
     .toLowerCase()
 }
 
+function computeNextAvailability(coachId: string): string {
+  const now = Date.now()
+  const upcoming = [...state.schedules.values()]
+    .filter(
+      (s) =>
+        s.coachId === coachId &&
+        (s.status === 'AVAILABLE' || s.status === 'REQUESTED') &&
+        new Date(s.startDateTime).getTime() > now,
+    )
+    .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime())
+  if (upcoming.length === 0) return ''
+  const nextDt = new Date(upcoming[0].startDateTime)
+  const today = new Date()
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const todayStr = `${String(today.getFullYear())}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const tomorrowStr = `${String(tomorrow.getFullYear())}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`
+  const slotDateStr = upcoming[0].startDateTime.slice(0, 10)
+  const timeStr = nextDt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  if (slotDateStr === todayStr) return `Hoje \u00e0s ${timeStr}`
+  if (slotDateStr === tomorrowStr) return `Amanh\u00e3 \u00e0s ${timeStr}`
+  const weekday = nextDt.toLocaleDateString('pt-BR', { weekday: 'long' })
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} \u00e0s ${timeStr}`
+}
+
 function getArrayParam(url: URL, key: string): string[] {
   return [...url.searchParams.getAll(key), ...url.searchParams.getAll(key.replace('[]', ''))]
     .flatMap((value) => value.split(','))
@@ -311,12 +470,12 @@ function nowIso(): string {
 }
 
 export const handlers = [
-  http.get('*/clients/me', async () => {
+  http.get('*/student/me', async () => {
     await wait(150)
     return HttpResponse.json<Client>(state.client)
   }),
 
-  http.post('*/clients/me/health', async ({ request }) => {
+  http.post('*/student/me/health', async ({ request }) => {
     await wait(200)
     const payload = (await request.json()) as ClientHealthPayload
     if (!payload.lgpdConsent || !payload.medicalDisclaimer) {
@@ -326,19 +485,19 @@ export const handlers = [
     return HttpResponse.json<Client>(client)
   }),
 
-  http.post('*/clients/me/profile', async ({ request }) => {
+  http.post('*/student/me/profile', async ({ request }) => {
     await wait(200)
     void ((await request.json()) as ClientProfilePayload)
     const client = setClient({ ...state.client, status: 'ONBOARDING_HEALTH', updatedAt: nowIso() })
     return HttpResponse.json<Client>(client)
   }),
 
-  http.get('*/coaches/me', async () => {
+  http.get('*/coach/me', async () => {
     await wait(200)
     return HttpResponse.json<Coach>(state.coach)
   }),
 
-  http.get('*/coaches', async ({ request }) => {
+  http.get('*/student/coaches', async ({ request }) => {
     await wait(180)
     const url = new URL(request.url)
     const query = url.searchParams.get('q')
@@ -368,7 +527,14 @@ export const handlers = [
         normalizeText(`${coach.neighborhood} ${coach.city}`).includes(normalizeText(address))
       const matchesMin = !priceMin || coach.priceFrom >= Number(priceMin)
       const matchesMax = !priceMax || coach.priceFrom <= Number(priceMax)
-      const matchesAvailability = !availableOn || coach.nextAvailability.length > 0
+      const matchesAvailability =
+        !availableOn ||
+        [...state.schedules.values()].some(
+          (s) =>
+            s.coachId === coach.coachId &&
+            (s.status === 'AVAILABLE' || s.status === 'REQUESTED') &&
+            s.startDateTime.slice(0, 10) === availableOn,
+        )
       return (
         matchesQuery &&
         matchesSpecialty &&
@@ -379,14 +545,21 @@ export const handlers = [
       )
     })
 
-    return HttpResponse.json(paginate(sortCoachResults(filtered, sort), page, limit))
+    const withAvailability = filtered.map((coach) => ({
+      ...coach,
+      nextAvailability: computeNextAvailability(coach.coachId),
+    }))
+
+    return HttpResponse.json(paginate(sortCoachResults(withAvailability, sort), page, limit))
   }),
 
-  http.put('*/coaches/me', async ({ request }) => {
+  http.put('*/coach/me', async ({ request }) => {
     await wait(300)
     const payload = (await request.json()) as CoachUpdatePayload
     const coach = setCoach({
       ...state.coach,
+      // O coach já nasce ativo na plataforma; completar o perfil mantém o status APPROVED.
+      status: 'APPROVED',
       profile: { ...state.coach.profile, ...(payload.profile ?? {}) },
       work_location: payload.work_location ?? state.coach.work_location,
       updatedAt: nowIso(),
@@ -394,16 +567,7 @@ export const handlers = [
     return HttpResponse.json<Coach>(coach)
   }),
 
-  http.post('*/coaches/me/submit-for-review', async () => {
-    await wait(250)
-    if (state.coach.status !== 'ONBOARDING_PROFILE' && state.coach.status !== 'REJECTED') {
-      return HttpResponse.json({ error: 'Estado atual não permite submissão.' }, { status: 409 })
-    }
-    const coach = setCoach({ ...state.coach, status: 'PENDING_REVIEW', updatedAt: nowIso() })
-    return HttpResponse.json<Coach>(coach)
-  }),
-
-  http.get('*/specialties', async ({ request }) => {
+  http.get('*/coach/specialties', async ({ request }) => {
     await wait(150)
     const url = new URL(request.url)
     const search = url.searchParams.get('search')
@@ -415,7 +579,7 @@ export const handlers = [
     return HttpResponse.json(paginate(filtered, page, limit))
   }),
 
-  http.get('*/gyms', async ({ request }) => {
+  http.get('*/coach/gyms', async ({ request }) => {
     await wait(150)
     const url = new URL(request.url)
     const search = url.searchParams.get('search')
@@ -429,10 +593,10 @@ export const handlers = [
           matchesSearch(g.neighborhood, search)) &&
         matchesExact(g.city, city),
     )
-    return HttpResponse.json(paginate(filtered, page, limit))
+    return HttpResponse.json(cursorPage(filtered.map(toGymListItem), page, limit))
   }),
 
-  http.post('*/gyms/suggest', async ({ request }) => {
+  http.post('*/coach/gyms/suggest', async ({ request }) => {
     await wait(250)
     const payload = (await request.json()) as GymSuggestPayload
     const newGym: Gym = {
@@ -453,7 +617,59 @@ export const handlers = [
     )
   }),
 
-  http.post('*/upload-url', async ({ request }) => {
+  // ── Student — Recursos ─────────────────────────────────────────────────────
+
+  http.get('*/student/specialties', async ({ request }) => {
+    await wait(150)
+    const url = new URL(request.url)
+    const search = url.searchParams.get('search')
+    const page = getNumberParam(url, 'page', 1)
+    const limit = getNumberParam(url, 'limit', 20)
+    const filtered = specialties.filter(
+      (s: Specialty) => matchesSearch(s.label, search) || matchesSearch(s.id, search),
+    )
+    return HttpResponse.json(paginate(filtered, page, limit))
+  }),
+
+  http.get('*/student/gyms', async ({ request }) => {
+    await wait(150)
+    const url = new URL(request.url)
+    const search = url.searchParams.get('search')
+    const city = url.searchParams.get('city')
+    const page = getNumberParam(url, 'page', 1)
+    const limit = getNumberParam(url, 'limit', 20)
+    const filtered = gyms.filter(
+      (g: Gym) =>
+        (matchesSearch(g.name, search) ||
+          matchesSearch(g.address, search) ||
+          matchesSearch(g.neighborhood, search)) &&
+        matchesExact(g.city, city),
+    )
+    return HttpResponse.json(paginate(filtered, page, limit))
+  }),
+
+  http.post('*/student/gyms/suggest', async ({ request }) => {
+    await wait(250)
+    const payload = (await request.json()) as GymSuggestPayload
+    const newGym: Gym = {
+      gymId: `gym_${Math.random().toString(16).slice(2, 10)}`,
+      name: payload.name,
+      address: payload.address,
+      city: payload.city,
+      state: payload.state.toUpperCase(),
+      neighborhood: payload.neighborhood,
+      coordinates: payload.coordinates,
+    }
+    return HttpResponse.json<GymSuggestResponse>(
+      {
+        data: newGym,
+        message: 'Sugestão registrada com sucesso. Aguardando aprovação.',
+      },
+      { status: 201 },
+    )
+  }),
+
+  http.post('*/coach/upload-url', async ({ request }) => {
     await wait(150)
     const body = (await request.json()) as { filename: string; contentType: string }
     const key = `uploads/${String(Date.now())}-${body.filename}`
@@ -556,10 +772,464 @@ export const handlers = [
 
   http.post('*/dev/reset', async () => {
     await wait(150)
+    resetSchedules()
     return HttpResponse.json<{ coach: Coach; client: Client }>({
       coach: resetCoach(),
       client: resetClient(),
     })
+  }),
+
+  // ── Coach — Agenda ─────────────────────────────────────────────────────────
+
+  http.get('*/coach/schedule', async ({ request }) => {
+    await wait(200)
+    let params: { startDateTime?: string; endDateTime?: string } = {}
+    try {
+      params = (await request.json()) as typeof params
+    } catch {
+      const url = new URL(request.url)
+      const startDateTime = url.searchParams.get('startDateTime')
+      const endDateTime = url.searchParams.get('endDateTime')
+      params = {
+        ...(startDateTime && { startDateTime }),
+        ...(endDateTime && { endDateTime }),
+      }
+    }
+    const result = [...state.schedules.values()].filter((s) => {
+      if (s.coachId !== state.coach.coachId) return false
+      if (params.startDateTime && s.startDateTime < params.startDateTime) return false
+      if (params.endDateTime && s.endDateTime > params.endDateTime) return false
+      return true
+    })
+    return HttpResponse.json<CoachScheduleResponse>({
+      coachId: state.coach.coachId,
+      startDateTime: params.startDateTime ?? '',
+      endDateTime: params.endDateTime ?? '',
+      count: result.length,
+      schedules: result,
+    })
+  }),
+
+  http.post('*/coach/schedule', async ({ request }) => {
+    await wait(300)
+    const payload = (await request.json()) as ScheduleCreatePayload
+    const missing = ['gymId', 'specialtyId', 'startDateTime', 'endDateTime', 'price'].filter(
+      (f) => !payload[f as keyof ScheduleCreatePayload],
+    )
+    if (missing.length > 0) {
+      return HttpResponse.json(
+        { errors: [`Campos obrigatórios ausentes: ${missing.join(', ')}.`] },
+        { status: 400 },
+      )
+    }
+    if (hasScheduleConflict(state.coach.coachId, payload.startDateTime, payload.endDateTime)) {
+      return HttpResponse.json(
+        { errors: ['Conflito de horário com uma disponibilidade existente.'] },
+        { status: 422 },
+      )
+    }
+    const now = nowIso()
+    const schedule: Schedule = {
+      scheduleId: newScheduleId(),
+      coachId: state.coach.coachId,
+      gymId: payload.gymId,
+      specialtyId: payload.specialtyId,
+      startDateTime: payload.startDateTime,
+      endDateTime: payload.endDateTime,
+      price: payload.price,
+      status: 'AVAILABLE',
+      studentId: null,
+      paymentStatus: null,
+      rating: null,
+      studentComment: null,
+      requests: null,
+      createdAt: now,
+      updatedAt: now,
+    }
+    state.schedules.set(schedule.scheduleId, schedule)
+    writeStoredSchedules(state.schedules)
+    return HttpResponse.json<Schedule>(schedule, { status: 201 })
+  }),
+
+  http.post('*/coach/schedule/cancel', async ({ request }) => {
+    await wait(300)
+    const { scheduleId } = (await request.json()) as { scheduleId: string }
+    const schedule = state.schedules.get(scheduleId)
+    if (!schedule) {
+      return HttpResponse.json({ errors: ['Schedule não encontrado.'] }, { status: 404 })
+    }
+    if (schedule.coachId !== state.coach.coachId) {
+      return HttpResponse.json({ errors: ['Sem permissão.'] }, { status: 403 })
+    }
+    const cancellable: ScheduleStatus[] = ['AVAILABLE', 'REQUESTED', 'BOOKED']
+    if (!cancellable.includes(schedule.status)) {
+      return HttpResponse.json(
+        { errors: [`Não é possível cancelar um schedule com status ${schedule.status}.`] },
+        { status: 422 },
+      )
+    }
+    const now = nowIso()
+    state.schedules.set(scheduleId, { ...schedule, status: 'CANCELLED', updatedAt: now })
+    writeStoredSchedules(state.schedules)
+    const notifiedStudents =
+      schedule.status === 'BOOKED'
+        ? 1
+        : (schedule.requests?.filter((r) => r.status === 'REQUESTED').length ?? 0)
+    return HttpResponse.json<ScheduleCancelResult>({
+      message: 'Schedule cancelled successfully.',
+      scheduleId,
+      status: 'CANCELLED',
+      notifiedStudents,
+      cancelledAt: now,
+    })
+  }),
+
+  http.get('*/coach/schedule/requests', async ({ request }) => {
+    await wait(200)
+    let body: { scheduleId?: string } = {}
+    try {
+      body = (await request.json()) as typeof body
+    } catch {
+      const url = new URL(request.url)
+      const scheduleId = url.searchParams.get('scheduleId')
+      body = {
+        ...(scheduleId && { scheduleId }),
+      }
+    }
+    if (!body.scheduleId) {
+      return HttpResponse.json({ errors: ['scheduleId obrigatório.'] }, { status: 400 })
+    }
+    const schedule = state.schedules.get(body.scheduleId)
+    if (!schedule) {
+      return HttpResponse.json({ errors: ['Schedule não encontrado.'] }, { status: 404 })
+    }
+    if (schedule.coachId !== state.coach.coachId) {
+      return HttpResponse.json({ errors: ['Sem permissão.'] }, { status: 403 })
+    }
+    const requests = schedule.requests ?? []
+    return HttpResponse.json<ScheduleRequestsResponse>({
+      scheduleId: schedule.scheduleId,
+      startDateTime: schedule.startDateTime,
+      endDateTime: schedule.endDateTime,
+      status: schedule.status,
+      count: requests.length,
+      requests,
+    })
+  }),
+
+  http.post('*/coach/schedule/approve', async ({ request }) => {
+    await wait(400)
+    const { scheduleId, studentId } = (await request.json()) as {
+      scheduleId: string
+      studentId: string
+    }
+    const schedule = state.schedules.get(scheduleId)
+    if (!schedule) {
+      return HttpResponse.json({ errors: ['Schedule não encontrado.'] }, { status: 404 })
+    }
+    if (schedule.coachId !== state.coach.coachId) {
+      return HttpResponse.json({ errors: ['Sem permissão.'] }, { status: 403 })
+    }
+    if (!schedule.requests?.some((r) => r.studentId === studentId)) {
+      return HttpResponse.json({ errors: ['Solicitação não encontrada.'] }, { status: 422 })
+    }
+    const now = nowIso()
+    const updatedRequests: ScheduleRequest[] = schedule.requests.map((r) => ({
+      ...r,
+      status: r.studentId === studentId ? 'APPROVED' : 'REJECTED',
+      alteredAt: now,
+    }))
+    state.schedules.set(scheduleId, {
+      ...schedule,
+      status: 'BOOKED',
+      studentId,
+      requests: updatedRequests,
+      updatedAt: now,
+    })
+    writeStoredSchedules(state.schedules)
+    return HttpResponse.json<ScheduleApproveResult>({
+      message: 'Schedule approved successfully.',
+      scheduleId,
+      studentId,
+      status: 'BOOKED',
+      updatedAt: now,
+    })
+  }),
+
+  http.post('*/coach/schedule/class/status', async ({ request }) => {
+    await wait(300)
+    const { scheduleId, status } = (await request.json()) as {
+      scheduleId: string
+      status: string
+    }
+    const schedule = state.schedules.get(scheduleId)
+    if (!schedule) {
+      return HttpResponse.json({ errors: ['Schedule não encontrado.'] }, { status: 404 })
+    }
+    if (schedule.coachId !== state.coach.coachId) {
+      return HttpResponse.json({ errors: ['Sem permissão.'] }, { status: 403 })
+    }
+    if (schedule.status !== 'BOOKED') {
+      return HttpResponse.json(
+        {
+          errors: [
+            `Só é possível atualizar status de um schedule BOOKED. Status atual: ${schedule.status}`,
+          ],
+        },
+        { status: 422 },
+      )
+    }
+    if (status !== 'COMPLETED' && status !== 'NOSHOW') {
+      return HttpResponse.json(
+        { errors: ['Status inválido. Use COMPLETED ou NOSHOW.'] },
+        { status: 422 },
+      )
+    }
+    const now = nowIso()
+    state.schedules.set(scheduleId, {
+      ...schedule,
+      status,
+      paymentStatus: 'PENDING',
+      updatedAt: now,
+    })
+    writeStoredSchedules(state.schedules)
+    return HttpResponse.json<ClassStatusResult>({
+      message: `Schedule updated to '${status}' successfully.`,
+      scheduleId,
+      status,
+      paymentStatus: 'PENDING',
+      updatedAt: now,
+    })
+  }),
+
+  // ── Student — Agenda ───────────────────────────────────────────────────────
+
+  http.get('*/student/coach/schedules', async ({ request }) => {
+    await wait(200)
+    let params: { coachId?: string; startDateTime?: string; endDateTime?: string } = {}
+    try {
+      params = (await request.json()) as typeof params
+    } catch {
+      const url = new URL(request.url)
+      const coachId = url.searchParams.get('coachId')
+      const startDateTime = url.searchParams.get('startDateTime')
+      const endDateTime = url.searchParams.get('endDateTime')
+      params = {
+        ...(coachId && { coachId }),
+        ...(startDateTime && { startDateTime }),
+        ...(endDateTime && { endDateTime }),
+      }
+    }
+    const result = [...state.schedules.values()].filter((schedule) => {
+      if (params.coachId && schedule.coachId !== params.coachId) return false
+      if (params.startDateTime && schedule.startDateTime < params.startDateTime) return false
+      if (params.endDateTime && schedule.endDateTime > params.endDateTime) return false
+      return ['AVAILABLE', 'REQUESTED'].includes(schedule.status)
+    })
+    return HttpResponse.json<Schedule[]>(result)
+  }),
+
+  http.get('*/student/coach/schedules/request', async () => {
+    await wait(200)
+    const schedules: StudentScheduleItem[] = [...state.schedules.values()]
+      .flatMap((schedule) => {
+        const ownRequest =
+          schedule.requests?.find((request) => request.studentId === state.client.clientId) ?? null
+        const bookedForStudent = schedule.studentId === state.client.clientId
+        if (!ownRequest && !bookedForStudent) return []
+
+        const item: StudentScheduleItem = {
+          scheduleId: schedule.scheduleId,
+          coachId: schedule.coachId,
+          gymId: schedule.gymId,
+          specialtyId: schedule.specialtyId,
+          price: schedule.price,
+          startDateTime: schedule.startDateTime,
+          endDateTime: schedule.endDateTime,
+          scheduleStatus: schedule.status,
+          paymentStatus: schedule.paymentStatus,
+          request: ownRequest,
+        }
+        return [item]
+      })
+      .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime())
+
+    return HttpResponse.json<StudentSchedulesResponse>({
+      studentId: state.client.clientId,
+      count: schedules.length,
+      schedules,
+    })
+  }),
+
+  http.post('*/student/coach/schedules/request', async ({ request }) => {
+    await wait(300)
+    const { scheduleId } = (await request.json()) as { scheduleId?: string }
+    if (!scheduleId) {
+      return HttpResponse.json({ errors: ['scheduleId obrigatório.'] }, { status: 400 })
+    }
+    const schedule = state.schedules.get(scheduleId)
+    if (!schedule) {
+      return HttpResponse.json({ errors: ['Schedule não encontrado.'] }, { status: 404 })
+    }
+    if (schedule.status !== 'AVAILABLE' && schedule.status !== 'REQUESTED') {
+      return HttpResponse.json(
+        { errors: [`Não é possível solicitar um schedule com status ${schedule.status}.`] },
+        { status: 422 },
+      )
+    }
+    const requestedAt = nowIso()
+    const requestEntry: ScheduleRequest = {
+      studentId: state.client.clientId,
+      status: 'REQUESTED',
+      requestedAt,
+      alteredAt: null,
+      studentName: 'Derik Oliveira',
+    }
+    const existingRequests = schedule.requests ?? []
+    if (existingRequests.some((item) => item.studentId === state.client.clientId)) {
+      return HttpResponse.json({ errors: ['Você já solicitou este horário.'] }, { status: 422 })
+    }
+    state.schedules.set(scheduleId, {
+      ...schedule,
+      status: 'REQUESTED',
+      requests: [...existingRequests, requestEntry],
+      updatedAt: requestedAt,
+    })
+    writeStoredSchedules(state.schedules)
+    return HttpResponse.json<ScheduleRequestResult>({
+      message: 'Schedule request submitted successfully.',
+      scheduleId,
+      studentId: state.client.clientId,
+      status: 'REQUESTED',
+      requestedAt,
+    })
+  }),
+
+  http.delete('*/student/coach/schedules/request', async ({ request }) => {
+    await wait(300)
+    let body: { scheduleId?: string } = {}
+    try {
+      body = (await request.json()) as typeof body
+    } catch {
+      const url = new URL(request.url)
+      const scheduleId = url.searchParams.get('scheduleId')
+      if (scheduleId) body = { scheduleId }
+    }
+    if (!body.scheduleId) {
+      return HttpResponse.json({ errors: ['scheduleId obrigatório.'] }, { status: 400 })
+    }
+    const schedule = state.schedules.get(body.scheduleId)
+    if (!schedule) {
+      return HttpResponse.json({ errors: ['Schedule não encontrado.'] }, { status: 404 })
+    }
+    const existingRequests = schedule.requests ?? []
+    const ownRequest = existingRequests.find((r) => r.studentId === state.client.clientId)
+    if (!ownRequest) {
+      return HttpResponse.json({ errors: ['Solicitação não encontrada.'] }, { status: 404 })
+    }
+    if (ownRequest.status !== 'REQUESTED') {
+      return HttpResponse.json(
+        { errors: ['Só é possível cancelar uma solicitação com status REQUESTED.'] },
+        { status: 422 },
+      )
+    }
+    const cancelledAt = nowIso()
+    const updatedRequests = existingRequests.filter((r) => r.studentId !== state.client.clientId)
+    const stillRequested = updatedRequests.some((r) => r.status === 'REQUESTED')
+    const newStatus: ScheduleStatus = stillRequested ? 'REQUESTED' : 'AVAILABLE'
+    state.schedules.set(body.scheduleId, {
+      ...schedule,
+      status: newStatus,
+      requests: updatedRequests.length > 0 ? updatedRequests : null,
+      updatedAt: cancelledAt,
+    })
+    writeStoredSchedules(state.schedules)
+    return HttpResponse.json<CancelRequestResult>({
+      message: 'Request cancelled successfully.',
+      scheduleId: body.scheduleId,
+      studentId: state.client.clientId,
+      scheduleStatus: newStatus,
+      cancelledAt,
+    })
+  }),
+
+  http.post('*/student/coach/schedules/cancel', async ({ request }) => {
+    await wait(300)
+    const { scheduleId } = (await request.json()) as { scheduleId?: string }
+    if (!scheduleId) {
+      return HttpResponse.json({ errors: ['scheduleId obrigatório.'] }, { status: 400 })
+    }
+    const schedule = state.schedules.get(scheduleId)
+    if (!schedule) {
+      return HttpResponse.json({ errors: ['Schedule não encontrado.'] }, { status: 404 })
+    }
+    if (schedule.studentId !== state.client.clientId) {
+      return HttpResponse.json({ errors: ['Sem permissão.'] }, { status: 403 })
+    }
+    if (schedule.status !== 'BOOKED') {
+      return HttpResponse.json(
+        {
+          errors: [
+            `Só é possível cancelar um agendamento confirmado (BOOKED). Status atual: ${schedule.status}`,
+          ],
+        },
+        { status: 422 },
+      )
+    }
+    const cancelledAt = nowIso()
+    state.schedules.set(scheduleId, { ...schedule, status: 'CANCELLED', updatedAt: cancelledAt })
+    writeStoredSchedules(state.schedules)
+    return HttpResponse.json<ScheduleCancelResult>({
+      message: 'Schedule cancelled successfully.',
+      scheduleId,
+      status: 'CANCELLED',
+      cancelledAt,
+    })
+  }),
+
+  http.get('*/student/gyms/schedule', async ({ request }) => {
+    await wait(200)
+    let params: { gymId?: string; startDateTime?: string; endDateTime?: string } = {}
+    try {
+      params = (await request.json()) as typeof params
+    } catch {
+      const url = new URL(request.url)
+      const gymId = url.searchParams.get('gymId')
+      const startDateTime = url.searchParams.get('startDateTime')
+      const endDateTime = url.searchParams.get('endDateTime')
+      params = {
+        ...(gymId ? { gymId } : {}),
+        ...(startDateTime ? { startDateTime } : {}),
+        ...(endDateTime ? { endDateTime } : {}),
+      }
+    }
+    if (!params.gymId) {
+      return HttpResponse.json({ errors: ['gymId obrigatório.'] }, { status: 400 })
+    }
+    const schedules = [...state.schedules.values()].filter((s) => {
+      if (s.gymId !== params.gymId) return false
+      if (!['AVAILABLE', 'REQUESTED'].includes(s.status)) return false
+      if (params.startDateTime && s.startDateTime < params.startDateTime) return false
+      if (params.endDateTime && s.endDateTime > params.endDateTime) return false
+      return true
+    })
+    return HttpResponse.json({
+      gymId: params.gymId,
+      startDateTime: params.startDateTime ?? '',
+      endDateTime: params.endDateTime ?? '',
+      count: schedules.length,
+      schedules,
+    })
+  }),
+
+  http.get('*/coaches/:coachId', async ({ params }) => {
+    await wait(180)
+    const coachId = String(params['coachId'])
+    const coach = coachDetailFixtures[coachId]
+    if (!coach) {
+      return HttpResponse.json({ errors: ['Treinador não encontrado.'] }, { status: 404 })
+    }
+    return HttpResponse.json<CoachDetail>(coach)
   }),
 
   http.post('*/dev/approve-coach', async () => {
@@ -576,20 +1246,21 @@ export const handlers = [
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     const transactionId = `txn_${Date.now()}`
 
-    let status: 'approved' | 'refused' | 'pending' = 'approved'
-    if (payload.method === 'credit_card' && payload.card) {
+    let status: 'approved' | 'refused' = 'approved'
+    let cardLastFour: string | null = null
+    if (payload.method === 'credit_card' && 'card' in payload) {
       const cardNumber = payload.card.number.replace(/\s/g, '')
       if (cardNumber === '4222222222222222') status = 'refused'
-      else if (cardNumber === '4333333333333333') status = 'pending'
+      cardLastFour = cardNumber.slice(-4)
     }
 
-    const split =
+    const split: { platform: number; coach: number } | null =
       status !== 'refused'
         ? {
-            platformFee: Math.floor(payload.amount * 0.1),
-            coachAmount: Math.floor(payload.amount * 0.9),
+            platform: Math.floor(payload.amount * 0.1),
+            coach: Math.floor(payload.amount * 0.9),
           }
-        : undefined
+        : null
 
     const transaction: Transaction = {
       transactionId,
@@ -599,8 +1270,8 @@ export const handlers = [
       method: payload.method,
       amount: payload.amount,
       status,
-      ...(payload.card && { cardLastFour: payload.card.number.slice(-4) }),
-      ...(split && { split }),
+      cardLastFour,
+      split,
       createdAt: new Date().toISOString(),
     }
 
@@ -642,14 +1313,11 @@ export const handlers = [
       studentId: transaction.studentId,
       method: transaction.method,
       amount: -transaction.amount,
-      status: 'approved',
-      ...(transaction.cardLastFour !== undefined && { cardLastFour: transaction.cardLastFour }),
-      ...(transaction.split && {
-        split: {
-          platformFee: -transaction.split.platformFee,
-          coachAmount: -transaction.split.coachAmount,
-        },
-      }),
+      status: 'refunded',
+      cardLastFour: transaction.cardLastFour ?? null,
+      split: transaction.split
+        ? { platform: -transaction.split.platform, coach: -transaction.split.coach }
+        : null,
       createdAt: new Date().toISOString(),
     }
 

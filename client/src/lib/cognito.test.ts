@@ -4,7 +4,16 @@ import { exchangeCodeForTokens, getLoginUrl, getLogoutUrl, logout } from './cogn
 import { server } from '@/mocks/server'
 import { getToken } from '@/lib/auth'
 import { loginAs } from '@/test/session'
-import { getSessionToken, useSessionStore } from '@/stores/sessionStore'
+import { SESSION_STORAGE_KEY } from '@/stores/sessionStore'
+
+function persistedSessions(): Record<string, { token: string }> {
+  const raw = sessionStorage.getItem(SESSION_STORAGE_KEY)
+  if (!raw) return {}
+  return (
+    (JSON.parse(raw) as { state?: { sessions?: Record<string, { token: string }> } }).state
+      ?.sessions ?? {}
+  )
+}
 
 function mockLocation(overrides: Partial<Location>): Location {
   const base = {
@@ -67,10 +76,13 @@ describe('getLogoutUrl', () => {
 })
 
 describe('logout', () => {
-  it('limpa sessão do papel e redireciona para URL de logout do Cognito', () => {
+  it('limpa a sessão persistida do papel e redireciona para o /logout do Cognito', () => {
     loginAs('coach', 'abc')
     logout('coach', '/bye')
-    expect(getToken()).toBeNull()
+    // O store em memória é preservado de propósito: a navegação para o Cognito
+    // recarrega a página e o store re-hidrata do storage já sem a sessão. Mutar
+    // o store aqui dispararia os guards reativos e uma corrida com o /authorize.
+    expect(persistedSessions()).not.toHaveProperty('coach')
     expect(window.location.href).toContain('/logout')
     expect(window.location.href).toContain('logout_uri=http%3A%2F%2Fapp.test%2Fbye')
   })
@@ -79,11 +91,10 @@ describe('logout', () => {
     loginAs('client', 'aluno-token')
     loginAs('coach', 'coach-token')
     logout('coach', '/bye')
-    // sessão do aluno permanece disponível para reativação
-    expect(getToken()).toBeNull()
-    expect(getSessionToken('client')).toBe('aluno-token')
-    useSessionStore.getState().setActiveRole('client')
-    expect(getToken()).toBe('aluno-token')
+    const sessions = persistedSessions()
+    expect(sessions).not.toHaveProperty('coach')
+    // sessão do aluno permanece persistida para reativação após o reload
+    expect(sessions.client?.token).toBe('aluno-token')
   })
 
   it('em mock mode, redireciona pro returnPath sem chamar o Cognito', () => {
