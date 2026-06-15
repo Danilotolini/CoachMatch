@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { maskCref } from '@/lib/cref'
 import type { CoachProfile, CoachUpdatePayload, Gym, WorkLocation } from '@/types/api'
 
 export interface SelectedGym {
@@ -9,13 +10,6 @@ export interface SelectedGym {
   neighborhood: string
 }
 
-export interface HomeArea {
-  id: string
-  state: string
-  city: string
-  neighborhoods: string[]
-}
-
 export interface OnboardingFormState {
   name: string
   phone: string
@@ -23,11 +17,10 @@ export interface OnboardingFormState {
   cref: string
   specialties: string[]
   gyms: SelectedGym[]
-  homeAreas: HomeArea[]
   videoKey: string | null
 }
 
-type FormErrorKey = keyof OnboardingFormState | 'workLocation'
+type FormErrorKey = keyof OnboardingFormState
 type FormErrors = Partial<Record<FormErrorKey, string>>
 
 interface OnboardingStore {
@@ -46,8 +39,6 @@ interface OnboardingStore {
   addGym: (gym: Gym) => void
   removeGym: (gymId: string) => void
   setGymError: (message: string) => void
-  addHomeArea: (area: Omit<HomeArea, 'id'>) => void
-  removeHomeArea: (id: string) => void
   setVideoKey: (key: string | null) => void
   validate: () => boolean
   reset: () => void
@@ -60,7 +51,6 @@ const initialForm: OnboardingFormState = {
   cref: '',
   specialties: [],
   gyms: [],
-  homeAreas: [],
   videoKey: null,
 }
 
@@ -84,39 +74,6 @@ function maskInstagram(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9._]/g, '')
     .slice(0, 30)
-}
-
-function formatCref(normalized: string): string {
-  let digits = ''
-  let category = ''
-  let state = ''
-  for (const ch of normalized) {
-    if (digits.length < 6 && ch >= '0' && ch <= '9') digits += ch
-    else if (!category && (ch === 'G' || ch === 'P')) category = ch
-    else if (category && state.length < 2 && ch >= 'A' && ch <= 'Z') state += ch
-  }
-  let result = digits
-  if (category) result += `-${category}`
-  if (state) result += `/${state}`
-  return result
-}
-
-function maskCref(value: string, previous: string): string {
-  let normalized = value.toUpperCase().replace(/[^0-9A-Z]/g, '')
-  const previousClean = previous.replace(/[^0-9A-Z]/g, '')
-
-  // Se só um separador foi apagado, remove também o caractere de conteúdo anterior
-  // a ele — caso contrário o formatador re-inseriria o separador.
-  if (value.length < previous.length && normalized === previousClean) {
-    let i = 0
-    while (i < value.length && value[i] === previous[i]) i++
-    const cleanIdx = previous.slice(0, i).replace(/[^0-9A-Z]/g, '').length - 1
-    if (cleanIdx >= 0) {
-      normalized = normalized.slice(0, cleanIdx) + normalized.slice(cleanIdx + 1)
-    }
-  }
-
-  return formatCref(normalized)
 }
 
 function validateForm(form: OnboardingFormState): FormErrors {
@@ -161,19 +118,10 @@ function clearError(errors: FormErrors, key: FormErrorKey): FormErrors {
 }
 
 function buildWorkLocation(form: OnboardingFormState): WorkLocation[] {
-  const gymEntries: WorkLocation[] = form.gyms.map((gym) => ({
+  return form.gyms.map((gym) => ({
     type: 'GYM',
     gymId: gym.id,
   }))
-  const homeEntries: WorkLocation[] = form.homeAreas.map((area) => ({
-    type: 'HOME_SERVICE',
-    coverage: {
-      city: area.city,
-      state: area.state,
-      neighborhoods: area.neighborhoods,
-    },
-  }))
-  return [...gymEntries, ...homeEntries]
 }
 
 export function buildCoachUpdatePayload(form: OnboardingFormState): CoachUpdatePayload {
@@ -248,7 +196,7 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       return {
         form: { ...state.form, gyms: [...state.form.gyms, next] },
         gymSearch: '',
-        errors: clearError(clearError(state.errors, 'gyms'), 'workLocation'),
+        errors: clearError(state.errors, 'gyms'),
       }
     })
   },
@@ -263,26 +211,6 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   },
   setGymError: (message) => {
     set((state) => ({ errors: { ...state.errors, gyms: message } }))
-  },
-  addHomeArea: (area) => {
-    set((state) => {
-      const id =
-        typeof crypto !== 'undefined' && 'randomUUID' in crypto
-          ? crypto.randomUUID()
-          : `area-${String(Date.now())}-${String(Math.random()).slice(2, 8)}`
-      const next: HomeArea = { id, ...area }
-      return {
-        form: { ...state.form, homeAreas: [...state.form.homeAreas, next] },
-      }
-    })
-  },
-  removeHomeArea: (id) => {
-    set((state) => ({
-      form: {
-        ...state.form,
-        homeAreas: state.form.homeAreas.filter((area) => area.id !== id),
-      },
-    }))
   },
   setVideoKey: (key) => {
     set((state) => ({
