@@ -2,7 +2,7 @@ export type CoachStatus = 'PENDING_PROFILE' | 'APPROVED'
 
 export type CoachVisibility = 'VISIBLE' | 'INVISIBLE'
 
-export type ClientStatus = 'ONBOARDING_PROFILE' | 'ONBOARDING_HEALTH' | 'ACTIVE'
+export type ClientStatus = 'PENDING_PROFILE' | 'ONBOARDING_HEALTH' | 'ACTIVE'
 
 export interface Coordinates {
   lat: number
@@ -131,6 +131,7 @@ export interface Client {
 }
 
 export interface ClientProfilePayload {
+  name: string
   phone: string
   birthDate: string
   gender: ClientGender
@@ -160,7 +161,7 @@ export interface Gym {
   city: string
   state: string
   neighborhood: string
-  coordinates: Coordinates
+  coordinates: Coordinates | null
 }
 
 export interface GymSuggestPayload {
@@ -169,11 +170,11 @@ export interface GymSuggestPayload {
   city: string
   state: string
   neighborhood: string
-  coordinates: Coordinates
+  coordinates: null
 }
 
 export interface GymSuggestResponse {
-  data: Gym
+  data?: Gym | undefined
   message: string
 }
 
@@ -217,8 +218,8 @@ export interface ScheduleRequest {
   studentId: string
   status: RequestStatus
   requestedAt: string
-  alteredAt: string | null
-  studentName: string | null
+  alteredAt?: string | null
+  studentName?: string | null
 }
 
 export interface Schedule {
@@ -253,6 +254,25 @@ export interface CoachScheduleResponse {
   endDateTime: string
   count: number
   schedules: Schedule[]
+}
+
+export interface CoachScheduleSlot {
+  scheduleId: string
+  coachId: string
+  gymId: string
+  specialtyId: string
+  startDateTime: string
+  endDateTime: string
+  price: string
+  status: ScheduleStatus
+}
+
+export interface StudentCoachSchedulesResponse {
+  coachId: string
+  startDateTime: string
+  endDateTime: string
+  count: number
+  schedules: CoachScheduleSlot[]
 }
 
 export interface ScheduleRequestsResponse {

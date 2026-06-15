@@ -8,9 +8,16 @@ import { useSessionStore } from '@/stores/sessionStore'
 import type { ClientStatus } from '@/types/api'
 
 const STATUS_ROUTE: Record<ClientStatus, string> = {
-  ONBOARDING_PROFILE: '/client/onboarding',
+  PENDING_PROFILE: '/client/onboarding',
   ONBOARDING_HEALTH: '/client/health',
   ACTIVE: '/client',
+}
+
+function routeForStatus(status: unknown): string {
+  if (typeof status === 'string' && status in STATUS_ROUTE) {
+    return STATUS_ROUTE[status as ClientStatus]
+  }
+  return STATUS_ROUTE.PENDING_PROFILE
 }
 
 interface ClientRouteGuardProps {
@@ -74,7 +81,7 @@ export function ClientRouteGuard({ children, requireOnboarded = false }: ClientR
   }
 
   if (data) {
-    const expectedPath = STATUS_ROUTE[data.status]
+    const expectedPath = routeForStatus(data.status)
     if (requireOnboarded && data.status !== 'ACTIVE') {
       return <Navigate to={expectedPath} replace />
     }

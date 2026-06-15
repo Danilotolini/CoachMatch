@@ -5,7 +5,7 @@ import { NotFoundException, ConflictException } from '../../shared/exceptions.js
 /**
  * Handler HTTP: POST /coaches/me/submit-for-review
  *
- * Transiciona o coach de ONBOARDING_PROFILE (ou REJECTED) para PENDING_REVIEW.
+ * Transiciona o coach de PENDING_PROFILE (ou REJECTED) para PENDING_REVIEW.
  * Retorna o perfil atualizado no shape `Coach` esperado pelo front-end.
  *
  * Front-end chama via `submitCoachForReview()` em client/src/api/coaches.ts.

@@ -62,7 +62,7 @@ describe('gyms API', () => {
         state: 'SP',
       },
     ])
-    expect(result.pagination.hasNext).toBe(true)
+    expect(result.nextCursor).toBe('cursor-1')
   })
 
   it('não aceita o envelope antigo com data/gymId', async () => {

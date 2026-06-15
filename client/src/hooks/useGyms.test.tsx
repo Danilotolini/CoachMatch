@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { useGyms } from './useGyms'
+import { useGyms, useGymSearch, useSuggestGym } from './useGyms'
 import { createWrapper } from '@/test/createWrapper'
 import { clearAllSessions, loginAs } from '@/test/session'
 
@@ -28,9 +28,9 @@ describe('useGyms', () => {
     expect(result.current.fetchStatus).toBe('idle')
   })
 
-  it('filtra por busca de nome', async () => {
+  it('filtra por busca de nome (useGymSearch)', async () => {
     const { wrapper } = createWrapper()
-    const { result } = renderHook(() => useGyms('smart'), { wrapper })
+    const { result } = renderHook(() => useGymSearch('smart'), { wrapper })
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true)
@@ -43,12 +43,39 @@ describe('useGyms', () => {
 
   it('filtra por cidade exata', async () => {
     const { wrapper } = createWrapper()
-    const { result } = renderHook(() => useGyms(undefined, 'São Paulo'), { wrapper })
+    const { result } = renderHook(() => useGyms('São Paulo'), { wrapper })
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true)
     })
 
     expect(result.current.data?.data.every((g) => g.city === 'São Paulo')).toBe(true)
+  })
+})
+
+describe('useSuggestGym', () => {
+  const input = {
+    name: 'Academia Nova',
+    address: 'Av. Paulista, 1000',
+    city: 'São Paulo',
+    state: 'sp',
+    neighborhood: 'Bela Vista',
+  }
+
+  it('envia a sugestão e retorna a academia criada com coordenadas nulas', async () => {
+    const { wrapper } = createWrapper()
+    const { result } = renderHook(() => useSuggestGym(), { wrapper })
+
+    result.current.mutate(input)
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true)
+    })
+
+    expect(result.current.data?.data).toMatchObject({
+      name: 'Academia Nova',
+      state: 'SP',
+      coordinates: null,
+    })
   })
 })

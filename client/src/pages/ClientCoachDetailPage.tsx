@@ -10,7 +10,7 @@ import { Icon } from '@/components/ui/Icon'
 import { getStudentCoachSchedules, requestStudentSchedule } from '@/api/schedule'
 import { useCoachDetail } from '@/hooks/useCoachDetail'
 import { parseApiErrors } from '@/lib/http'
-import type { Schedule } from '@/types/api'
+import type { CoachScheduleSlot } from '@/types/api'
 
 const dayFormatter = new Intl.DateTimeFormat('pt-BR', {
   weekday: 'short',
@@ -32,7 +32,7 @@ function formatMoney(value: number | string): string {
   }).format(amount)
 }
 
-function formatSlot(schedule: Schedule): string {
+function formatSlot(schedule: CoachScheduleSlot): string {
   const start = new Date(schedule.startDateTime)
   const end = new Date(schedule.endDateTime)
   return `${dayFormatter.format(start)}, ${timeFormatter.format(start)}-${timeFormatter.format(end)}`

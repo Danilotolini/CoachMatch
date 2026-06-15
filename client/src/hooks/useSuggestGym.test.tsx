@@ -12,7 +12,7 @@ const payload = {
   city: 'São Paulo',
   state: 'sp',
   neighborhood: 'Bela Vista',
-  coordinates: { lat: -23.56, lng: -46.65 },
+  coordinates: null,
 }
 
 beforeEach(() => {
@@ -32,6 +32,7 @@ describe('useSuggestGym', () => {
     expect(response?.data.name).toBe('Studio Z')
     expect(response?.data.state).toBe('SP') // handler faz uppercase
     expect(response?.data.gymId).toMatch(/^gym_/)
+    expect(response?.data.coordinates).toBeNull()
   })
 
   it('invalida a query de gyms ao concluir com sucesso', async () => {

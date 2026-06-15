@@ -20,7 +20,7 @@ export const insertGym = async (gym) => {
         city:         gym.city,
         state:        gym.state,
         neighborhood: gym.neighborhood,
-        coordinates:  { lat: gym.coordinates.lat, lng: gym.coordinates.lng },
+        coordinates:  null,
       },
     })
   );

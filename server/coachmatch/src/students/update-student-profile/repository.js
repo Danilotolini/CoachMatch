@@ -5,7 +5,7 @@ const TABLE = 'student';
 
 /**
  * Atualiza os dados de perfil e, condicionalmente, avança o status para
- * ONBOARDING_HEALTH apenas quando o aluno ainda está em ONBOARDING_PROFILE.
+ * ONBOARDING_HEALTH apenas quando o aluno ainda está em PENDING_PROFILE.
  * Se o aluno já progrediu além desse estágio, os campos de perfil são
  * atualizados normalmente sem regredir o status.
  * @param {string} studentId
@@ -20,6 +20,7 @@ export const updateStudentProfile = async (studentId, profileData) => {
       TableName: TABLE,
       Key: { studentId },
       UpdateExpression: `SET
+        #name       = :name,
         #phone      = :phone,
         #birthDate  = :birthDate,
         #gender     = :gender,
@@ -29,6 +30,7 @@ export const updateStudentProfile = async (studentId, profileData) => {
         #radius     = :radius,
         #goal       = :goal`,
       ExpressionAttributeNames: {
+        '#name':      'name',
         '#phone':     'phone',
         '#birthDate': 'birthDate',
         '#gender':    'gender',
@@ -39,6 +41,7 @@ export const updateStudentProfile = async (studentId, profileData) => {
         '#goal':      'goal',
       },
       ExpressionAttributeValues: {
+        ':name':      profileData.name,
         ':phone':     profileData.phone,
         ':birthDate': profileData.birthDate,
         ':gender':    profileData.gender,
@@ -51,7 +54,7 @@ export const updateStudentProfile = async (studentId, profileData) => {
     })
   );
 
-  // Avança o status para ONBOARDING_HEALTH somente se ainda estiver em ONBOARDING_PROFILE
+  // Avança o status para ONBOARDING_HEALTH somente se ainda estiver em PENDING_PROFILE
   try {
     await docClient.send(
       new UpdateCommand({
@@ -62,12 +65,12 @@ export const updateStudentProfile = async (studentId, profileData) => {
         ExpressionAttributeNames: { '#status': 'status' },
         ExpressionAttributeValues: {
           ':next':    'ONBOARDING_HEALTH',
-          ':current': 'ONBOARDING_PROFILE',
+          ':current': 'PENDING_PROFILE',
         },
       })
     );
   } catch (err) {
     if (err.name !== 'ConditionalCheckFailedException') throw err;
-    // Aluno já progrediu além de ONBOARDING_PROFILE — status não regride
+    // Aluno já progrediu além de PENDING_PROFILE — status não regride
   }
 };

@@ -11,7 +11,7 @@ import type { ClientStatus } from '@/types/api'
 
 function clientStatusRoute(status: ClientStatus): string {
   switch (status) {
-    case 'ONBOARDING_PROFILE':
+    case 'PENDING_PROFILE':
       return '/client/onboarding'
     case 'ONBOARDING_HEALTH':
       return '/client/health'

@@ -21,6 +21,7 @@ const STUDENT_ID = 'student-abc';
 
 /** Formato enviado pelo front-end (phone formatado como "(11) 99999-9999") */
 const frontendProfilePayload = {
+  name: 'Ana Ferreira',
   phone: '(11) 98765-4321',
   birthDate: '1995-06-15',
   gender: 'F',
@@ -70,6 +71,12 @@ describe('update-student-profile › schema', () => {
   it('rejeita telefone inválido (número incompleto)', () => {
     const { error } = studentProfileSchema.validate({ ...validProfileData, phone: '11987' });
     expect(error?.details[0].path).toContain('phone');
+  });
+
+  it('rejeita nome ausente', () => {
+    const { name, ...withoutName } = validProfileData;
+    const { error } = studentProfileSchema.validate(withoutName);
+    expect(error?.details[0].path).toContain('name');
   });
 
   it('aceita gênero M, F, NB e NA', () => {
@@ -124,6 +131,7 @@ describe('update-student-profile › index (updateProfile)', () => {
 
     expect(updateStudentProfile).toHaveBeenCalledOnce();
     expect(updateStudentProfile).toHaveBeenCalledWith(STUDENT_ID, expect.objectContaining({
+      name: validProfileData.name,
       goal: validProfileData.goal,
     }));
   });

@@ -69,7 +69,7 @@ describe('create-student › index (createStudent)', () => {
     expect(insertStudent).toHaveBeenCalledWith({
       studentId: validAttributes.sub,
       email: validAttributes.email,
-      status: 'ONBOARDING_PROFILE',
+      status: 'PENDING_PROFILE',
       profile: { name: validAttributes.name },
     });
   });
