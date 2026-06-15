@@ -17,6 +17,8 @@ interface ProfileInfoItem {
 interface ProfileSectionProps {
   title: string
   description?: string
+  icon?: string
+  aside?: React.ReactNode
   children: React.ReactNode
 }
 
@@ -81,14 +83,26 @@ export function ProfileHero({
   )
 }
 
-export function ProfileSection({ title, description, children }: ProfileSectionProps) {
+export function ProfileSection({ title, description, icon, aside, children }: ProfileSectionProps) {
   return (
     <section className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-5 md:p-6">
-      <div className="mb-5">
-        <h2 className="font-headline text-lg font-bold tracking-tight text-on-surface">{title}</h2>
-        {description ? (
-          <p className="mt-1 font-body text-sm text-on-surface-variant">{description}</p>
-        ) : null}
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          {icon ? (
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-container text-primary">
+              <Icon name={icon} size={18} />
+            </span>
+          ) : null}
+          <div className="min-w-0">
+            <h2 className="font-headline text-lg font-bold tracking-tight text-on-surface">
+              {title}
+            </h2>
+            {description ? (
+              <p className="mt-1 font-body text-sm text-on-surface-variant">{description}</p>
+            ) : null}
+          </div>
+        </div>
+        {aside ? <div className="shrink-0">{aside}</div> : null}
       </div>
       {children}
     </section>

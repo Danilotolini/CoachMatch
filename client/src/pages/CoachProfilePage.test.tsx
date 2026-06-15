@@ -83,9 +83,75 @@ describe('CoachProfilePage', () => {
           cref: '654321-G/RJ',
           instagram: '@marina.performance',
           specialties: ['MUSCULATION', 'PILATES'],
+          profile_video: false,
         },
+        work_location: [{ type: 'GYM', gymId: 'gym_smartfit_paulista' }],
       })
     })
     expect(await screen.findByText('Perfil atualizado.')).toBeInTheDocument()
+  })
+
+  it('adiciona e remove academias e envia work_location no PUT', async () => {
+    let receivedPayload: CoachUpdatePayload | null = null
+
+    server.use(
+      http.get('*/coach/me', () => HttpResponse.json<Coach>(approvedCoach)),
+      http.put('*/coach/me', async ({ request }) => {
+        receivedPayload = (await request.json()) as CoachUpdatePayload
+        return HttpResponse.json<Coach>({
+          ...approvedCoach,
+          profile: { ...approvedCoach.profile, ...receivedPayload.profile },
+          work_location: receivedPayload.work_location ?? approvedCoach.work_location,
+          updatedAt: '2026-06-15T12:00:00Z',
+        })
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderPage()
+
+    // academia existente é resolvida pelo nome via lista de academias
+    expect(await screen.findByText('Smart Fit Paulista')).toBeInTheDocument()
+
+    // busca e adiciona uma nova academia
+    await user.type(
+      screen.getByPlaceholderText('Buscar por nome da academia ou bairro...'),
+      'Bluefit Pinheiros',
+    )
+    await user.click(await screen.findByText('Bluefit Pinheiros'))
+
+    // remove a academia original
+    await user.click(screen.getByRole('button', { name: 'Remover Smart Fit Paulista' }))
+
+    await user.click(screen.getByRole('button', { name: /SALVAR PERFIL/i }))
+
+    await waitFor(() => {
+      expect(receivedPayload?.work_location).toEqual([
+        { type: 'GYM', gymId: 'gym_bluefit_pinheiros' },
+      ])
+    })
+  })
+
+  it('bloqueia o salvamento quando nenhuma academia está selecionada', async () => {
+    let putCalled = false
+
+    server.use(
+      http.get('*/coach/me', () => HttpResponse.json<Coach>(approvedCoach)),
+      http.put('*/coach/me', () => {
+        putCalled = true
+        return HttpResponse.json<Coach>(approvedCoach)
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Remover Smart Fit Paulista' }))
+    await user.click(screen.getByRole('button', { name: /SALVAR PERFIL/i }))
+
+    expect(
+      await screen.findByText('Selecione pelo menos uma academia parceira.'),
+    ).toBeInTheDocument()
+    expect(putCalled).toBe(false)
   })
 })
