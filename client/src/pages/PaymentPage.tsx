@@ -200,7 +200,7 @@ function PaymentResult({
         <button
           type="button"
           onClick={onRetry}
-          className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold py-4 rounded-lg uppercase tracking-wide hover:brightness-105 transition-all active:scale-[0.98]"
+          className="w-full bg-linear-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold py-4 rounded-lg uppercase tracking-wide hover:brightness-105 transition-all active:scale-[0.98]"
         >
           {c.cta}
         </button>
@@ -299,7 +299,7 @@ function PixPanel({
         type="button"
         disabled={loading}
         onClick={onConfirm}
-        className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-base py-4 rounded-lg uppercase tracking-wide shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
+        className="w-full bg-linear-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-base py-4 rounded-lg uppercase tracking-wide shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -457,7 +457,7 @@ function CardPanel({
         type="button"
         disabled={loading}
         onClick={handleSubmit}
-        className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-base py-4 rounded-lg uppercase tracking-wide shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
+        className="w-full bg-linear-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-base py-4 rounded-lg uppercase tracking-wide shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -570,7 +570,7 @@ export default function PaymentPage() {
 
         {error && (
           <div className="bg-error/10 border border-error/30 rounded-lg p-4 flex gap-3">
-            <span className="material-symbols-outlined text-error flex-shrink-0 mt-0.5">error</span>
+            <span className="material-symbols-outlined text-error shrink-0 mt-0.5">error</span>
             <p className="font-body text-sm text-error">{error}</p>
           </div>
         )}
