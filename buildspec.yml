@@ -3,11 +3,11 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo "Installing Node.js v20..."
-      - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+      - echo "Installing Node.js v22..."
+      - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
       - apt-get install -y nodejs
-      - echo "Installing pnpm@10..."
-      - npm install -g pnpm@10
+      - echo "Installing pnpm@11..."
+      - npm install -g pnpm@11.5.3
       - echo "Installing dependencies..."
       - cd client
       - pnpm install --frozen-lockfile

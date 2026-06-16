@@ -24,7 +24,7 @@ concurrency:
 
 env:
   NODE_VERSION: '22'
-  PNPM_VERSION: '10'
+  PNPM_VERSION: '11.5.3'
 
 jobs:
   # ── 1. LINT & TYPE-CHECK ────────────────────────────────────────────────────
@@ -107,13 +107,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Install root workspace dependencies
+      - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
-
-      # server/coachmatch tem package-lock.json próprio — usar npm ci para evitar
-      # conflito com pnpm v10 que bloqueia build scripts de esbuild/serverless.
-      - name: Install coachmatch dependencies
-        run: cd server/coachmatch && npm ci
 
       # Vitest — todas as Lambdas (coaches, students, gyms, payments)
       - name: Test coachmatch lambdas (Vitest)
