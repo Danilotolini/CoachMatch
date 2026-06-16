@@ -56,7 +56,7 @@ build:
       js: "import { createRequire as topLevelCreateRequire } from 'module'; const require = topLevelCreateRequire(import.meta.url);"
 
 provider:
-  runtime: nodejs18.x
+  # runtime: nodejs18.x
   # Perfil AWS nomeado — só usado em deploys manuais locais.
   # CI/CD (GitHub Actions) usa AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
   # como variáveis de ambiente; profile vazio é ignorado pelo Serverless.
@@ -261,6 +261,21 @@ functions:
           method: POST
           authorizer:
             name: cognitoStudentAuthorizer
+
+  studentGetCoaches:
+    handler: src/students/get-coaches/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /student/coaches
+          method: GET
+          authorizer:
+            name: cognitoStudentAuthorizer            
 
   # ─── Pagamentos ────────────────────────────────────────────────────────────
 
