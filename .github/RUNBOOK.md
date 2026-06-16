@@ -237,7 +237,7 @@ Build took 15 minutes (normal é ~5)
 # 2. Parallelizar
 strategy:
   matrix:
-    node-version: [18]
+    node-version: [22]
     test-suite: [unit, integration, e2e]
 
 # 3. Limpar artifacts antigos

@@ -1,8 +1,8 @@
 # Integration Tests Config
 
-## Unit Tests (Jest)
+## Unit Tests (Vitest)
 ```bash
-npm run test -- payment.integration.test.ts
+pnpm test -- payment.integration.test.ts
 ```
 
 10 scenarios:
@@ -46,10 +46,10 @@ npx playwright test payment.e2e.spec.ts
 ### Local Testing
 ```bash
 # Unit tests
-npm run test
+pnpm test
 
 # E2E tests (requires dev server)
-npm run dev &
+pnpm dev &
 npx playwright test
 ```
 
@@ -62,5 +62,5 @@ npx playwright test
 ✅ GitHub Actions (free)
 ✅ AWS CodeBuild (100 min free/month)
 ✅ Playwright (free)
-✅ Jest (free)
+✅ Vitest (free)
 ❌ No paid services needed

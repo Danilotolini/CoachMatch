@@ -33,7 +33,7 @@ tags:
   - name: Student — Agenda
     description: Busca de slots e solicitações de agendamento do aluno.
   - name: Pagamentos
-    description: Processamento de pagamentos via cartão de crédito ou PIX (api-pagamentos).
+    description: Processamento de pagamentos via cartão de crédito ou PIX.
 
 security:
   - bearerAuth: []
