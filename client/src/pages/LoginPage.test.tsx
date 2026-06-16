@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw'
 import LoginPage from './LoginPage'
 import * as cognito from '@/lib/cognito'
 import { loginAs } from '@/test/session'
+import { makeClient } from '@/test/fixtures'
 import { useSessionStore } from '@/stores/sessionStore'
 import { server } from '@/mocks/server'
 import type { Client } from '@/types/api'
@@ -159,15 +160,7 @@ describe('LoginPage', () => {
     loginAs('client')
     useSessionStore.setState((state) => ({ ...state, activeRole: null }))
     server.use(
-      http.get('*/student/me', () =>
-        HttpResponse.json<Client>({
-          clientId: 'client_demo',
-          email: 'aluno@coachmatch.app',
-          status: 'ACTIVE',
-          createdAt: '2026-01-01T00:00:00.000Z',
-          updatedAt: '2026-01-01T00:00:00.000Z',
-        }),
-      ),
+      http.get('*/student/me', () => HttpResponse.json<Client>(makeClient({ status: 'ACTIVE' }))),
     )
 
     renderPage('client')
@@ -181,13 +174,7 @@ describe('LoginPage', () => {
     useSessionStore.setState((state) => ({ ...state, activeRole: null }))
     server.use(
       http.get('*/student/me', () =>
-        HttpResponse.json<Client>({
-          clientId: 'client_demo',
-          email: 'aluno@coachmatch.app',
-          status: 'ONBOARDING_HEALTH',
-          createdAt: '2026-01-01T00:00:00.000Z',
-          updatedAt: '2026-01-01T00:00:00.000Z',
-        }),
+        HttpResponse.json<Client>(makeClient({ status: 'ONBOARDING_HEALTH' })),
       ),
     )
 

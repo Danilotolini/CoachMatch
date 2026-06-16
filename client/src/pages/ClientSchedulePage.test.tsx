@@ -20,6 +20,7 @@ const coach: CoachDetail = {
   specialties: ['Musculação'],
   rating: 4.9,
   priceFrom: 180,
+  neighborhood: 'Pinheiros',
   city: 'São Paulo',
   nextAvailability: 'Hoje',
   photo: null,

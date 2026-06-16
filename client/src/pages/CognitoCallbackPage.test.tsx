@@ -6,6 +6,7 @@ import CognitoCallbackPage from './CognitoCallbackPage'
 import * as cognito from '@/lib/cognito'
 import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
+import { makeClient } from '@/test/fixtures'
 import { initialCoach } from '@/mocks/fixtures'
 import { getToken } from '@/lib/auth'
 import type { Client, Coach } from '@/types/api'
@@ -129,15 +130,7 @@ describe('CognitoCallbackPage', () => {
       expires_in: 3600,
     })
     server.use(
-      http.get('*/student/me', () =>
-        HttpResponse.json<Client>({
-          clientId: 'client_demo',
-          email: 'aluno@coachmatch.app',
-          status: 'ACTIVE',
-          createdAt: '2026-01-01T00:00:00.000Z',
-          updatedAt: '2026-01-01T00:00:00.000Z',
-        }),
-      ),
+      http.get('*/student/me', () => HttpResponse.json<Client>(makeClient({ status: 'ACTIVE' }))),
     )
 
     renderPage('client')
@@ -155,13 +148,7 @@ describe('CognitoCallbackPage', () => {
     })
     server.use(
       http.get('*/student/me', () =>
-        HttpResponse.json<Client>({
-          clientId: 'client_demo',
-          email: 'aluno@coachmatch.app',
-          status: 'ONBOARDING_HEALTH',
-          createdAt: '2026-01-01T00:00:00.000Z',
-          updatedAt: '2026-01-01T00:00:00.000Z',
-        }),
+        HttpResponse.json<Client>(makeClient({ status: 'ONBOARDING_HEALTH' })),
       ),
     )
 

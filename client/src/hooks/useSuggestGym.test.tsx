@@ -29,10 +29,10 @@ describe('useSuggestGym', () => {
       response = await result.current.mutateAsync(payload)
     })
 
-    expect(response?.data.name).toBe('Studio Z')
-    expect(response?.data.state).toBe('SP') // handler faz uppercase
-    expect(response?.data.gymId).toMatch(/^gym_/)
-    expect(response?.data.coordinates).toBeNull()
+    expect(response?.data?.name).toBe('Studio Z')
+    expect(response?.data?.state).toBe('SP') // handler faz uppercase
+    expect(response?.data?.gymId).toMatch(/^gym_/)
+    expect(response?.data?.coordinates).toBeNull()
   })
 
   it('invalida a query de gyms ao concluir com sucesso', async () => {
