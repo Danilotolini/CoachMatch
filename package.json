@@ -3,15 +3,20 @@
   "private": true,
   "version": "1.0.0",
   "description": "CoachMatch Monorepo",
+  "packageManager": "pnpm@11.5.3",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=11"
+  },
   "pnpm": {
     "workspaces": [
       "client",
-      "server"
+      "server/coachmatch"
     ]
   },
   "scripts": {
     "test:frontend": "pnpm --filter client test:coverage",
-    "test:backend": "cd server && pnpm run test:coverage",
+    "test:backend": "cd server/coachmatch && pnpm run test:coverage",
     "lint": "pnpm --filter client lint",
     "type-check": "cd client && pnpm run type-check",
     "build:frontend": "cd client && pnpm run build"
