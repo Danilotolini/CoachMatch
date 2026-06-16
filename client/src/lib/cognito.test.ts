@@ -94,7 +94,7 @@ describe('logout', () => {
     const sessions = persistedSessions()
     expect(sessions).not.toHaveProperty('coach')
     // sessão do aluno permanece persistida para reativação após o reload
-    expect(sessions.client?.token).toBe('aluno-token')
+    expect(sessions['client']?.token).toBe('aluno-token')
   })
 
   it('em mock mode, redireciona pro returnPath sem chamar o Cognito', () => {

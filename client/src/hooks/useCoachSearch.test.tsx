@@ -45,10 +45,10 @@ describe('useCoachSearch', () => {
   })
 
   it('normaliza filtros antes de chamar a API', async () => {
-    let capturedUrl: URL | null = null
+    const captured: { url: URL | null } = { url: null }
     server.use(
       http.get('*/student/coaches', ({ request }) => {
-        capturedUrl = new URL(request.url)
+        captured.url = new URL(request.url)
         return HttpResponse.json<CoachSearchResponse>({
           data: [],
           pagination: {
@@ -78,11 +78,11 @@ describe('useCoachSearch', () => {
       expect(result.current.isSuccess).toBe(true)
     })
 
-    expect(capturedUrl?.searchParams.get('q')).toBe('marcos')
-    expect(capturedUrl?.searchParams.get('address')).toBe('Pinheiros')
-    expect(capturedUrl?.searchParams.get('sort')).toBe('rating')
-    expect(capturedUrl?.searchParams.get('page')).toBe('1')
-    expect(capturedUrl?.searchParams.get('limit')).toBe('12')
-    expect(capturedUrl?.searchParams.getAll('specialties[]')).toEqual(['Funcional', 'Yoga'])
+    expect(captured.url?.searchParams.get('q')).toBe('marcos')
+    expect(captured.url?.searchParams.get('address')).toBe('Pinheiros')
+    expect(captured.url?.searchParams.get('sort')).toBe('rating')
+    expect(captured.url?.searchParams.get('page')).toBe('1')
+    expect(captured.url?.searchParams.get('limit')).toBe('12')
+    expect(captured.url?.searchParams.getAll('specialties[]')).toEqual(['Funcional', 'Yoga'])
   })
 })

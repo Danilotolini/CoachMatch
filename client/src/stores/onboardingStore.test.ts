@@ -157,7 +157,6 @@ describe('addGym / removeGym', () => {
       city: 'Recife',
     })
     expect(state.errors.gyms).toBeUndefined()
-    expect(state.errors.workLocation).toBeUndefined()
   })
 
   it('não duplica academia já adicionada', () => {

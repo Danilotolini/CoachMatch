@@ -104,7 +104,7 @@ describe('clearPersistedSession', () => {
 
     const persisted = readPersisted()
     expect(persisted?.sessions).not.toHaveProperty('coach')
-    expect(persisted?.sessions.client?.token).toBe('aluno-token')
+    expect(persisted?.sessions['client']?.token).toBe('aluno-token')
   })
 
   it('mantém o activeRole persistido quando não é o papel removido', () => {

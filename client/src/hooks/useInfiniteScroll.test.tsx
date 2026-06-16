@@ -12,6 +12,7 @@ let observerOptions: IntersectionObserverInit | undefined
 class MockIntersectionObserver implements IntersectionObserver {
   readonly root: Element | Document | null
   readonly rootMargin: string
+  readonly scrollMargin: string
   readonly thresholds: ReadonlyArray<number>
 
   constructor(cb: ObserverCallback, options?: IntersectionObserverInit) {
@@ -19,6 +20,7 @@ class MockIntersectionObserver implements IntersectionObserver {
     observerOptions = options
     this.root = options?.root ?? null
     this.rootMargin = options?.rootMargin ?? '0px'
+    this.scrollMargin = '0px'
     this.thresholds = [0]
   }
 

@@ -6,6 +6,7 @@ import { ClientRouteGuard } from './ClientRouteGuard'
 import { loginAs } from '@/test/session'
 import { useSessionStore } from '@/stores/sessionStore'
 import { createWrapper } from '@/test/createWrapper'
+import { makeClient } from '@/test/fixtures'
 import { server } from '@/mocks/server'
 import type { Client, ClientStatus } from '@/types/api'
 
@@ -52,17 +53,7 @@ function renderGuard({
 }
 
 function mockClient(status: ClientStatus) {
-  server.use(
-    http.get('*/student/me', () =>
-      HttpResponse.json<Client>({
-        clientId: 'client_demo',
-        email: 'aluno@coachmatch.app',
-        status,
-        createdAt: '2026-01-01T00:00:00.000Z',
-        updatedAt: '2026-01-01T00:00:00.000Z',
-      }),
-    ),
-  )
+  server.use(http.get('*/student/me', () => HttpResponse.json<Client>(makeClient({ status }))))
 }
 
 function mockClientError(status: number) {
