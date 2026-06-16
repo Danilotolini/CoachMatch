@@ -1,16 +1,13 @@
 # API GATEWAY COMPARTILHADO (HTTP API qht6965nv9, sa-east-1)
 # ─────────────────────────────────────────────────────────────────────────────
-# Este stack divide o mesmo API Gateway com rotas/authorizers criados manualmente
+# O stack usa uma API EXTERNA (httpApi.id). As rotas Node são gerenciadas por
+# este stack; as rotas Python e os authorizers JWT (bg0uj6 coach / ahu157 student)
+# são criados manualmente, fora do stack.
 #
-# Por isso:
-#   • Atualizar código   → `serverless deploy function --function <fn> --stage dev`
-#                          (NÃO toca rotas/integrações/authorizers — uso diário)
-#   • Rodar local        → `serverless offline --stage local`
-#   • Deploy COMPLETO    → NUNCA às cegas. Gere o template (`serverless package`)
-#                          ou um change set do CloudFormation e revise antes.
-#                          Um `sls deploy` cru tenta criar /coach/gyms etc. que já
-#                          existem manualmente → ConflictException + rollback.
-#
+# Como a API é externa, o Serverless NÃO pode gerenciar authorizers nela — por isso
+# eles são referenciados por `id` no evento em `dev` (ver custom.coachAuthorizer /
+# custom.studentAuthorizer e custom.httpApiByStage). No `local`, o serverless-offline
+# sobe a própria API e usa os authorizers declarados por nome.
 # ─────────────────────────────────────────────────────────────────────────────
 org: coachmatch
 app: coachmatchapp
@@ -56,33 +53,23 @@ build:
       js: "import { createRequire as topLevelCreateRequire } from 'module'; const require = topLevelCreateRequire(import.meta.url);"
 
 provider:
-  # runtime: nodejs18.x
-  # Perfil AWS nomeado — só usado em deploys manuais locais.
-  # CI/CD (GitHub Actions) usa AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
-  # como variáveis de ambiente; profile vazio é ignorado pelo Serverless.
-  profile: ${self:custom.awsProfile.${sls:stage}, ''}
-  timeout: 30
+  # Credenciais AWS vêm do ambiente: AWS_PROFILE (SSO local) ou AWS_ACCESS_KEY_ID/SECRET (CI/CD).
+  # HTTP API limita a integração a 30s; mantemos a Lambda 1s abaixo para que ela
+  # termine antes do gateway cortar a conexão (evita "timeout" em invocação que deu certo).
+  timeout: 29
   name: aws
+  runtime: nodejs22.x
   stage: ${param:stage}
   region: ${param:region}
 
-  httpApi:
-    id: ${param:apiGatewayId, ""}  # vazio no local = serverless-offline cuida
-    authorizers:
-      # Pool CoachAccess (sa-east-1_2DDuPPtc0) — rotas /coach/*
-      cognitoAuthorizer:
-        type: jwt
-        identitySource: $request.header.Authorization
-        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
-        audience:
-          - 76hul7797npfkmpoju0mbghti7
-      # Pool StudentAccess (sa-east-1_2DSfT6kmB) — rotas /student/*
-      cognitoStudentAuthorizer:
-        type: jwt
-        identitySource: $request.header.Authorization
-        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DSfT6kmB
-        audience:
-          - 3rjn45koljliioocd5usijdv9s
+  # httpApi por stage (ver custom.httpApiByStage):
+  #   • dev   → API externa (id = qht6965nv9). O Serverless NÃO pode gerenciar
+  #             authorizers numa API externa, então NÃO declaramos o bloco
+  #             `authorizers` aqui; cada rota referencia o authorizer já existente
+  #             por id (custom.coachAuthorizer / custom.studentAuthorizer).
+  #   • local → id vazio (serverless-offline sobe a própria API) + authorizers
+  #             declarados por nome para o offline validar o JWT.
+  httpApi: ${self:custom.httpApiByStage.${sls:stage}}
 
   iam:
     role:
@@ -115,13 +102,11 @@ functions:
       - httpApi:
           path: /coach/gyms
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
       - httpApi:
           path: /student/gyms
           method: GET
-          authorizer:
-            name: cognitoStudentAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   gymSuggest:
     handler: src/gyms/suggest-gym/handler.handler
@@ -135,13 +120,11 @@ functions:
       - httpApi:
           path: /coach/gyms/suggest
           method: POST
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
       - httpApi:
           path: /student/gyms/suggest
           method: POST
-          authorizer:
-            name: cognitoStudentAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   coachGetMe:
     handler: src/coaches/get-coach/handler.handler
@@ -155,8 +138,7 @@ functions:
       - httpApi:
           path: /coach/me
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
 
   coachUpdateMe:
     handler: src/coaches/update-coach/handler.handler
@@ -170,8 +152,7 @@ functions:
       - httpApi:
           path: /coach/me
           method: PUT
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
 
   coachCreate:
     handler: src/coaches/create-coach/handler.handler
@@ -187,21 +168,22 @@ functions:
           trigger: PostConfirmation
           existing: true
 
-  coachSubmitForReview:
-    handler: src/coaches/submit-coach-for-review/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
-    events:
-      # NOTA: esta rota NÃO existe no API Gateway (qht6965nv9), o coach é cadastrado como ativo.
-      - httpApi:
-          path: /coach/me/submit-for-review
-          method: POST
-          authorizer:
-            name: cognitoAuthorizer
+  # DESATIVADA TEMPORARIAMENTE
+  # coachSubmitForReview:
+  #   handler: src/coaches/submit-coach-for-review/handler.handler
+  #   environment:
+  #     STAGE: ${param:stage}
+  #     REGION: ${param:region}
+  #     ENDPOINT: ${param:endpoint, ""}
+  #     ACCESS_KEY_ID: ${param:access_key_id, ""}
+  #     SECRET_ACCESS_KEY: ${param:secret_access, ""}
+  #   events:
+  #     # NOTA: esta rota NÃO existe no API Gateway (qht6965nv9), o coach é cadastrado como ativo.
+  #     - httpApi:
+  #         path: /coach/me/submit-for-review
+  #         method: POST
+  #         authorizer:
+  #           name: cognitoAuthorizer
 
   studentCreate:
     handler: src/students/create-student/handler.handler
@@ -229,8 +211,7 @@ functions:
       - httpApi:
           path: /student/me
           method: GET
-          authorizer:
-            name: cognitoStudentAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   studentUpdateProfile:
     handler: src/students/update-student-profile/handler.handler
@@ -244,8 +225,7 @@ functions:
       - httpApi:
           path: /student/me/profile
           method: POST
-          authorizer:
-            name: cognitoStudentAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   studentUpdateHealth:
     handler: src/students/update-student-health/handler.handler
@@ -259,8 +239,7 @@ functions:
       - httpApi:
           path: /student/me/health
           method: POST
-          authorizer:
-            name: cognitoStudentAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   studentGetCoaches:
     handler: src/students/get-coaches/handler.handler
@@ -274,8 +253,7 @@ functions:
       - httpApi:
           path: /student/coaches
           method: GET
-          authorizer:
-            name: cognitoStudentAuthorizer            
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}            
 
   # ─── Pagamentos ────────────────────────────────────────────────────────────
 
@@ -291,8 +269,7 @@ functions:
       - httpApi:
           path: /payments
           method: POST
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   paymentGet:
     handler: src/payments/get-payment/handler.handler
@@ -306,8 +283,7 @@ functions:
       - httpApi:
           path: /payments/{transactionId}
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   paymentGetByCoach:
     handler: src/payments/get-coach-payments/handler.handler
@@ -321,8 +297,7 @@ functions:
       - httpApi:
           path: /payments/coach/{coachId}
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   paymentGetByStudent:
     handler: src/payments/get-student-payments/handler.handler
@@ -336,8 +311,7 @@ functions:
       - httpApi:
           path: /payments/student/{studentId}
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   paymentGetBySession:
     handler: src/payments/get-session-payments/handler.handler
@@ -351,8 +325,7 @@ functions:
       - httpApi:
           path: /payments/session/{sessionId}
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   paymentRefund:
     handler: src/payments/refund-payment/handler.handler
@@ -366,8 +339,7 @@ functions:
       - httpApi:
           path: /payments/{transactionId}/refund
           method: POST
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
 resources:
   Conditions:
@@ -484,10 +456,41 @@ resources:
 custom:
   config: ${file(./config.yml)}
 
-  # Perfil AWS por stage — só 'local' usa perfil nomeado.
-  # Em CI/CD os outros stages usam variáveis de ambiente da AWS.
-  awsProfile:
-    local: JoaoAdm
+  # httpApi por stage — ver comentário no provider.httpApi.
+  httpApiByStage:
+    local:
+      id: ""
+      authorizers:
+        # Pool CoachAccess (sa-east-1_2DDuPPtc0) — rotas /coach/*
+        cognitoAuthorizer:
+          type: jwt
+          identitySource: $request.header.Authorization
+          issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
+          audience:
+            - 76hul7797npfkmpoju0mbghti7
+        # Pool StudentAccess (sa-east-1_2DSfT6kmB) — rotas /student/*
+        cognitoStudentAuthorizer:
+          type: jwt
+          identitySource: $request.header.Authorization
+          issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DSfT6kmB
+          audience:
+            - 3rjn45koljliioocd5usijdv9s
+    dev:
+      id: ${self:custom.config.dev.apiGatewayId}
+
+  # Referência do authorizer por stage:
+  #   • local → por nome (authorizer gerenciado pelo offline)
+  #   • dev   → por id do authorizer já existente no API GATEWAY
+  coachAuthorizer:
+    local:
+      name: cognitoAuthorizer
+    dev:
+      id: bg0uj6
+  studentAuthorizer:
+    local:
+      name: cognitoStudentAuthorizer
+    dev:
+      id: ahu157
 
   dynamodb:
     stages:
