@@ -55,14 +55,12 @@
   }
   ```
 
-  **server/api-pagamentos/package.json:**
+  **server/coachmatch/package.json:**
   ```json
   {
     "scripts": {
-      "test": "jest --coverage",
-      "test:backend": "jest --coverage",
-      "build": "tsc",
-      "build:backend": "serverless package"
+      "test": "vitest run",
+      "test:coverage": "vitest run --coverage"
     }
   }
   ```
@@ -75,7 +73,7 @@
   - [ ] `tsconfig.json` com strict: true
   - [ ] Type checking no build
 
-- [ ] **Jest/Vitest configurado**
+- [ ] **Vitest configurado**
   - [ ] Coverage reports
   - [ ] Test patterns
   - [ ] Mock setup

@@ -34,7 +34,7 @@ Detalhes técnicos de implementações
 Guias de configuração e testes
 
 - `GETTING_STARTED.md` — **Setup completo do zero** (frontend, backend, testes, deploy)
-- `TESTS_SETUP.md` — Configuração de testes (Jest, Playwright, CI/CD)
+- `TESTS_SETUP.md` — Configuração de testes (Vitest, Playwright, CI/CD)
 
 ---
 
@@ -71,7 +71,7 @@ Documentação adicional
 | Design Tokens | `design-system.md` | Cores, tipografia, spacing |
 | Git Workflow | `git-workflow.md` | Branches, commits, PRs |
 | Pagamentos | `/integrations/PAYMENT_INTEGRATION.md` | Setup e testes |
-| Testes | `/setup/TESTS_SETUP.md` | Jest, Playwright, CI/CD |
+| Testes | `/setup/TESTS_SETUP.md` | Vitest, Playwright, CI/CD |
 | Arquitetura | `/architecture/` | Diagramas e padrões |
 | Implementações | `/implementation/` | Mudanças técnicas detalhadas |
 

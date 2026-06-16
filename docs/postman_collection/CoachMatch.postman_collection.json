@@ -672,6 +672,87 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "C13 - Obter perfil do coach (GET /coach/me)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/me",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "me"
+              ]
+            },
+            "description": "Retorna o perfil do coach autenticado (resolvido pelo JWT CoachAccess)."
+          },
+          "response": []
+        },
+        {
+          "name": "C14 - Atualizar perfil do coach (PUT /coach/me)",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/me",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profile\": {\n    \"name\": \"João Silva\",\n    \"phone\": \"11999999999\",\n    \"instagram\": \"@joao.treina\",\n    \"cref\": \"012345-G/SP\",\n    \"specialties\": [\n      \"Musculação\",\n      \"Crossfit\"\n    ],\n    \"profile_video\": false\n  },\n  \"work_location\": [\n    {\n      \"type\": \"GYM\",\n      \"gymId\": \"gym_b1cac932\"\n    },\n    {\n      \"type\": \"HOME_SERVICE\",\n      \"coverage\": {\n        \"city\": \"São Paulo\",\n        \"state\": \"SP\",\n        \"neighborhoods\": [\n          \"Pinheiros\",\n          \"Vila Madalena\"\n        ]\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Salva o perfil do coach. Não altera o status (ver fluxo no README)."
+          },
+          "response": []
         }
       ]
     },
@@ -1166,6 +1247,458 @@
                 "request"
               ]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "S11 - Obter perfil do aluno (GET /student/me)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/me",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "me"
+              ]
+            },
+            "description": "Retorna o perfil do aluno autenticado (JWT StudentAccess)."
+          },
+          "response": []
+        },
+        {
+          "name": "S12 - Atualizar perfil do aluno (POST /student/me/profile)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/me/profile",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "me",
+                "profile"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Maria Souza\",\n  \"phone\": \"(11) 99999-9999\",\n  \"birthDate\": \"1995-04-23\",\n  \"gender\": \"F\",\n  \"cep\": \"01310-100\",\n  \"city\": \"São Paulo\",\n  \"state\": \"SP\",\n  \"radius\": 10,\n  \"goal\": \"HYPERTROPHY\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "gender: M|F|NB|NA. goal: WEIGHT_LOSS|HYPERTROPHY|CONDITIONING|REHAB|PERFORMANCE. radius em km (1–100)."
+          },
+          "response": []
+        },
+        {
+          "name": "S13 - Enviar questionário de saúde PAR-Q (POST /student/me/health)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/me/health",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "me",
+                "health"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"heart\": \"NO\",\n    \"chest_pain\": \"NO\",\n    \"dizziness\": \"NO\",\n    \"bone_joint\": \"NO\",\n    \"medication\": \"NO\"\n  },\n  \"notes\": \"Sem restrições conhecidas.\",\n  \"lgpdConsent\": true,\n  \"medicalDisclaimer\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "As 5 respostas PAR-Q são YES|NO. lgpdConsent e medicalDisclaimer devem ser true."
+          },
+          "response": []
+        },
+        {
+          "name": "S14 - Buscar coaches (GET /student/coaches)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/coaches?q=Cross&specialties[]=Musculação&limit=12",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "coaches"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Cross"
+                },
+                {
+                  "key": "specialties[]",
+                  "value": "Musculação"
+                },
+                {
+                  "key": "limit",
+                  "value": "12"
+                }
+              ]
+            },
+            "description": "q: busca textual livre. specialties[]: repetível para múltiplas. limit (default 12). lastKey: JSON p/ paginação."
+          },
+          "response": []
+        },
+        {
+          "name": "S15 - Criar pagamento via cartão (POST /payments)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"credit_card\",\n  \"sessionId\": \"3f9c1d2e-7a4b-4c8d-9e10-2b6f5a1c8d34\",\n  \"coachId\": \"83dcfaba-f0c1-705d-b109-2b381fed0971\",\n  \"amount\": 15000,\n  \"card\": {\n    \"number\": \"4111 1111 1111 1111\",\n    \"holder\": \"JOAO SILVA\",\n    \"expiryMonth\": \"12\",\n    \"expiryYear\": \"2030\",\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "amount em centavos (15000 = R$ 150,00). Cenário do cartão é resolvido pelo número (ver shared/helpers.js)."
+          },
+          "response": []
+        },
+        {
+          "name": "S16 - Criar pagamento via PIX (POST /payments)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"pix\",\n  \"sessionId\": \"3f9c1d2e-7a4b-4c8d-9e10-2b6f5a1c8d34\",\n  \"coachId\": \"83dcfaba-f0c1-705d-b109-2b381fed0971\",\n  \"amount\": 15000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Pagamento PIX: retorna um pixCode mock. amount em centavos."
+          },
+          "response": []
+        },
+        {
+          "name": "S17 - Obter pagamento por transação (GET /payments/{transactionId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments/txn_9f2a1b7c4e8d4a6f",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments",
+                "txn_9f2a1b7c4e8d4a6f"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S18 - Listar pagamentos do coach (GET /payments/coach/{coachId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments/coach/83dcfaba-f0c1-705d-b109-2b381fed0971",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments",
+                "coach",
+                "83dcfaba-f0c1-705d-b109-2b381fed0971"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S19 - Listar pagamentos do aluno (GET /payments/student/{studentId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments/student/83dcfaba-f0c1-705d-b109-2b381fed0971",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments",
+                "student",
+                "83dcfaba-f0c1-705d-b109-2b381fed0971"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S20 - Listar pagamentos da sessão (GET /payments/session/{sessionId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments/session/3f9c1d2e-7a4b-4c8d-9e10-2b6f5a1c8d34",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments",
+                "session",
+                "3f9c1d2e-7a4b-4c8d-9e10-2b6f5a1c8d34"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S21 - Estornar pagamento (POST /payments/{transactionId}/refund)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments/txn_9f2a1b7c4e8d4a6f/refund",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments",
+                "txn_9f2a1b7c4e8d4a6f",
+                "refund"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 15000,\n  \"reason\": \"Cancelamento solicitado pelo aluno\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "amount em centavos; reason é opcional (máx. 255 caracteres)."
           },
           "response": []
         }
