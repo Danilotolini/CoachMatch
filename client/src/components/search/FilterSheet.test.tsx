@@ -47,8 +47,12 @@ describe('FilterSheet', () => {
     vi.stubGlobal(
       'Date',
       class extends realDate {
-        constructor(value?: string | number | Date) {
-          super(value ?? '2026-06-15T12:00:00Z')
+        constructor(...args: unknown[]) {
+          if (args.length === 0) {
+            super('2026-06-15T12:00:00Z')
+          } else {
+            super(...(args as ConstructorParameters<typeof Date>))
+          }
         }
         static now() {
           return new realDate('2026-06-15T12:00:00Z').getTime()

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { Icon } from '@/components/ui/Icon'
 import { useStudentSpecialties } from '@/hooks/useStudentSpecialties'
+import { getTodayBrazilYMD } from '@/lib/dateTime'
 import type { CoachSearchFilters } from '@/types/api'
 
 interface FilterSheetProps {
@@ -15,14 +16,6 @@ interface FilterSheetProps {
 
 function toggleItem(items: string[], item: string): string[] {
   return items.includes(item) ? items.filter((current) => current !== item) : [...items, item]
-}
-
-function todayISO(): string {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${String(year)}-${month}-${day}`
 }
 
 export function FilterSheet({ open, filters, onClose, onApply, onClear }: FilterSheetProps) {
@@ -123,7 +116,7 @@ function FilterSheetContent({
             </h3>
             <input
               type="date"
-              min={todayISO()}
+              min={getTodayBrazilYMD()}
               value={draft.availableOn ?? ''}
               onChange={(event) => {
                 updateDraft({ availableOn: event.target.value || undefined })
