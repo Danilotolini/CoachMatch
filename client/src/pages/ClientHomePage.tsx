@@ -89,12 +89,11 @@ function SearchPanel() {
           search
         </span>
         <span className="min-w-0 flex-1 truncate font-body text-sm text-on-surface-variant">
-          Buscar personal, modalidade ou local
+          Buscar personal ou bairro
         </span>
         <span className="material-symbols-outlined text-[20px] text-primary">tune</span>
       </button>
-      <div className="grid grid-cols-2 gap-2">
-        <FilterPill icon="pin_drop" label="Pinheiros" to="/client/search?n=Pinheiros" />
+      <div className="flex flex-wrap gap-2">
         <FilterPill
           icon="fitness_center"
           label="Musculação"
@@ -157,8 +156,8 @@ function NextSessionCard() {
 
 function CoachRail() {
   const navigate = useNavigate()
-  const { data, isLoading } = useCoachSearch({ limit: 3, sort: 'rating' })
-  const coaches = data?.data ?? []
+  const { data, isLoading } = useCoachSearch({ limit: 3 })
+  const coaches = data?.pages[0]?.data ?? []
 
   return (
     <section className="flex flex-col gap-4">
@@ -167,7 +166,7 @@ function CoachRail() {
         action="Ver todos"
         icon="arrow_forward"
         onAction={() => {
-          void navigate('/client/search?sort=rating')
+          void navigate('/client/search')
         }}
       />
       <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 md:-mx-10 md:px-10 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0">
@@ -184,13 +183,8 @@ function CoachRail() {
                 className="w-[76vw] max-w-70 shrink-0 snap-start md:w-62.5 lg:w-auto lg:max-w-none"
               >
                 <SharedCoachCard
-                  name={coach.name}
-                  specialties={coach.specialties.join(' · ')}
-                  rating={coach.rating.toFixed(1)}
-                  price={coach.priceFrom}
-                  {...(coach.photo ? { image: coach.photo } : {})}
-                  location={`${coach.neighborhood}, ${coach.city}`}
-                  availability={coach.nextAvailability}
+                  name={coach.profile.name}
+                  specialties={coach.profile.specialties.join(' · ')}
                   onClick={() => {
                     void navigate(`/client/coaches/${coach.coachId}`)
                   }}

@@ -17,6 +17,8 @@ function clientStatusRoute(status: ClientStatus): string {
       return '/client/health'
     case 'ACTIVE':
       return '/client'
+    default:
+      throw new Error(`Status de aluno inesperado na resposta do servidor: ${String(status)}`)
   }
 }
 

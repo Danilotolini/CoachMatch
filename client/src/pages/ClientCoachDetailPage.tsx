@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
 import { CrefBadge } from '@/components/coach/CrefBadge'
-import { RatingPill } from '@/components/coach/RatingPill'
 import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNavigation'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -75,6 +74,30 @@ export default function ClientCoachDetailPage() {
 
   const coach = detailQuery.data
 
+  const serviceAreas = useMemo(
+    () =>
+      (coach?.work_location ?? []).map((location) => {
+        if (location.type === 'GYM') {
+          const parts = [location.gym?.name, location.gym?.neighborhood, location.gym?.city].filter(
+            Boolean,
+          )
+          return parts.length > 0 ? parts.join(' · ') : 'Academia parceira'
+        }
+        const { city, state, neighborhoods } = location.coverage
+        const where =
+          neighborhoods.length > 0 ? neighborhoods.join(', ') : [city, state].filter(Boolean).join(' · ')
+        return where ? `Atendimento a domicílio · ${where}` : 'Atendimento a domicílio'
+      }),
+    [coach],
+  )
+
+  const priceLabel = useMemo(() => {
+    const prices = availableSchedules
+      .map((schedule) => Number(schedule.price))
+      .filter((value) => Number.isFinite(value) && value > 0)
+    return prices.length > 0 ? formatMoney(Math.min(...prices)) : null
+  }, [availableSchedules])
+
   return (
     <main className="relative flex min-h-[max(884px,100dvh)] w-full bg-surface text-on-surface">
       <ClientSideNav />
@@ -92,7 +115,7 @@ export default function ClientCoachDetailPage() {
           <div className="min-w-0">
             <span className="font-label text-xs text-on-surface-variant">Perfil do treinador</span>
             <h1 className="truncate font-headline text-2xl font-bold tracking-tight lg:text-3xl">
-              {coach?.name ?? 'Detalhes'}
+              {coach?.profile.name ?? 'Detalhes'}
             </h1>
           </div>
         </header>
@@ -123,46 +146,29 @@ export default function ClientCoachDetailPage() {
             <>
               <div className="flex min-w-0 flex-col gap-5">
                 <Card className="overflow-hidden p-0">
-                  <div
-                    className="relative min-h-84 bg-surface-container"
-                    style={
-                      coach.photo
-                        ? {
-                            backgroundImage: `url(${coach.photo})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                          }
-                        : undefined
-                    }
-                  >
-                    {!coach.photo ? <div className="kinetic-grid absolute inset-0" /> : null}
+                  <div className="relative min-h-84 bg-surface-container">
+                    <div className="kinetic-grid absolute inset-0" />
                     <div className="absolute inset-x-0 bottom-0 h-3/4 bg-linear-to-t from-surface-container-lowest via-surface-container-lowest/72 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
                       <div className="mb-4 flex flex-wrap items-center gap-2">
-                        <RatingPill value={coach.rating.toFixed(1)} />
                         <CrefBadge />
                       </div>
                       <h2 className="font-headline text-3xl font-bold tracking-tight sm:text-4xl">
-                        {coach.name}
+                        {coach.profile.name}
                       </h2>
-                      <p className="mt-2 max-w-2xl font-body text-sm text-on-surface-variant sm:text-base">
-                        {coach.bio}
-                      </p>
+                      {coach.profile.instagram ? (
+                        <p className="mt-2 font-body text-sm text-on-surface-variant">
+                          {coach.profile.instagram}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </Card>
 
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <MetricCard label="Sessões" value={`${String(coach.sessionsCount)}+`} />
-                  <MetricCard label="Experiência" value={`${String(coach.experienceYears)} anos`} />
-                  <MetricCard label="Resposta" value={coach.responseTime} />
-                  <MetricCard label="A partir de" value={formatMoney(coach.priceFrom)} />
-                </div>
-
                 <Card className="p-5">
                   <SectionTitle icon="fitness_center" title="Especialidades" />
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {coach.specialties.map((specialty) => (
+                    {coach.profile.specialties.map((specialty) => (
                       <span
                         key={specialty}
                         className="rounded-full bg-surface-container-high px-3 py-1.5 font-label text-xs font-medium text-on-surface"
@@ -176,34 +182,21 @@ export default function ClientCoachDetailPage() {
                 <Card className="p-5">
                   <SectionTitle icon="map" title="Atendimento" />
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {coach.serviceAreas.map((area) => (
-                      <div
-                        key={area}
-                        className="flex items-center gap-3 rounded-lg bg-surface-container px-3 py-3"
-                      >
-                        <Icon name="pin_drop" size={18} className="text-primary" />
-                        <span className="font-body text-sm text-on-surface-variant">{area}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                <Card className="p-5">
-                  <SectionTitle icon="reviews" title="Avaliações" />
-                  <div className="mt-4 grid gap-3">
-                    {coach.reviews.map((review) => (
-                      <article key={review.id} className="rounded-lg bg-surface-container p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <h3 className="font-headline text-sm font-semibold">
-                            {review.studentName}
-                          </h3>
-                          <RatingPill value={review.rating.toFixed(1)} />
+                    {serviceAreas.length > 0 ? (
+                      serviceAreas.map((area) => (
+                        <div
+                          key={area}
+                          className="flex items-center gap-3 rounded-lg bg-surface-container px-3 py-3"
+                        >
+                          <Icon name="pin_drop" size={18} className="text-primary" />
+                          <span className="font-body text-sm text-on-surface-variant">{area}</span>
                         </div>
-                        <p className="mt-2 font-body text-sm text-on-surface-variant">
-                          {review.comment}
-                        </p>
-                      </article>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="font-body text-sm text-on-surface-variant">
+                        O treinador ainda não informou locais de atendimento.
+                      </p>
+                    )}
                   </div>
                 </Card>
               </div>
@@ -217,12 +210,12 @@ export default function ClientCoachDetailPage() {
                       </span>
                       <h2 className="mt-1 font-headline text-xl font-semibold">Agendar sessão</h2>
                     </div>
-                    <div className="rounded-lg bg-primary px-3 py-2 text-on-primary-fixed">
-                      <p className="font-headline text-lg font-bold">
-                        {formatMoney(coach.priceFrom)}
-                      </p>
-                      <p className="font-label text-[10px] font-medium uppercase">sessão</p>
-                    </div>
+                    {priceLabel ? (
+                      <div className="rounded-lg bg-primary px-3 py-2 text-on-primary-fixed">
+                        <p className="font-headline text-lg font-bold">{priceLabel}</p>
+                        <p className="font-label text-[10px] font-medium uppercase">sessão</p>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="mt-5 grid gap-2">
@@ -339,15 +332,6 @@ function SectionTitle({ icon, title }: { icon: string; title: string }) {
       <Icon name={icon} size={20} className="text-primary" />
       <h2 className="font-headline text-lg font-semibold">{title}</h2>
     </div>
-  )
-}
-
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <Card className="p-4">
-      <span className="font-label text-xs text-on-surface-variant">{label}</span>
-      <p className="mt-1 truncate font-headline text-xl font-bold">{value}</p>
-    </Card>
   )
 }
 

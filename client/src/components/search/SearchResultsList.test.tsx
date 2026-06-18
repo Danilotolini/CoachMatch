@@ -1,30 +1,32 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SearchResultsList, SearchResultsSkeleton } from './SearchResultsList'
-import type { CoachListItem } from '@/types/api'
+import type { CoachSummary } from '@/types/api'
 
-const coaches: CoachListItem[] = [
+const coaches: CoachSummary[] = [
   {
     coachId: 'coach_1',
-    name: 'Marcos Vieira',
-    specialties: ['Musculação', 'Mobilidade'],
-    rating: 4.8,
-    priceFrom: 180,
-    city: 'São Paulo',
-    neighborhood: 'Bela Vista',
-    nextAvailability: 'Hoje',
-    photo: 'https://example.com/photo.jpg',
+    profile: {
+      name: 'Marcos Vieira',
+      phone: null,
+      specialties: ['Musculação', 'Mobilidade'],
+      cref: 'CREF 0001-G/SP',
+      instagram: '@marcos',
+      profile_video: false,
+    },
+    work_location: [],
   },
   {
     coachId: 'coach_2',
-    name: 'Ana Lima',
-    specialties: ['Corrida'],
-    rating: 4.6,
-    priceFrom: 140,
-    city: 'Campinas',
-    neighborhood: 'Cambuí',
-    nextAvailability: 'Amanhã',
-    photo: null,
+    profile: {
+      name: 'Ana Lima',
+      phone: null,
+      specialties: ['Corrida'],
+      cref: null,
+      instagram: null,
+      profile_video: false,
+    },
+    work_location: [],
   },
 ]
 

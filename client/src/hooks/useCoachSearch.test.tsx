@@ -51,14 +51,7 @@ describe('useCoachSearch', () => {
         captured.url = new URL(request.url)
         return HttpResponse.json<CoachSearchResponse>({
           data: [],
-          pagination: {
-            page: 1,
-            limit: 12,
-            total: 0,
-            totalPages: 0,
-            hasNext: false,
-            hasPrev: false,
-          },
+          meta: { limit: 12, lastKey: null },
         })
       }),
     )
@@ -69,7 +62,6 @@ describe('useCoachSearch', () => {
         useCoachSearch({
           q: '  marcos ',
           specialties: ['Funcional', '', 'Yoga'],
-          address: '  Pinheiros ',
         }),
       { wrapper },
     )
@@ -79,10 +71,8 @@ describe('useCoachSearch', () => {
     })
 
     expect(captured.url?.searchParams.get('q')).toBe('marcos')
-    expect(captured.url?.searchParams.get('address')).toBe('Pinheiros')
-    expect(captured.url?.searchParams.get('sort')).toBe('rating')
-    expect(captured.url?.searchParams.get('page')).toBe('1')
     expect(captured.url?.searchParams.get('limit')).toBe('12')
+    expect(captured.url?.searchParams.get('lastKey')).toBeNull()
     expect(captured.url?.searchParams.getAll('specialties[]')).toEqual(['Funcional', 'Yoga'])
   })
 })

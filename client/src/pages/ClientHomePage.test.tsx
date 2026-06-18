@@ -51,8 +51,8 @@ describe('ClientHomePage', () => {
     renderClientHome()
 
     expect(screen.getByText('Próxima sessão')).toBeInTheDocument()
-    expect(await screen.findByText('Marcos Vieira')).toBeInTheDocument()
-    expect(await screen.findByText('Priscila Duarte')).toBeInTheDocument()
+    expect(await screen.findByText('André Ferreira')).toBeInTheDocument()
+    expect(screen.getAllByText('Caio Lima').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Buscar')).toHaveLength(2)
     expect(screen.getAllByText('Perfil')).toHaveLength(2)
     expect(screen.queryByRole('button', { name: /Chat/i })).not.toBeInTheDocument()

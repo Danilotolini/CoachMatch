@@ -9,7 +9,8 @@ import type {
   Coach,
   CoachDetail,
   CoachListItem,
-  CoachSearchSort,
+  CoachSearchResponse,
+  CoachSummary,
   CoachStatus,
   CoachScheduleResponse,
   CoachScheduleSlot,
@@ -179,44 +180,42 @@ const coachSearchFixtures: CoachListItem[] = [
   },
 ]
 
-const coachDetailFixtures: Partial<Record<string, CoachDetail>> = Object.fromEntries(
-  coachSearchFixtures.map((coach, index) => {
-    const serviceAreas = [
-      `${coach.neighborhood}, ${coach.city}`,
-      coach.city === 'São Paulo' ? 'Atendimento em academia parceira' : 'Treinos presenciais',
-    ]
-    return [
-      coach.coachId,
+const stateByCity: Record<string, string> = {
+  'São Paulo': 'SP',
+  'Rio de Janeiro': 'RJ',
+  Recife: 'PE',
+}
+
+function coachToDetail(coach: CoachListItem): CoachDetail {
+  const slug = coach.coachId.replace('coach_', '')
+  return {
+    coachId: coach.coachId,
+    status: 'APPROVED',
+    profile: {
+      name: coach.name,
+      phone: null,
+      specialties: coach.specialties,
+      cref: `CREF ${slug.toUpperCase()}-G/SP`,
+      instagram: `@${normalizeText(coach.name).replace(/\s+/g, '.')}`,
+      profile_video: false,
+    },
+    work_location: [
       {
-        ...coach,
-        cref: `CREF ${String(100000 + index * 137)}-G/SP`,
-        bio: `${coach.name.split(' ')[0]} monta treinos objetivos, com progressão clara e acompanhamento próximo para você evoluir sem adivinhação.`,
-        experienceYears: 5 + (index % 8),
-        sessionsCount: 140 + index * 38,
-        responseTime: index % 3 === 0 ? '1h' : '3h',
-        serviceAreas,
-        trainingStyles: ['Plano progressivo', 'Correção técnica', 'Ajustes semanais'],
-        languages: ['Português'],
-        instagram: `@${normalizeText(coach.name).replace(/\s+/g, '.')}`,
-        reviews: [
-          {
-            id: `${coach.coachId}_review_1`,
-            studentName: 'Ana Ferreira',
-            rating: Math.min(5, coach.rating),
-            comment: 'Treino bem explicado, pontualidade e ajustes certeiros durante a sessão.',
-            date: '2026-05-20',
-          },
-          {
-            id: `${coach.coachId}_review_2`,
-            studentName: 'Bruno Oliveira',
-            rating: Math.max(4.5, coach.rating - 0.1),
-            comment: 'Gostei da clareza no plano e da atenção com postura e carga.',
-            date: '2026-05-02',
-          },
-        ],
+        type: 'GYM',
+        gymId: `gym_${slug}`,
+        gym: {
+          name: `Studio ${coach.name.split(' ')[0]}`,
+          neighborhood: coach.neighborhood,
+          city: coach.city,
+          state: stateByCity[coach.city] ?? 'SP',
+        },
       },
-    ]
-  }),
+    ],
+  }
+}
+
+const coachDetailFixtures: Partial<Record<string, CoachDetail>> = Object.fromEntries(
+  coachSearchFixtures.map((coach) => [coach.coachId, coachToDetail(coach)]),
 )
 
 function buildInitialCoach(): Coach {
@@ -447,31 +446,6 @@ function normalizeText(value: string): string {
     .toLowerCase()
 }
 
-function computeNextAvailability(coachId: string): string {
-  const now = Date.now()
-  const upcoming = [...state.schedules.values()]
-    .filter(
-      (s) =>
-        s.coachId === coachId &&
-        (s.status === 'AVAILABLE' || s.status === 'REQUESTED') &&
-        new Date(s.startDateTime).getTime() > now,
-    )
-    .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime())
-  if (upcoming.length === 0) return ''
-  const nextDt = new Date(upcoming[0].startDateTime)
-  const today = new Date()
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  const todayStr = `${String(today.getFullYear())}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-  const tomorrowStr = `${String(tomorrow.getFullYear())}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`
-  const slotDateStr = upcoming[0].startDateTime.slice(0, 10)
-  const timeStr = nextDt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  if (slotDateStr === todayStr) return `Hoje \u00e0s ${timeStr}`
-  if (slotDateStr === tomorrowStr) return `Amanh\u00e3 \u00e0s ${timeStr}`
-  const weekday = nextDt.toLocaleDateString('pt-BR', { weekday: 'long' })
-  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} \u00e0s ${timeStr}`
-}
-
 function getArrayParam(url: URL, key: string): string[] {
   return [...url.searchParams.getAll(key), ...url.searchParams.getAll(key.replace('[]', ''))]
     .flatMap((value) => value.split(','))
@@ -479,12 +453,47 @@ function getArrayParam(url: URL, key: string): string[] {
     .filter(Boolean)
 }
 
-function sortCoachResults(items: CoachListItem[], sort: CoachSearchSort): CoachListItem[] {
-  return [...items].sort((a, b) => {
-    if (sort === 'price_asc') return a.priceFrom - b.priceFrom
-    if (sort === 'price_desc') return b.priceFrom - a.priceFrom
-    return b.rating - a.rating
-  })
+function paginateByLastKey<T, K extends Record<string, string>>(
+  items: T[],
+  lastKeyRaw: string | null,
+  limit: number,
+  getKey: (item: T) => K,
+): { items: T[]; lastKey: K | null } {
+  let start = 0
+  if (lastKeyRaw) {
+    try {
+      const key = JSON.parse(lastKeyRaw) as Partial<K>
+      const idx = items.findIndex((item) => {
+        const itemKey = getKey(item)
+        return Object.entries(key).every(([field, value]) => itemKey[field] === value)
+      })
+      if (idx >= 0) start = idx + 1
+    } catch {
+      start = 0
+    }
+  }
+  const pageItems = items.slice(start, start + limit)
+  const hasNext = start + limit < items.length
+  const lastItem = pageItems.at(-1)
+  return {
+    items: pageItems,
+    lastKey: hasNext && lastItem ? getKey(lastItem) : null,
+  }
+}
+
+function coachToSummary(coach: CoachListItem): CoachSummary {
+  return {
+    coachId: coach.coachId,
+    profile: {
+      name: coach.name,
+      phone: null,
+      specialties: coach.specialties,
+      cref: `CREF ${coach.coachId.replace('coach_', '').toUpperCase()}-G/SP`,
+      instagram: `@${coach.coachId.replace('coach_', '')}`,
+      profile_video: false,
+    },
+    work_location: [],
+  }
 }
 
 function nowIso(): string {
@@ -537,55 +546,31 @@ export const handlers = [
     const url = new URL(request.url)
     const query = url.searchParams.get('q')
     const specialtiesFilter = getArrayParam(url, 'specialties[]')
-    const address = url.searchParams.get('address')
-    const priceMin = url.searchParams.get('priceMin')
-    const priceMax = url.searchParams.get('priceMax')
-    const availableOn = url.searchParams.get('availableOn')
-    const page = getNumberParam(url, 'page', 1)
     const limit = getNumberParam(url, 'limit', 12)
-    const sort = (url.searchParams.get('sort') ?? 'rating') as CoachSearchSort
 
-    const filtered = coachSearchFixtures.filter((coach) => {
-      const searchable = normalizeText(
-        [coach.name, coach.city, coach.neighborhood, ...coach.specialties].join(' '),
-      )
-      const matchesQuery = !query || searchable.includes(normalizeText(query))
-      const matchesSpecialty =
-        specialtiesFilter.length === 0 ||
-        specialtiesFilter.some((item) =>
-          coach.specialties.some((specialty) =>
-            normalizeText(specialty).includes(normalizeText(item)),
-          ),
-        )
-      const matchesAddress =
-        !address ||
-        normalizeText(`${coach.neighborhood} ${coach.city}`).includes(normalizeText(address))
-      const matchesMin = !priceMin || coach.priceFrom >= Number(priceMin)
-      const matchesMax = !priceMax || coach.priceFrom <= Number(priceMax)
-      const matchesAvailability =
-        !availableOn ||
-        [...state.schedules.values()].some(
-          (s) =>
-            s.coachId === coach.coachId &&
-            (s.status === 'AVAILABLE' || s.status === 'REQUESTED') &&
-            s.startDateTime.slice(0, 10) === availableOn,
-        )
-      return (
-        matchesQuery &&
-        matchesSpecialty &&
-        matchesAddress &&
-        matchesMin &&
-        matchesMax &&
-        matchesAvailability
-      )
+    const filtered = coachSearchFixtures
+      .filter((coach) => {
+        const searchable = normalizeText([coach.name, coach.neighborhood, ...coach.specialties].join(' '))
+        const matchesQuery = !query || searchable.includes(normalizeText(query))
+        const matchesSpecialty =
+          specialtiesFilter.length === 0 ||
+          specialtiesFilter.some((item) => coach.specialties.includes(item))
+        return matchesQuery && matchesSpecialty
+      })
+      // Espelha o backend: ordem estável por coachId.
+      .sort((a, b) => a.coachId.localeCompare(b.coachId))
+
+    const { items, lastKey } = paginateByLastKey(
+      filtered,
+      url.searchParams.get('lastKey'),
+      limit,
+      (coach) => ({ coachId: coach.coachId }),
+    )
+
+    return HttpResponse.json<CoachSearchResponse>({
+      data: items.map(coachToSummary),
+      meta: { limit, lastKey },
     })
-
-    const withAvailability = filtered.map((coach) => ({
-      ...coach,
-      nextAvailability: computeNextAvailability(coach.coachId),
-    }))
-
-    return HttpResponse.json(paginate(sortCoachResults(withAvailability, sort), page, limit))
   }),
 
   http.put('*/coach/me', async ({ request }) => {
@@ -1302,7 +1287,7 @@ export const handlers = [
     })
   }),
 
-  http.get('*/coaches/:coachId', async ({ params }) => {
+  http.get('*/student/coaches/:coachId', async ({ params }) => {
     await wait(180)
     const coachId = String(params['coachId'])
     const coach = coachDetailFixtures[coachId]

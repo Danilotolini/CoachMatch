@@ -68,14 +68,19 @@ function getFilter(schedule: StudentScheduleItem): ScheduleFilter {
   return 'history'
 }
 
+function isPaid(schedule: StudentScheduleItem): boolean {
+  return schedule.paymentStatus === 'PAID'
+}
+
 function getStatusTone(schedule: StudentScheduleItem): string {
-  if (schedule.scheduleStatus === 'COMPLETED' && schedule.paymentStatus === 'PENDING') {
-    return 'bg-secondary-container text-on-secondary-container'
+  if (schedule.scheduleStatus === 'BOOKED') {
+    return isPaid(schedule)
+      ? 'bg-primary-container text-on-primary-container'
+      : 'bg-secondary-container text-on-secondary-container'
   }
-  if (schedule.scheduleStatus === 'COMPLETED' && schedule.paymentStatus === 'PAID') {
+  if (schedule.scheduleStatus === 'COMPLETED' && isPaid(schedule)) {
     return 'bg-tertiary-container text-on-tertiary-container'
   }
-  if (schedule.scheduleStatus === 'BOOKED') return 'bg-primary-container text-on-primary-container'
   if (schedule.scheduleStatus === 'REQUESTED' || schedule.request?.status === 'REQUESTED') {
     return 'bg-secondary-container text-on-secondary-container'
   }
@@ -86,10 +91,12 @@ function getStatusTone(schedule: StudentScheduleItem): string {
 }
 
 function getStatusLabel(schedule: StudentScheduleItem): string {
-  if (schedule.scheduleStatus === 'COMPLETED' && schedule.paymentStatus === 'PENDING') {
-    return 'Pagamento pendente'
+  if (schedule.scheduleStatus === 'BOOKED') {
+    return isPaid(schedule) ? 'Confirmado' : 'Pagamento pendente'
   }
-  if (schedule.scheduleStatus === 'COMPLETED' && schedule.paymentStatus === 'PAID') return 'Pago'
+  if (schedule.scheduleStatus === 'COMPLETED') {
+    return isPaid(schedule) ? 'Pago' : scheduleStatusLabels.COMPLETED
+  }
   if (schedule.request?.status) return requestStatusLabels[schedule.request.status]
   return scheduleStatusLabels[schedule.scheduleStatus]
 }
@@ -302,8 +309,8 @@ function ScheduleCard({
   onPaymentUpdated: () => void
 }) {
   const { schedule, coach } = item
-  const specialty = coach?.specialties.find(Boolean) ?? schedule.specialtyId
-  const canPay = schedule.scheduleStatus === 'COMPLETED' && schedule.paymentStatus === 'PENDING'
+  const specialty = coach?.profile.specialties.find(Boolean) ?? schedule.specialtyId
+  const canPay = schedule.scheduleStatus === 'BOOKED' && schedule.paymentStatus !== 'PAID'
 
   return (
     <Card className="p-4 transition-colors hover:bg-surface-container">
@@ -321,7 +328,7 @@ function ScheduleCard({
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <h2 className="font-headline text-lg font-semibold">
-                  {coach?.name ?? 'Treinador'}
+                  {coach?.profile.name ?? 'Treinador'}
                 </h2>
                 <span
                   className={`rounded-full px-2 py-0.5 font-label text-[10px] font-semibold uppercase ${getStatusTone(
