@@ -287,6 +287,7 @@ interface Props {
   onSlotClick?: (slot: Schedule) => void
   onTimeClick?: (selection: CalendarTimeSelection) => void
   visibleStatuses: ScheduleStatus[]
+  statusLabels?: Partial<Record<ScheduleStatus, string>>
 }
 
 export interface CalendarTimeSelection {
@@ -301,6 +302,7 @@ export default function ScheduleCalendar({
   onSlotClick,
   onTimeClick,
   visibleStatuses,
+  statusLabels,
 }: Props) {
   const today = useMemo(() => {
     const d = new Date()
@@ -528,7 +530,7 @@ export default function ScheduleCalendar({
           <div key={status} className="flex items-center gap-2">
             <div className={`h-2.5 w-2.5 rounded-sm ${STATUS_DOT[status]}`} />
             <span className="font-label text-[11px] text-on-surface-variant">
-              {STATUS_LABELS[status]}
+              {statusLabels?.[status] ?? STATUS_LABELS[status]}
             </span>
           </div>
         ))}

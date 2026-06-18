@@ -4,6 +4,7 @@ import type {
   CoachDetail,
   CoachSearchFilters,
   CoachSearchResponse,
+  CoachStudentDetail,
   CoachUpdatePayload,
 } from '@/types/api'
 
@@ -30,4 +31,8 @@ export function fetchCoachDetail(coachId: string): Promise<CoachDetail> {
 
 export function updateCoachMe(payload: CoachUpdatePayload): Promise<Coach> {
   return apiPut<Coach>('/coach/me', payload, { role: 'coach' })
+}
+
+export function fetchCoachStudentDetail(studentId: string): Promise<CoachStudentDetail> {
+  return apiGet<CoachStudentDetail>(`/coach/students/${studentId}`, undefined, { role: 'coach' })
 }

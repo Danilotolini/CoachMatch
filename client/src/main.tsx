@@ -1,3 +1,4 @@
+import { markBooted } from '@/boot/bootErrorOverlay'
 import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
@@ -24,6 +25,7 @@ import { CoachRouteGuard } from '@/components/CoachRouteGuard'
 import { COACH_ONBOARDING_STATUSES } from '@/lib/coachStatus'
 import { ClientRouteGuard } from '@/components/ClientRouteGuard'
 import { AppShell } from '@/components/AppShell'
+import { RouteErrorBoundary } from '@/components/RouteErrorBoundary'
 import ClientSearchPage from '@/pages/ClientSearchPage'
 import ClientCoachDetailPage from '@/pages/ClientCoachDetailPage'
 import NotFoundPage from '@/pages/NotFoundPage'
@@ -31,8 +33,10 @@ import {
   ClientHealthFormPage,
   ClientOnboardingPage,
   ClientSchedulePage,
+  ClientSessionDetailPage,
   CoachOnboardingPage,
   CoachSchedulePage,
+  CoachSessionDetailPage,
 } from '@/pages/lazy'
 
 function getDevRoutes() {
@@ -53,6 +57,7 @@ function getDevRoutes() {
 const router = createBrowserRouter([
   {
     element: <AppShell />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { path: '/', element: <WelcomePage /> },
       ...getDevRoutes(),
@@ -110,6 +115,16 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/client/schedule/:scheduleId',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <Suspense fallback={null}>
+              <ClientSessionDetailPage />
+            </Suspense>
+          </ClientRouteGuard>
+        ),
+      },
+      {
         path: '/client/profile',
         element: (
           <ClientRouteGuard requireOnboarded>
@@ -154,6 +169,16 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/coach/schedule/:scheduleId',
+        element: (
+          <CoachRouteGuard allow={['APPROVED']}>
+            <Suspense fallback={null}>
+              <CoachSessionDetailPage />
+            </Suspense>
+          </CoachRouteGuard>
+        ),
+      },
+      {
         path: '/coach/profile',
         element: (
           <CoachRouteGuard allow={['APPROVED']}>
@@ -186,4 +211,5 @@ void enableMocking().then(() => {
       </QueryClientProvider>
     </StrictMode>,
   )
+  markBooted()
 })

@@ -8,6 +8,7 @@ import type {
   ClientStatus,
   Coach,
   CoachDetail,
+  CoachStudentDetail,
   CoachListItem,
   CoachSearchResponse,
   CoachSummary,
@@ -1297,6 +1298,44 @@ export const handlers = [
       return HttpResponse.json({ errors: ['Treinador não encontrado.'] }, { status: 404 })
     }
     return HttpResponse.json<CoachDetail>(coach)
+  }),
+
+  http.get('*/coach/students/:studentId', async ({ params }) => {
+    await wait(160)
+    const studentId = String(params['studentId'])
+    const linked = [...state.schedules.values()].some(
+      (slot) => slot.coachId === state.coach.coachId && slot.studentId === studentId,
+    )
+    if (!linked) {
+      return HttpResponse.json(
+        { errors: ['Você não tem sessões com este aluno.'] },
+        { status: 403 },
+      )
+    }
+    const client = state.client
+    const detail: CoachStudentDetail = {
+      studentId,
+      name: studentId === client.clientId ? client.name : (lookupStudentName(studentId) ?? null),
+      birthDate: studentId === client.clientId ? client.birthDate : null,
+      gender: studentId === client.clientId ? client.gender : null,
+      goal: studentId === client.clientId ? client.goal : null,
+      health:
+        studentId === client.clientId
+          ? client.health
+          : {
+              answers: {
+                heart: 'NO',
+                chest_pain: 'NO',
+                dizziness: 'YES',
+                bone_joint: 'NO',
+                medication: 'NO',
+              },
+              notes: 'Sente tontura ocasional; evitar exercícios de inversão.',
+              lgpdConsent: true,
+              medicalDisclaimer: true,
+            },
+    }
+    return HttpResponse.json<CoachStudentDetail>(detail)
   }),
 
   http.post('*/dev/approve-coach', async () => {
