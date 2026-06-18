@@ -82,6 +82,7 @@ provider:
           Action:
             - dynamodb:PutItem
             - dynamodb:GetItem
+            - dynamodb:BatchGetItem
             - dynamodb:UpdateItem
             - dynamodb:Query
             - dynamodb:Scan
@@ -257,7 +258,21 @@ functions:
       - httpApi:
           path: /student/coaches
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}            
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  studentGetCoachDetail:
+    handler: src/students/get-coach-detail/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /student/coaches/{coachId}
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   # ─── Pagamentos ────────────────────────────────────────────────────────────
 
