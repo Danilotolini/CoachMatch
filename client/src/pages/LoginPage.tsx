@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router'
 import { fetchClientMe } from '@/api/clients'
 import { isTokenExpired } from '@/lib/auth'
@@ -45,6 +45,12 @@ export default function LoginPage({ audience }: LoginPageProps) {
   const rawState: unknown = useLocation().state
   const [loginUrl, setLoginUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Garante que o /authorize seja iniciado uma única vez. Sem isso, o
+  // double-invoke do StrictMode (dev) chama getLoginUrl duas vezes; como cada
+  // chamada grava state/PKCE no sessionStorage após um await, elas podem
+  // resolver fora de ordem e o redirect sair com um state que a outra chamada
+  // já sobrescreveu — caindo em "Estado inválido" no callback.
+  const redirectStarted = useRef(false)
 
   const token = useSessionStore((state) => state.sessions[audience]?.token ?? null)
   const hasSession = !!token
@@ -93,21 +99,18 @@ export default function LoginPage({ audience }: LoginPageProps) {
       return
     }
 
-    let cancelled = false
+    if (redirectStarted.current) return
+    redirectStarted.current = true
+
     getLoginUrl(audience)
       .then((url) => {
-        if (cancelled) return
         setLoginUrl(url)
         window.location.href = url
       })
       .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Erro ao iniciar login.')
-        }
+        setError(err instanceof Error ? err.message : 'Erro ao iniciar login.')
       })
-    return () => {
-      cancelled = true
-    }
+    return
   }, [
     audience,
     endSession,
