@@ -9,12 +9,18 @@ export function SessionExpiredRedirect() {
   const queryClient = useQueryClient()
 
   useEffect(() => {
+    // Uma expiração costuma vir de várias queries em voo de uma vez. Sem dedupe,
+    // cada evento navega de novo para o login e pode remontar o LoginPage.
+    let redirected = false
+
     function handleSessionExpired(event: Event) {
       const detail = (event as CustomEvent<SessionExpiredDetail>).detail
       const routeRole = location.pathname.startsWith('/client') ? 'client' : 'coach'
       if (detail.role && detail.role !== routeRole) return
 
       const loginPath = routeRole === 'client' ? '/client/login' : '/coach/login'
+      if (redirected || location.pathname === loginPath) return
+      redirected = true
       queryClient.clear()
       void navigate(loginPath, {
         replace: true,

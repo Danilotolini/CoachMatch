@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router'
 import { fetchClientMe } from '@/api/clients'
 import { isTokenExpired } from '@/lib/auth'
 import { ApiError } from '@/lib/http'
 import { type Role, useSessionStore } from '@/stores/sessionStore'
 import { getLoginUrl } from '@/lib/cognito'
+import { claimLoginRedirect, releaseLoginRedirect } from '@/lib/loginRedirectGuard'
 import { buildMockIdToken } from '@/dev/mockSession'
 import { Button } from '@/components/ui/Button'
 import type { Client } from '@/types/api'
@@ -45,12 +46,6 @@ export default function LoginPage({ audience }: LoginPageProps) {
   const rawState: unknown = useLocation().state
   const [loginUrl, setLoginUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  // Garante que o /authorize seja iniciado uma única vez. Sem isso, o
-  // double-invoke do StrictMode (dev) chama getLoginUrl duas vezes; como cada
-  // chamada grava state/PKCE no sessionStorage após um await, elas podem
-  // resolver fora de ordem e o redirect sair com um state que a outra chamada
-  // já sobrescreveu — caindo em "Estado inválido" no callback.
-  const redirectStarted = useRef(false)
 
   const token = useSessionStore((state) => state.sessions[audience]?.token ?? null)
   const hasSession = !!token
@@ -99,8 +94,7 @@ export default function LoginPage({ audience }: LoginPageProps) {
       return
     }
 
-    if (redirectStarted.current) return
-    redirectStarted.current = true
+    if (!claimLoginRedirect(audience)) return
 
     getLoginUrl(audience)
       .then((url) => {
@@ -108,6 +102,7 @@ export default function LoginPage({ audience }: LoginPageProps) {
         window.location.href = url
       })
       .catch((err: unknown) => {
+        releaseLoginRedirect(audience)
         setError(err instanceof Error ? err.message : 'Erro ao iniciar login.')
       })
     return
