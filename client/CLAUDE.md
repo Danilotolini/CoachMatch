@@ -45,6 +45,15 @@ Use as APIs do router para rotas internas em vez de `window.location`:
 
 `window.location` continua válido para o que o router não cobre: URLs externas (Cognito hosted UI), `window.location.origin` para montar callbacks absolutos do OAuth, `window.location.reload()`, e código fora de componentes React (ex.: `lib/cognito.ts`, stores).
 
+## Datas e horário
+
+Use sempre os helpers de [`src/lib/dateTime.ts`](src/lib/dateTime.ts) em vez de `Date.now()` / `new Date()` ad-hoc:
+
+- **"Agora" em ms** → `nowMs()` (não `Date.now()`). Centraliza o relógio e evita a regra de pureza do React no render.
+- **Formatar data/hora para a tela** → `formatBrazilDay`, `formatBrazilTime`, `formatBrazilTimeRange`, etc. (todos no fuso `America/Sao_Paulo`). Fuso só importa para **exibição**.
+- **Comparar instantes** (ex.: "começa em menos de 6h?") é aritmética de epoch UTC e **não** precisa de fuso: `new Date(iso).getTime()` já resolve o offset do ISO.
+- Faltou um helper? Adicione em `dateTime.ts` em vez de espalhar lógica de data pelas páginas.
+
 ## Auth / Sessão
 
 Sessão por papel (`coach` e `client`) é responsabilidade do store de sessão. Múltiplas sessões podem coexistir; apenas uma fica ativa.
