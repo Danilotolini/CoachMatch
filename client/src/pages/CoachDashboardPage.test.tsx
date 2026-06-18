@@ -51,6 +51,9 @@ describe('CoachDashboardPage', () => {
   })
 
   it('leva solicitações pendentes para a agenda', async () => {
+    // Fixa o "hoje" para que o slot REQUESTED semeado caia na janela consultada
+    // pelo dashboard — sem isso o teste depende da data real e expira.
+    vi.spyOn(dateTime, 'getTodayBrazilYMD').mockReturnValue('2026-06-15')
     server.use(http.get('*/coach/me', () => HttpResponse.json<Coach>(approvedCoach)))
 
     renderPage()

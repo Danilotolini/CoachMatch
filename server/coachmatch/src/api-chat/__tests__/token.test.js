@@ -1,9 +1,13 @@
-const mockStream = {
-  upsertUser: jest.fn(),
-  createToken: jest.fn(),
-};
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-jest.mock("../../shared/streamClient.js", () => ({
+const { mockStream } = vi.hoisted(() => ({
+  mockStream: {
+    upsertUser: vi.fn(),
+    createToken: vi.fn(),
+  },
+}));
+
+vi.mock("../../shared/streamClient.js", () => ({
   getStreamClient: () => mockStream,
   __resetStreamClientForTests: () => {},
 }));
@@ -13,7 +17,7 @@ import { handler } from "../token.js";
 
 describe("chat / token", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     process.env.STREAM_API_KEY = "key_123";
   });
 

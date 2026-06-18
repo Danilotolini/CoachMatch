@@ -1,11 +1,15 @@
-const mockStream = {
-  channel: jest.fn(),
-  getMessage: jest.fn(),
-  updateMessage: jest.fn(),
-  deleteMessage: jest.fn(),
-};
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-jest.mock("../../shared/streamClient.js", () => ({
+const { mockStream } = vi.hoisted(() => ({
+  mockStream: {
+    channel: vi.fn(),
+    getMessage: vi.fn(),
+    updateMessage: vi.fn(),
+    deleteMessage: vi.fn(),
+  },
+}));
+
+vi.mock("../../shared/streamClient.js", () => ({
   getStreamClient: () => mockStream,
   __resetStreamClientForTests: () => {},
 }));
@@ -21,8 +25,8 @@ import * as handlers from "../messages.js";
 const makeChannel = (id, members) => ({
   id,
   state: { members: Object.fromEntries(members.map((m) => [m, { user_id: m }])) },
-  query: jest.fn().mockResolvedValue({ messages: [] }),
-  sendMessage: jest.fn(),
+  query: vi.fn().mockResolvedValue({ messages: [] }),
+  sendMessage: vi.fn(),
 });
 
 const authEvent = (sub, extra = {}) => ({
@@ -30,7 +34,7 @@ const authEvent = (sub, extra = {}) => ({
   ...extra,
 });
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => vi.clearAllMocks());
 
 describe("chat / messages (service)", () => {
   it("envia mensagem quando membro", async () => {
