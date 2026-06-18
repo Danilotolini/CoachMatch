@@ -14,10 +14,7 @@ describe('SearchControls', () => {
   it('remove filtros individuais com chave e valor corretos', async () => {
     const onRemove = vi.fn()
     render(
-      <ActiveFiltersBar
-        filters={{ q: 'força', specialties: ['Funcional'] }}
-        onRemove={onRemove}
-      />,
+      <ActiveFiltersBar filters={{ q: 'força', specialties: ['Funcional'] }} onRemove={onRemove} />,
     )
 
     await userEvent.click(screen.getByRole('button', { name: /Remover Busca: força/i }))
