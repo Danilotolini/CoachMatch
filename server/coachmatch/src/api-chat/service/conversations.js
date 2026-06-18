@@ -28,7 +28,7 @@ const serializeChannel = (channel) => {
 };
 
 /** Cria (ou recupera) a conversa direta entre o usuário e um par (aluno↔coach). */
-export const createConversation = async ({ userId, peerId }) => {
+export const createConversation = async ({ userId, userName, peerId, peerName }) => {
   if (!peerId) throw new ChatValidationError("peerId é obrigatório");
   if (peerId === userId) {
     throw new ChatValidationError("Não é possível abrir conversa consigo mesmo");
@@ -36,6 +36,14 @@ export const createConversation = async ({ userId, peerId }) => {
 
   const stream = getStreamClient();
   const channelId = buildChannelId(userId, peerId);
+
+  // O Stream recusa criar o canal se algum membro ainda não existir como user.
+  // O par pode nunca ter pedido um token de chat, então garantimos os dois.
+  await stream.upsertUsers([
+    { id: userId, role: "user", ...(userName ? { name: userName } : {}) },
+    { id: peerId, role: "user", ...(peerName ? { name: peerName } : {}) },
+  ]);
+
   const channel = stream.channel(CHANNEL_TYPE, channelId, {
     members: [userId, peerId],
     created_by_id: userId,

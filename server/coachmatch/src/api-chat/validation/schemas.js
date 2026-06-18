@@ -16,6 +16,7 @@ export const validate = (schema, data) => {
 
 export const createConversationSchema = Joi.object({
   peerId: Joi.string().trim().required(),
+  peerName: Joi.string().trim().max(120),
 });
 
 export const updateConversationSchema = Joi.object({

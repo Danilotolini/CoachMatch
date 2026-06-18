@@ -4,6 +4,7 @@ const { mockStream } = vi.hoisted(() => ({
   mockStream: {
     channel: vi.fn(),
     queryChannels: vi.fn(),
+    upsertUsers: vi.fn().mockResolvedValue({}),
   },
 }));
 
@@ -47,9 +48,32 @@ describe("chat / conversations (service)", () => {
 
     const res = await createConversation({ userId: "u1", peerId: "u2" });
 
+    expect(mockStream.upsertUsers).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "u1" }),
+        expect.objectContaining({ id: "u2" }),
+      ])
+    );
     expect(ch.create).toHaveBeenCalled();
     expect(res.id).toBe("dm_aaa_bbb");
     expect(res.members).toEqual(expect.arrayContaining(["u1", "u2"]));
+  });
+
+  it("faz upsert dos membros com o nome quando informado", async () => {
+    const ch = makeChannel("dm_aaa_bbb", ["u1", "u2"]);
+    mockStream.channel.mockReturnValue(ch);
+
+    await createConversation({
+      userId: "u1",
+      userName: "Aluno Demo",
+      peerId: "u2",
+      peerName: "Treinador Demo",
+    });
+
+    expect(mockStream.upsertUsers).toHaveBeenCalledWith([
+      { id: "u1", role: "user", name: "Aluno Demo" },
+      { id: "u2", role: "user", name: "Treinador Demo" },
+    ]);
   });
 
   it("rejeita conversa consigo mesmo", async () => {
