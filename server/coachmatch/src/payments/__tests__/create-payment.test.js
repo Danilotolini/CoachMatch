@@ -4,15 +4,20 @@ vi.mock('../create-payment/repository.js', () => ({
   persistPayment: vi.fn(),
 }));
 
+vi.mock('../../shared/events.js', () => ({
+  emitPaymentSucceeded: vi.fn(),
+}));
+
 import { handler } from '../create-payment/handler.js';
 import { createCardPayment, createPixPayment } from '../create-payment/index.js';
 import { persistPayment } from '../create-payment/repository.js';
+import { emitPaymentSucceeded } from '../../shared/events.js';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
 const STUDENT_ID = '323e4567-e89b-12d3-a456-426614174000';
 const COACH_ID   = '223e4567-e89b-12d3-a456-426614174000';
-const SESSION_ID = '123e4567-e89b-12d3-a456-426614174000';
+const SESSION_ID = 'avl_2c8f1e9b4a7d4f3a9b6c5d2e1f0a8b7c';
 
 const buildAuthEvent = (body, studentId = STUDENT_ID) => ({
   requestContext: { authorizer: { jwt: { claims: { sub: studentId } } } },
@@ -95,6 +100,33 @@ describe('create-payment › index', () => {
         createCardPayment({ studentId: STUDENT_ID, coachId: COACH_ID, sessionId: SESSION_ID, amount: 50 }) // amount < 100
       ).rejects.toThrow();
     });
+
+    it('aceita sessionId opaco (formato avl_)', async () => {
+      const result = await createCardPayment({ studentId: STUDENT_ID, ...cardBody });
+      expect(result.sessionId).toBe(SESSION_ID);
+    });
+
+    it('emite payment.succeeded quando aprovado', async () => {
+      await createCardPayment({ studentId: STUDENT_ID, ...cardBody });
+      expect(emitPaymentSucceeded).toHaveBeenCalledWith(
+        expect.objectContaining({ sessionId: SESSION_ID, status: 'approved' })
+      );
+    });
+
+    it('NÃO emite payment.succeeded quando recusado', async () => {
+      await createCardPayment({
+        studentId: STUDENT_ID,
+        ...cardBody,
+        card: { ...cardBody.card, number: '4222222222222222' },
+      });
+      expect(emitPaymentSucceeded).not.toHaveBeenCalled();
+    });
+
+    it('não derruba o pagamento se a emissão falhar', async () => {
+      emitPaymentSucceeded.mockRejectedValueOnce(new Error('SQS indisponível'));
+      const result = await createCardPayment({ studentId: STUDENT_ID, ...cardBody });
+      expect(result.status).toBe('approved');
+    });
   });
 
   describe('createPixPayment', () => {
@@ -127,6 +159,13 @@ describe('create-payment › index', () => {
       await createPixPayment({ studentId: STUDENT_ID, ...pixBody });
       expect(persistPayment).toHaveBeenCalledWith(
         expect.objectContaining({ studentId: STUDENT_ID, method: 'pix', status: 'approved' })
+      );
+    });
+
+    it('emite payment.succeeded (PIX sempre aprovado)', async () => {
+      await createPixPayment({ studentId: STUDENT_ID, ...pixBody });
+      expect(emitPaymentSucceeded).toHaveBeenCalledWith(
+        expect.objectContaining({ sessionId: SESSION_ID, status: 'approved' })
       );
     });
   });

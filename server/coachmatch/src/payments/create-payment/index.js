@@ -3,6 +3,23 @@ import { persistPayment } from './repository.js';
 import { cardPaymentSchema, pixPaymentSchema } from './schema.js';
 import { calculateSplit, maskCardNumber, resolveCardScenario } from '../shared/helpers.js';
 import { ValidationException } from '../../shared/exceptions.js';
+import { emitPaymentSucceeded } from '../../shared/events.js';
+
+/**
+ * Emite o evento de pagamento aprovado sem derrubar o fluxo.
+ *
+ * A transação já foi persistida; uma falha aqui é o problema clássico de
+ * dual-write (gravamos em `payments` mas o evento não saiu). Na fase inicial
+ * apenas logamos — o `paymentStatus` do schedule é corrigido manualmente.
+ */
+const tryEmitPaymentSucceeded = async (transaction) => {
+  if (transaction.status !== 'approved') return;
+  try {
+    await emitPaymentSucceeded(transaction);
+  } catch (err) {
+    console.error(`[ERROR] Falha ao emitir payment.succeeded para ${transaction.transactionId}:`, err);
+  }
+};
 
 /**
  * Processa um pagamento com cartão de crédito.
@@ -35,6 +52,7 @@ export const createCardPayment = async ({ studentId, coachId, sessionId, amount,
   };
 
   await persistPayment(transaction);
+  await tryEmitPaymentSucceeded(transaction);
   return transaction;
 };
 
@@ -67,5 +85,6 @@ export const createPixPayment = async ({ studentId, coachId, sessionId, amount }
   };
 
   await persistPayment(transaction);
+  await tryEmitPaymentSucceeded(transaction);
   return transaction;
 };

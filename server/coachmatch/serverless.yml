@@ -92,6 +92,18 @@ provider:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/gyms
             - arn:aws:dynamodb:sa-east-1:138413505977:table/payments
             - arn:aws:dynamodb:sa-east-1:138413505977:table/payments/index/*
+        # onPaymentSucceeded grava paymentStatus no schedule
+        - Effect: Allow
+          Action:
+            - dynamodb:UpdateItem
+          Resource:
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule
+        # paymentCreate emite o evento payment.succeeded
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+          Resource:
+            - !GetAtt PaymentSucceededQueue.Arn
 
 functions:
 
@@ -284,6 +296,7 @@ functions:
       ENDPOINT: ${param:endpoint, ""}
       ACCESS_KEY_ID: ${param:access_key_id, ""}
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      PAYMENT_SUCCEEDED_QUEUE_URL: !Ref PaymentSucceededQueue
     events:
       - httpApi:
           path: /payments
@@ -541,6 +554,23 @@ functions:
           authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
 
+  # ─── Integração Pagamento → Agendamento ─────────────────────────────────────
+  # Consome `payment.succeeded` e marca o schedule como PAID. Ver PLAN.md.
+
+  onPaymentSucceeded:
+    handler: src/schedule/on-payment-succeeded/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - sqs:
+          arn: !GetAtt PaymentSucceededQueue.Arn
+          batchSize: 10
+          functionResponseType: ReportBatchItemFailures
+
 resources:
   Conditions:
     IsLocal: !Equals [ "${param:stage}", "local" ]
@@ -652,6 +682,21 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+
+    # Fila do evento payment.succeeded (gerenciada pelo stack, todos os stages)
+    PaymentSucceededQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: payment-succeeded-${param:stage}
+        VisibilityTimeout: 60
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt PaymentSucceededDLQ.Arn
+          maxReceiveCount: 3
+    PaymentSucceededDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: payment-succeeded-dlq-${param:stage}
+        MessageRetentionPeriod: 1209600
 
 custom:
   config: ${file(./config.yml)}
