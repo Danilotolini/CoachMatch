@@ -5,16 +5,25 @@ import { fetchCoachDetail } from '@/api/coaches'
 import { getStudentScheduleRequests } from '@/api/schedule'
 import { StudentPaymentSimulator } from '@/components/client/StudentPaymentSimulator'
 import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNavigation'
+import ScheduleCalendar from '@/components/schedule/ScheduleCalendar'
+import { SessionSummaryModal } from '@/components/schedule/SessionSummaryModal'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Icon } from '@/components/ui/Icon'
+import { useStudentSpecialties } from '@/hooks/useStudentSpecialties'
 import {
   formatBrazilDay,
   formatBrazilDayOfMonth,
   formatStudentScheduleTimeRange,
 } from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
-import type { CoachDetail, RequestStatus, ScheduleStatus, StudentScheduleItem } from '@/types/api'
+import type {
+  CoachDetail,
+  RequestStatus,
+  Schedule,
+  ScheduleStatus,
+  StudentScheduleItem,
+} from '@/types/api'
 
 type ScheduleFilter = 'upcoming' | 'requests' | 'history'
 
@@ -72,6 +81,26 @@ function isPaid(schedule: StudentScheduleItem): boolean {
   return schedule.paymentStatus === 'PAID'
 }
 
+function toCalendarSlot(schedule: StudentScheduleItem, studentId: string): Schedule {
+  return {
+    scheduleId: schedule.scheduleId,
+    coachId: schedule.coachId,
+    gymId: schedule.gymId,
+    specialtyId: schedule.specialtyId,
+    startDateTime: schedule.startDateTime,
+    endDateTime: schedule.endDateTime,
+    price: schedule.price,
+    status: schedule.scheduleStatus,
+    studentId,
+    paymentStatus: schedule.paymentStatus ?? null,
+    rating: null,
+    studentComment: null,
+    requests: schedule.request ? [schedule.request] : null,
+    createdAt: '',
+    updatedAt: '',
+  }
+}
+
 function getStatusTone(schedule: StudentScheduleItem): string {
   if (schedule.scheduleStatus === 'BOOKED') {
     return isPaid(schedule)
@@ -105,13 +134,24 @@ export default function ClientSchedulePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [activeFilter, setActiveFilter] = useState<ScheduleFilter>('upcoming')
+  const [selectedSlot, setSelectedSlot] = useState<Schedule | null>(null)
   const scheduleQuery = useQuery({
     queryKey: ['student-schedule-requests'],
     queryFn: getStudentScheduleRequests,
     staleTime: 20 * 1000,
   })
+  const specialtiesQuery = useStudentSpecialties()
 
   const schedules = useMemo(() => scheduleQuery.data?.schedules ?? [], [scheduleQuery.data])
+  const studentId = scheduleQuery.data?.studentId ?? ''
+  const calendarSlots = useMemo(
+    () => schedules.map((schedule) => toCalendarSlot(schedule, studentId)),
+    [schedules, studentId],
+  )
+  const specialtyLabels = useMemo(
+    () => new Map((specialtiesQuery.data?.data ?? []).map((s) => [s.id, s.label])),
+    [specialtiesQuery.data],
+  )
   const coachIds = useMemo(
     () => [...new Set(schedules.map((schedule) => schedule.coachId))],
     [schedules],
@@ -139,15 +179,6 @@ export default function ClientSchedulePage() {
     [activeFilter, coachesById, schedules],
   )
 
-  const nextSession = useMemo(
-    () => schedules.find((schedule) => schedule.scheduleStatus === 'BOOKED'),
-    [schedules],
-  )
-  const pendingCount = schedules.filter(
-    (schedule) =>
-      schedule.scheduleStatus === 'REQUESTED' || schedule.request?.status === 'REQUESTED',
-  ).length
-
   return (
     <main className="relative flex min-h-[max(884px,100dvh)] w-full bg-surface text-on-surface">
       <ClientSideNav />
@@ -171,19 +202,15 @@ export default function ClientSchedulePage() {
 
         <section className="mx-auto grid w-full max-w-6xl flex-1 gap-5 px-4 pb-12 sm:px-6 md:px-10 lg:grid-cols-[minmax(0,1fr)_21rem]">
           <div className="flex min-w-0 flex-col gap-5">
-            <section className="grid gap-3 md:grid-cols-3">
-              <SummaryTile
-                icon="event_available"
-                label="Próxima"
-                value={nextSession ? formatDay(nextSession.startDateTime) : 'Sem sessão'}
+            <Card className="p-4">
+              <ScheduleCalendar
+                slots={calendarSlots}
+                specialtyLabels={specialtyLabels}
+                onSlotClick={setSelectedSlot}
+                visibleStatuses={['REQUESTED', 'BOOKED', 'COMPLETED', 'NOSHOW']}
+                statusLabels={{ NOSHOW: 'Ausente' }}
               />
-              <SummaryTile icon="pending_actions" label="Pedidos" value={String(pendingCount)} />
-              <SummaryTile
-                icon="payments"
-                label="Investimento"
-                value={nextSession ? formatMoney(nextSession.price) : 'R$ 0'}
-              />
-            </section>
+            </Card>
 
             <div className="flex gap-2 overflow-x-auto pb-1">
               {filterOptions.map((option) => {
@@ -237,7 +264,8 @@ export default function ClientSchedulePage() {
                   <ScheduleCard
                     key={item.schedule.scheduleId}
                     item={item}
-                    studentId={scheduleQuery.data?.studentId ?? ''}
+                    studentId={studentId}
+                    onSelect={setSelectedSlot}
                     onPaymentUpdated={() => {
                       void queryClient.invalidateQueries({
                         queryKey: ['student-schedule-requests'],
@@ -251,17 +279,8 @@ export default function ClientSchedulePage() {
 
           <aside className="hidden lg:block">
             <Card className="sticky top-8 overflow-hidden p-0">
-              <div className="kinetic-grid relative min-h-72 bg-surface-container p-5">
-                <div className="relative z-10 flex h-full flex-col justify-between gap-10">
-                  <div>
-                    <span className="font-label text-xs text-on-surface-variant">Fluxo</span>
-                    <h2 className="mt-1 font-headline text-2xl font-bold tracking-tight">
-                      Pedido feito. Treinador decide.
-                    </h2>
-                    <p className="mt-3 font-body text-sm text-on-surface-variant">
-                      Quando uma solicitação é aprovada, ela sobe para próximas sessões.
-                    </p>
-                  </div>
+              <div className="kinetic-grid relative bg-surface-container p-5">
+                <div className="relative z-10 flex flex-col gap-4">
                   <Button
                     type="button"
                     variant="secondary"
@@ -278,34 +297,37 @@ export default function ClientSchedulePage() {
         </section>
       </div>
 
+      {selectedSlot && (
+        <SessionSummaryModal
+          slot={selectedSlot}
+          viewer="client"
+          counterpartName={coachesById.get(selectedSlot.coachId)?.profile.name ?? 'Treinador'}
+          specialtyLabel={specialtyLabels.get(selectedSlot.specialtyId) ?? selectedSlot.specialtyId}
+          onViewDetails={() => {
+            const { scheduleId } = selectedSlot
+            setSelectedSlot(null)
+            void navigate(`/client/schedule/${scheduleId}`)
+          }}
+          onClose={() => {
+            setSelectedSlot(null)
+          }}
+        />
+      )}
+
       <ClientBottomNav />
     </main>
-  )
-}
-
-function SummaryTile({ icon, label, value }: { icon: string; label: string; value: string }) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-surface-container-high text-primary">
-          <Icon name={icon} size={21} />
-        </div>
-        <div className="min-w-0">
-          <span className="font-label text-xs text-on-surface-variant">{label}</span>
-          <p className="truncate font-headline text-lg font-bold">{value}</p>
-        </div>
-      </div>
-    </Card>
   )
 }
 
 function ScheduleCard({
   item,
   studentId,
+  onSelect,
   onPaymentUpdated,
 }: {
   item: ScheduleViewItem
   studentId: string
+  onSelect: (slot: Schedule) => void
   onPaymentUpdated: () => void
 }) {
   const { schedule, coach } = item
@@ -315,7 +337,13 @@ function ScheduleCard({
   return (
     <Card className="p-4 transition-colors hover:bg-surface-container">
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <button
+          type="button"
+          onClick={() => {
+            onSelect(toCalendarSlot(schedule, studentId))
+          }}
+          className="flex w-full flex-col gap-4 text-left sm:flex-row sm:items-center"
+        >
           <div className="flex min-w-0 flex-1 gap-4">
             <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-primary text-on-primary-fixed">
               <span className="font-label text-[10px] font-bold uppercase">
@@ -354,7 +382,7 @@ function ScheduleCard({
             </span>
             <Icon name="chevron_right" size={20} className="text-on-surface-variant" />
           </div>
-        </div>
+        </button>
         {canPay ? (
           <StudentPaymentSimulator
             scheduleId={schedule.scheduleId}

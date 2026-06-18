@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { http, HttpResponse } from 'msw'
@@ -66,6 +66,21 @@ function scheduleResponse(schedules: Schedule[]): CoachScheduleResponse {
     endDateTime: '',
     count: schedules.length,
     schedules,
+  }
+}
+
+// Data YYYY-MM-DD deslocada em dias a partir de agora, para gerar slots
+// passados/futuros independente do relógio em que o teste roda.
+function dayOffset(days: number): string {
+  return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
+}
+
+function approvedRequest(studentName: string) {
+  return {
+    studentId: 'student_001',
+    status: 'APPROVED' as const,
+    requestedAt: '2026-11-01T10:00:00Z',
+    studentName,
   }
 }
 
@@ -167,6 +182,57 @@ describe('CoachSchedulePage', () => {
       })
     })
 
+    it('abre o modal da sessão ao clicar num card de solicitação pendente', async () => {
+      server.use(
+        http.get('*/coach/schedule', () =>
+          HttpResponse.json<CoachScheduleResponse>(
+            scheduleResponse([
+              makeSchedule({
+                scheduleId: 'sch_req',
+                status: 'REQUESTED',
+                requests: [
+                  {
+                    studentId: 'student_001',
+                    status: 'REQUESTED',
+                    requestedAt: '2026-11-01T10:00:00Z',
+                  },
+                ],
+              }),
+            ]),
+          ),
+        ),
+        http.get('*/coach/schedule/requests', () =>
+          HttpResponse.json({
+            scheduleId: 'sch_req',
+            startDateTime: '2026-12-01T09:00:00-03:00',
+            endDateTime: '2026-12-01T10:00:00-03:00',
+            status: 'REQUESTED',
+            count: 1,
+            requests: [
+              {
+                studentId: 'student_001',
+                status: 'REQUESTED',
+                requestedAt: '2026-11-01T10:00:00Z',
+                studentName: 'Ana Ferreira',
+              },
+            ],
+          }),
+        ),
+      )
+
+      renderPage()
+
+      expect(await screen.findByText(/1 aguardando resposta/i)).toBeInTheDocument()
+      const pendingSection = screen
+        .getByText('Solicitações pendentes')
+        .closest('section') as HTMLElement
+      await userEvent.click(within(pendingSection).getByRole('button', { name: /01 de dez/i }))
+
+      const dialog = await screen.findByRole('dialog')
+      expect(within(dialog).getByRole('button', { name: /ver detalhes/i })).toBeInTheDocument()
+      expect(within(dialog).getByText('1 pendente')).toBeInTheDocument()
+    })
+
     it('cancela um horário agendado pedindo confirmação', async () => {
       let cancelledId: string | null = null
 
@@ -218,6 +284,127 @@ describe('CoachSchedulePage', () => {
       await waitFor(() => {
         expect(cancelledId).toBe('sch_booked')
       })
+    })
+  })
+
+  describe('lista de horários', () => {
+    it('não lista horários passados que estão disponíveis', async () => {
+      server.use(
+        http.get('*/coach/schedule', () =>
+          HttpResponse.json<CoachScheduleResponse>(
+            scheduleResponse([
+              makeSchedule({
+                scheduleId: 'sch_past_avail',
+                status: 'AVAILABLE',
+                startDateTime: `${dayOffset(-2)}T08:00:00-03:00`,
+                endDateTime: `${dayOffset(-2)}T09:00:00-03:00`,
+              }),
+            ]),
+          ),
+        ),
+      )
+
+      renderPage()
+
+      expect(await screen.findByText(/0 horários no período/i)).toBeInTheDocument()
+
+      await userEvent.click(await screen.findByRole('button', { name: /lista de horários/i }))
+      expect(await screen.findByText(/Nenhum horário criado neste intervalo/i)).toBeInTheDocument()
+    })
+
+    it('mantém na lista os horários futuros que estão disponíveis', async () => {
+      server.use(
+        http.get('*/coach/schedule', () =>
+          HttpResponse.json<CoachScheduleResponse>(
+            scheduleResponse([
+              makeSchedule({
+                scheduleId: 'sch_future_avail',
+                status: 'AVAILABLE',
+                startDateTime: `${dayOffset(10)}T14:00:00-03:00`,
+                endDateTime: `${dayOffset(10)}T15:00:00-03:00`,
+              }),
+            ]),
+          ),
+        ),
+      )
+
+      renderPage()
+
+      expect(await screen.findByText(/1 horário no período/i)).toBeInTheDocument()
+
+      await userEvent.click(await screen.findByRole('button', { name: /lista de horários/i }))
+      expect(screen.queryByText(/Nenhum horário criado neste intervalo/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('histórico de sessões', () => {
+    it('lista apenas sessões fechadas, da mais recente para a mais antiga', async () => {
+      server.use(
+        http.get('*/coach/schedule', () =>
+          HttpResponse.json<CoachScheduleResponse>(
+            scheduleResponse([
+              makeSchedule({
+                scheduleId: 'sch_completed',
+                status: 'COMPLETED',
+                startDateTime: `${dayOffset(-1)}T09:00:00-03:00`,
+                endDateTime: `${dayOffset(-1)}T10:00:00-03:00`,
+                requests: [approvedRequest('Bruno Lima')],
+              }),
+              makeSchedule({
+                scheduleId: 'sch_noshow',
+                status: 'NOSHOW',
+                startDateTime: `${dayOffset(-3)}T09:00:00-03:00`,
+                endDateTime: `${dayOffset(-3)}T10:00:00-03:00`,
+                requests: [approvedRequest('Carla Souza')],
+              }),
+              // Futuro disponível: não deve entrar no histórico.
+              makeSchedule({
+                scheduleId: 'sch_future_avail',
+                status: 'AVAILABLE',
+                startDateTime: `${dayOffset(5)}T09:00:00-03:00`,
+                endDateTime: `${dayOffset(5)}T10:00:00-03:00`,
+              }),
+            ]),
+          ),
+        ),
+      )
+
+      renderPage()
+
+      const subtitle = await screen.findByText(/2 sessões fechadas no período/i)
+      const section = within(subtitle.closest('section') as HTMLElement)
+
+      const completed = section.getByText(/Bruno Lima/)
+      const noShow = section.getByText(/Carla Souza/)
+      expect(section.getByText('Concluído')).toBeInTheDocument()
+      expect(section.getByText('Aluno Ausente')).toBeInTheDocument()
+
+      // Mais recente (COMPLETED, ontem) vem antes da mais antiga (NOSHOW, 3 dias atrás).
+      expect(
+        completed.compareDocumentPosition(noShow) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy()
+    })
+
+    it('mostra estado vazio e não exibe a antiga mensagem de pagamento', async () => {
+      server.use(
+        http.get('*/coach/schedule', () =>
+          HttpResponse.json<CoachScheduleResponse>(
+            scheduleResponse([
+              makeSchedule({
+                scheduleId: 'sch_future_avail',
+                status: 'AVAILABLE',
+                startDateTime: `${dayOffset(5)}T09:00:00-03:00`,
+                endDateTime: `${dayOffset(5)}T10:00:00-03:00`,
+              }),
+            ]),
+          ),
+        ),
+      )
+
+      renderPage()
+
+      expect(await screen.findByText(/Nenhuma sessão fechada no período/i)).toBeInTheDocument()
+      expect(screen.queryByText(/pagamento sob cuidado da plataforma/i)).not.toBeInTheDocument()
     })
   })
 

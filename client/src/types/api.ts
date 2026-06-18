@@ -158,6 +158,16 @@ export interface Client {
   updatedAt: string
 }
 
+/** Recorte de um aluno visível ao treinador */
+export interface CoachStudentDetail {
+  studentId: string
+  name: string | null
+  birthDate: string | null
+  gender: ClientGender | null
+  goal: ClientGoal | null
+  health: ClientHealth | null
+}
+
 export interface ClientProfilePayload {
   name: string
   phone: string

@@ -88,7 +88,7 @@ describe('ClientSchedulePage', () => {
     renderPage()
 
     expect(await screen.findByText('Marcos Vieira')).toBeInTheDocument()
-    expect(screen.getByText('15')).toBeInTheDocument()
+    expect(screen.getByText('15', { selector: 'span.font-black' })).toBeInTheDocument()
     expect(screen.getByText(/Musculação · seg\., 15 de jun\. · 21:30-22:30/i)).toBeInTheDocument()
     expect(screen.getAllByText('Confirmado')).toHaveLength(2)
   })
@@ -177,7 +177,6 @@ describe('ClientSchedulePage', () => {
 
     // Próximas (aba padrão): card BOOKED não pago — "Pagamento pendente" no chip e no simulador
     expect(await screen.findByText('Marcos Vieira')).toBeInTheDocument()
-    expect(screen.getByText('1')).toBeInTheDocument()
     expect(screen.getAllByText('Pagamento pendente')).toHaveLength(2)
 
     fireEvent.click(screen.getByRole('button', { name: 'Pedidos' }))

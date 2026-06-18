@@ -1,5 +1,6 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router'
 import { CoachSideNav, CoachBottomNav } from '@/components/layout/CoachNavigation'
 import { cancelCoachSchedule, createSchedule, getCoachSchedule } from '@/api/schedule'
 import { useCoachMe } from '@/hooks/useCoachMe'
@@ -13,7 +14,7 @@ import {
   useCoachScheduleRequests,
   useUpdateCoachClassStatus,
 } from '@/hooks/useCoachSchedule'
-import { addDaysToYMD, formatBrazilDay, getTodayBrazilYMD } from '@/lib/dateTime'
+import { addDaysToYMD, formatBrazilDay, getTodayBrazilYMD, nowMs } from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
 import { generateDrafts, markDuplicates } from '@/lib/generateDrafts'
 import { runPool } from '@/lib/runPool'
@@ -22,6 +23,7 @@ import { Icon } from '@/components/ui/Icon'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import ScheduleCalendar from '@/components/schedule/ScheduleCalendar'
 import type { CalendarTimeSelection } from '@/components/schedule/ScheduleCalendar'
+import { SessionSummaryModal } from '@/components/schedule/SessionSummaryModal'
 import type {
   ClassStatus,
   Schedule,
@@ -95,6 +97,9 @@ function toDisplayPrice(apiPrice: string): string {
   return maskPrice(apiPrice.replace(/\D/g, ''))
 }
 
+// Quantos dias para trás a agenda carrega para permitir fechar sessões passadas.
+const CLOSE_WINDOW_DAYS = 7
+
 function getDefaultConfig(): GenerateConfig {
   const today = getTodayBrazilYMD()
   return {
@@ -151,7 +156,11 @@ function formatDateTime(iso: string): string {
 }
 
 function isPastSlot(slot: Schedule): boolean {
-  return new Date(slot.startDateTime).getTime() <= Date.now()
+  return new Date(slot.startDateTime).getTime() <= nowMs()
+}
+
+function plural(count: number, singular: string, plural: string): string {
+  return `${String(count)} ${count === 1 ? singular : plural}`
 }
 
 function scheduleCanCancel(slot: Schedule): boolean {
@@ -907,6 +916,7 @@ function PendingRequestCard({
   busyId,
   error,
   onApprove,
+  onSelect,
 }: {
   slot: Schedule
   details?: ScheduleRequestsResponse
@@ -914,6 +924,7 @@ function PendingRequestCard({
   busyId: string | null
   error?: string
   onApprove: (slot: Schedule, request: ScheduleRequest) => void
+  onSelect: (slot: Schedule) => void
 }) {
   const requests = (details?.requests ?? slot.requests ?? []).filter(
     (r) => r.status === 'REQUESTED',
@@ -921,12 +932,21 @@ function PendingRequestCard({
 
   return (
     <div className="flex flex-col gap-3 rounded-lg bg-surface-container-low px-4 py-3">
-      <div>
-        <p className="font-label text-sm font-semibold text-on-surface">
-          {formatDateTime(slot.startDateTime)}-{formatSlotTime(slot.endDateTime)}
-        </p>
-        <p className="font-label text-xs text-on-surface-variant">{specialtyLabel}</p>
-      </div>
+      <button
+        type="button"
+        onClick={() => {
+          onSelect(slot)
+        }}
+        className="-mx-2 -mt-1 flex items-center justify-between gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-surface-container"
+      >
+        <span className="min-w-0">
+          <span className="block font-label text-sm font-semibold text-on-surface">
+            {formatDateTime(slot.startDateTime)}-{formatSlotTime(slot.endDateTime)}
+          </span>
+          <span className="block font-label text-xs text-on-surface-variant">{specialtyLabel}</span>
+        </span>
+        <Icon name="chevron_right" size={18} className="shrink-0 text-on-surface-variant" />
+      </button>
       {requests.length === 0 ? (
         <p className="font-label text-xs text-on-surface-variant">Carregando solicitações...</p>
       ) : (
@@ -1005,6 +1025,38 @@ function BookedClassRow({
       </div>
       {error && <p className="font-label text-[11px] text-error">{error}</p>}
     </div>
+  )
+}
+
+function SessionHistoryRow({
+  slot,
+  specialtyLabel,
+  onView,
+}: {
+  slot: Schedule
+  specialtyLabel: string
+  onView: (slot: Schedule) => void
+}) {
+  const approved = slot.requests?.find((r) => r.status === 'APPROVED')
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onView(slot)
+      }}
+      className="flex w-full items-center justify-between gap-3 rounded-lg bg-surface-container-low px-4 py-3 text-left transition-colors hover:bg-surface-container"
+    >
+      <div className="min-w-0">
+        <p className="font-label text-sm font-semibold text-on-surface">
+          {formatDateTime(slot.startDateTime)}-{formatSlotTime(slot.endDateTime)}
+        </p>
+        <p className="truncate font-label text-xs text-on-surface-variant">
+          {approved?.studentName ?? 'Aluno'} · {specialtyLabel}
+        </p>
+      </div>
+      <ScheduleStatusChip status={slot.status} />
+    </button>
   )
 }
 
@@ -1490,12 +1542,14 @@ function AgendaTab({
   const cancelMutation = useCancelCoachSchedule()
   const approveMutation = useApproveCoachScheduleRequest()
   const classStatusMutation = useUpdateCoachClassStatus()
+  const navigate = useNavigate()
 
   const [scheduleErrors, setScheduleErrors] = useState<Record<string, string>>({})
   const [busyScheduleId, setBusyScheduleId] = useState<string | null>(null)
   const [busyRequestId, setBusyRequestId] = useState<string | null>(null)
   const [busyClassId, setBusyClassId] = useState<string | null>(null)
   const [quickSlotSelection, setQuickSlotSelection] = useState<CalendarTimeSelection | null>(null)
+  const [selectedSlot, setSelectedSlot] = useState<Schedule | null>(null)
   const [confirmCancelSlot, setConfirmCancelSlot] = useState<Schedule | null>(null)
 
   const specialties = useMemo(() => specialtiesData?.data ?? [], [specialtiesData?.data])
@@ -1519,12 +1573,15 @@ function AgendaTab({
     ? parseApiErrors(agendaQueryError, 'Não foi possível carregar a agenda.')
     : null
 
-  const visibleExistingSlots = existingSlots.filter((slot) => slot.status !== 'CANCELLED')
+  const visibleExistingSlots = existingSlots.filter(
+    (slot) => slot.status !== 'CANCELLED' && !(slot.status === 'AVAILABLE' && isPastSlot(slot)),
+  )
 
   const existingSlotsByDay = useMemo(() => {
     const groups: { date: string; slots: Schedule[] }[] = []
     for (const slot of existingSlots) {
       if (slot.status === 'CANCELLED') continue
+      if (slot.status === 'AVAILABLE' && isPastSlot(slot)) continue
       const date = slot.startDateTime.slice(0, 10)
       const last = groups.at(-1)
       if (last?.date === date) {
@@ -1540,9 +1597,9 @@ function AgendaTab({
   const actionableBookedSlots = visibleExistingSlots.filter(
     (slot) => slot.status === 'BOOKED' && isPastSlot(slot),
   )
-  const completedSlots = visibleExistingSlots.filter(
-    (slot) => slot.status === 'COMPLETED' || slot.status === 'NOSHOW',
-  )
+  const sessionHistory = visibleExistingSlots
+    .filter((slot) => slot.status === 'COMPLETED' || slot.status === 'NOSHOW')
+    .sort((a, b) => b.startDateTime.localeCompare(a.startDateTime))
 
   function requestCancelSchedule(slot: Schedule) {
     if (!scheduleCanCancel(slot)) return
@@ -1616,7 +1673,7 @@ function AgendaTab({
               Agenda
             </h2>
             <p className="mt-1 font-label text-xs text-on-surface-variant">
-              {visibleExistingSlots.length} horários no período
+              {plural(visibleExistingSlots.length, 'horário no período', 'horários no período')}
             </p>
           </div>
           <button
@@ -1635,9 +1692,33 @@ function AgendaTab({
         <ScheduleCalendar
           slots={existingSlots}
           specialtyLabels={specialtyLabels}
+          onSlotClick={setSelectedSlot}
           onTimeClick={setQuickSlotSelection}
           visibleStatuses={['AVAILABLE', 'REQUESTED', 'BOOKED', 'COMPLETED', 'NOSHOW', 'CANCELLED']}
         />
+
+        {selectedSlot && (
+          <SessionSummaryModal
+            slot={selectedSlot}
+            viewer="coach"
+            counterpartName={
+              selectedSlot.requests?.find((request) => request.status === 'APPROVED')
+                ?.studentName ?? undefined
+            }
+            specialtyLabel={
+              specialtyLabels.get(selectedSlot.specialtyId) ?? selectedSlot.specialtyId
+            }
+            gymLabel={gymLabels.get(selectedSlot.gymId) ?? selectedSlot.gymId}
+            onViewDetails={() => {
+              const { scheduleId } = selectedSlot
+              setSelectedSlot(null)
+              void navigate(`/coach/schedule/${scheduleId}`)
+            }}
+            onClose={() => {
+              setSelectedSlot(null)
+            }}
+          />
+        )}
 
         {quickSlotSelection && (
           <QuickSlotModal
@@ -1722,6 +1803,7 @@ function AgendaTab({
                 onApprove={(targetSlot, request) => {
                   void handleApproveRequest(targetSlot, request)
                 }}
+                onSelect={setSelectedSlot}
               />
             ))}
           </div>
@@ -1734,7 +1816,11 @@ function AgendaTab({
             Sessões para fechar
           </h2>
           <p className="mt-1 font-label text-xs text-on-surface-variant">
-            {actionableBookedSlots.length} sessões passadas em aberto
+            {plural(
+              actionableBookedSlots.length,
+              'sessão passada em aberto',
+              'sessões passadas em aberto',
+            )}
           </p>
         </div>
 
@@ -1758,11 +1844,36 @@ function AgendaTab({
             ))}
           </div>
         )}
+      </section>
 
-        {completedSlots.length > 0 && (
-          <div className="rounded-lg bg-tertiary-container px-4 py-3 font-label text-xs text-on-tertiary-container">
-            {completedSlots.length} sessões fechadas no período com pagamento sob cuidado da
-            plataforma.
+      <section className="flex flex-col gap-4 rounded-xl border border-outline-variant/10 bg-surface-container p-5">
+        <div>
+          <h2 className="font-headline text-sm font-semibold tracking-tight text-on-surface-variant uppercase">
+            Histórico de sessões
+          </h2>
+          <p className="mt-1 font-label text-xs text-on-surface-variant">
+            {plural(
+              sessionHistory.length,
+              'sessão fechada no período',
+              'sessões fechadas no período',
+            )}
+          </p>
+        </div>
+
+        {sessionHistory.length === 0 ? (
+          <p className="rounded-lg bg-surface-container-low px-4 py-3 font-label text-sm text-on-surface-variant">
+            Nenhuma sessão fechada no período.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {sessionHistory.map((slot) => (
+              <SessionHistoryRow
+                key={slot.scheduleId}
+                slot={slot}
+                specialtyLabel={specialtyLabels.get(slot.specialtyId) ?? slot.specialtyId}
+                onView={setSelectedSlot}
+              />
+            ))}
           </div>
         )}
       </section>
@@ -1858,7 +1969,7 @@ export default function CoachSchedulePage() {
         >
           <AgendaTab
             hidden={tab !== 'agenda'}
-            startDate={config.startDate}
+            startDate={addDaysToYMD(getTodayBrazilYMD(), -CLOSE_WINDOW_DAYS)}
             endDate={config.endDate}
           />
         </div>

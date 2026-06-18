@@ -4,36 +4,9 @@ import { ProgressHeader } from '@/components/layout/ProgressHeader'
 import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
 import { useSubmitClientHealth } from '@/hooks/useClientMe'
+import { PARQ } from '@/lib/health'
 
 type Answer = 'YES' | 'NO'
-
-interface ParqQuestion {
-  id: string
-  text: string
-}
-
-const PARQ: ParqQuestion[] = [
-  {
-    id: 'heart',
-    text: 'Algum médico já disse que você tem uma condição cardíaca e que só deveria fazer atividade física sob orientação?',
-  },
-  {
-    id: 'chest_pain',
-    text: 'Você sente dor no peito ao realizar atividade física?',
-  },
-  {
-    id: 'dizziness',
-    text: 'No último mês, você teve tontura ou perdeu o equilíbrio por causa de tontura?',
-  },
-  {
-    id: 'bone_joint',
-    text: 'Você tem algum problema ósseo ou articular que pode piorar com mudança na sua atividade física?',
-  },
-  {
-    id: 'medication',
-    text: 'Você toma medicação para pressão arterial ou problema cardíaco?',
-  },
-]
 
 interface FormState {
   answers: Record<string, Answer | null>
