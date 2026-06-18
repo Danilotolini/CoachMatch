@@ -1114,6 +1114,40 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "C24 - Detalhe do aluno na sessão (GET /coach/students/{studentId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/students/037c4a8a-6031-705c-e02f-8e45f93bd387",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "students",
+                "037c4a8a-6031-705c-e02f-8e45f93bd387"
+              ]
+            },
+            "description": "Detalhe de treino do aluno (nome, gênero, nascimento, objetivo e PAR-Q), sem dados de contato. Exige vínculo de sessão entre coach e aluno (403 caso contrário)."
+          },
+          "response": []
         }
       ]
     },

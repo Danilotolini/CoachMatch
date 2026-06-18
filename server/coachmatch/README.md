@@ -265,3 +265,9 @@ Backup pré-deploy em `server/coachmatch/apigw-backup-20260616/`.
 - Lambdas **Python** (`schedule`, `specialties`, `upload-url`) e os **authorizers**
   continuam manuais. Migrá-los para o stack é trabalho futuro (exigiria a API deixar de
   ser externa ou recriar as rotas Python no stack).
+- **Status de pagamento é filtrado só no frontend.** O treinador não deve ver o
+  `paymentStatus` da sessão, mas hoje a API (rotas `schedule`, Python) devolve o campo
+  igual para os dois papéis; o cliente apenas o omite na visão do coach
+  (`SessionSummaryCard`/`SessionSummaryModal`). O correto seria não retornar
+  `paymentStatus` na resposta do coach, mas isso exigiria endpoints/lambdas de schedule
+  separados por papel. Enquanto não houver essa separação, manter o filtro no frontend.

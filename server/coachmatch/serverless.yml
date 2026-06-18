@@ -97,8 +97,11 @@ provider:
         - Effect: Allow
           Action:
             - dynamodb:UpdateItem
+            - dynamodb:GetItem
+            - dynamodb:Query
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule/index/*
         # paymentCreate emite o evento payment.succeeded
         - Effect: Allow
           Action:
@@ -286,6 +289,20 @@ functions:
           path: /student/coaches/{coachId}
           method: GET
           authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  coachGetStudentDetail:
+    handler: src/coaches/get-student-detail/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /coach/students/{studentId}
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
 
   # ─── Pagamentos ────────────────────────────────────────────────────────────
 
