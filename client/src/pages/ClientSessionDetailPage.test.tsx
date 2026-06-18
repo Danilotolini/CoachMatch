@@ -148,6 +148,29 @@ describe('ClientSessionDetailPage', () => {
     expect(await screen.findByText('VOLTOU PARA AGENDA')).toBeInTheDocument()
   })
 
+  it('oferece o pagamento quando a sessão está confirmada e pendente', async () => {
+    mockSchedules(
+      makeItem({ scheduleId: 'sch_pay', scheduleStatus: 'BOOKED', paymentStatus: 'PENDING' }),
+    )
+
+    renderDetail('sch_pay')
+
+    expect(await screen.findByRole('button', { name: /PAGAR/ })).toBeInTheDocument()
+  })
+
+  it('não oferece o pagamento quando a sessão já foi paga', async () => {
+    mockSchedules(
+      makeItem({ scheduleId: 'sch_paid', scheduleStatus: 'BOOKED', paymentStatus: 'PAID' }),
+    )
+
+    renderDetail('sch_paid')
+
+    await screen.findByText('Detalhes da sessão')
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /PAGAR/ })).not.toBeInTheDocument()
+    })
+  })
+
   it('bloqueia o cancelamento quando a sessão começa em menos de 6 horas', async () => {
     const soon = new Date(Date.now() + 60 * 60 * 1000).toISOString()
     mockSchedules(
