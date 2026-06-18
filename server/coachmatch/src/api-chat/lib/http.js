@@ -11,7 +11,7 @@ export const ok = (payload, statusCode = 200) => ({
   body: JSON.stringify(payload),
 });
 
-export const fail = (statusCode, message) => ok({ error: message }, statusCode);
+export const fail = (statusCode, message) => ok({ message }, statusCode);
 
 /** Extrai o usuário autenticado das claims do Cognito (cognitoAuthorizer). */
 export const getUser = (event) => {

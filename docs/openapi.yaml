@@ -34,6 +34,11 @@ tags:
     description: Busca de slots e solicitações de agendamento do aluno.
   - name: Pagamentos
     description: Processamento de pagamentos via cartão de crédito ou PIX.
+  - name: Chat
+    description: >-
+      Mensageria 1:1 aluno↔coach via Stream Chat. Cada rota existe sob
+      `/coach/chat/*` (CoachAccess) e `/student/chat/*` (StudentAccess); a mesma
+      Lambda atende os dois papéis.
 
 security:
   - bearerAuth: []
@@ -1027,6 +1032,398 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  # ─────────────────────────────────────────────
+  # Chat — Coach
+  # ─────────────────────────────────────────────
+  /coach/chat/token:
+    post:
+      tags: [Chat]
+      summary: Emite o token de acesso do Stream para o coach autenticado.
+      operationId: createCoachChatToken
+      responses:
+        "200":
+          description: Token emitido (validade de 24h).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatToken"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /coach/chat/conversations:
+    post:
+      tags: [Chat]
+      summary: Cria (ou recupera) a conversa direta com um par.
+      operationId: createCoachChatConversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatConversationCreate"
+      responses:
+        "200":
+          description: Conversa criada ou recuperada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatConversation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    get:
+      tags: [Chat]
+      summary: Lista as conversas do coach.
+      operationId: listCoachChatConversations
+      parameters:
+        - $ref: "#/components/parameters/ChatLimit"
+      responses:
+        "200":
+          description: Conversas do usuário, mais recentes primeiro.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ChatConversation" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /coach/chat/conversations/{id}:
+    patch:
+      tags: [Chat]
+      summary: Edita nome/estado da conversa.
+      operationId: updateCoachChatConversation
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatConversationUpdate"
+      responses:
+        "200":
+          description: Conversa atualizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatConversation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Chat]
+      summary: Oculta a conversa para o usuário.
+      operationId: deleteCoachChatConversation
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      responses:
+        "200":
+          description: Conversa ocultada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatHidden"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /coach/chat/conversations/{id}/messages:
+    post:
+      tags: [Chat]
+      summary: Envia uma mensagem na conversa.
+      operationId: sendCoachChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Mensagem enviada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [Chat]
+      summary: Lista mensagens da conversa (paginação por `before`).
+      operationId: listCoachChatMessages
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+        - $ref: "#/components/parameters/ChatLimit"
+        - $ref: "#/components/parameters/ChatBefore"
+      responses:
+        "200":
+          description: Mensagens da conversa.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ChatMessage" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /coach/chat/messages/{id}:
+    patch:
+      tags: [Chat]
+      summary: Edita uma mensagem do próprio autor.
+      operationId: updateCoachChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatMessageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Mensagem editada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      tags: [Chat]
+      summary: Apaga (soft delete) uma mensagem do próprio autor.
+      operationId: deleteCoachChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatMessageId"
+      responses:
+        "200":
+          description: Mensagem apagada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ─────────────────────────────────────────────
+  # Chat — Student
+  # ─────────────────────────────────────────────
+  /student/chat/token:
+    post:
+      tags: [Chat]
+      summary: Emite o token de acesso do Stream para o aluno autenticado.
+      operationId: createStudentChatToken
+      responses:
+        "200":
+          description: Token emitido (validade de 24h).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatToken"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /student/chat/conversations:
+    post:
+      tags: [Chat]
+      summary: Cria (ou recupera) a conversa direta com um par.
+      operationId: createStudentChatConversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatConversationCreate"
+      responses:
+        "200":
+          description: Conversa criada ou recuperada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatConversation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    get:
+      tags: [Chat]
+      summary: Lista as conversas do aluno.
+      operationId: listStudentChatConversations
+      parameters:
+        - $ref: "#/components/parameters/ChatLimit"
+      responses:
+        "200":
+          description: Conversas do usuário, mais recentes primeiro.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ChatConversation" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /student/chat/conversations/{id}:
+    patch:
+      tags: [Chat]
+      summary: Edita nome/estado da conversa.
+      operationId: updateStudentChatConversation
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatConversationUpdate"
+      responses:
+        "200":
+          description: Conversa atualizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatConversation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Chat]
+      summary: Oculta a conversa para o usuário.
+      operationId: deleteStudentChatConversation
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      responses:
+        "200":
+          description: Conversa ocultada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatHidden"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /student/chat/conversations/{id}/messages:
+    post:
+      tags: [Chat]
+      summary: Envia uma mensagem na conversa.
+      operationId: sendStudentChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Mensagem enviada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [Chat]
+      summary: Lista mensagens da conversa (paginação por `before`).
+      operationId: listStudentChatMessages
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+        - $ref: "#/components/parameters/ChatLimit"
+        - $ref: "#/components/parameters/ChatBefore"
+      responses:
+        "200":
+          description: Mensagens da conversa.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ChatMessage" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /student/chat/messages/{id}:
+    patch:
+      tags: [Chat]
+      summary: Edita uma mensagem do próprio autor.
+      operationId: updateStudentChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatMessageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Mensagem editada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      tags: [Chat]
+      summary: Apaga (soft delete) uma mensagem do próprio autor.
+      operationId: deleteStudentChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatMessageId"
+      responses:
+        "200":
+          description: Mensagem apagada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1068,6 +1465,32 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+
+  parameters:
+    ChatChannelId:
+      in: path
+      name: id
+      required: true
+      description: Id do canal (conversa), ex. `dm_1a2b3c4d_5e6f7a8b`.
+      schema: { type: string }
+    ChatMessageId:
+      in: path
+      name: id
+      required: true
+      description: Id da mensagem no Stream.
+      schema: { type: string }
+    ChatLimit:
+      in: query
+      name: limit
+      required: false
+      description: Número máximo de itens (padrão 30).
+      schema: { type: integer, default: 30 }
+    ChatBefore:
+      in: query
+      name: before
+      required: false
+      description: Id da mensagem usada como cursor — retorna apenas mensagens anteriores a ela.
+      schema: { type: string }
 
   schemas:
     Error:
@@ -1872,3 +2295,104 @@ components:
                 Campos da policy POST do S3 (key, Content-Type, X-Amz-Algorithm,
                 X-Amz-Credential, X-Amz-Date, Policy, X-Amz-Signature,
                 x-amz-security-token). Devem acompanhar o multipart/form-data.
+
+    # ── Chat (Stream) ─────────────────────────
+    ChatToken:
+      type: object
+      required: [apiKey, userId, token, expiresAt]
+      properties:
+        apiKey:
+          type: string
+          description: Chave pública do app no Stream (usada pelo client junto do token).
+        userId:
+          type: string
+          example: 83dcfaba-f0c1-705d-b109-2b381fed0971
+        token:
+          type: string
+          description: JWT do Stream para o usuário, válido por 24h.
+        expiresAt:
+          type: string
+          format: date-time
+          example: "2026-06-19T12:00:00.000Z"
+
+    ChatConversationCreate:
+      type: object
+      required: [peerId]
+      properties:
+        peerId:
+          type: string
+          description: Id do par (o outro membro da conversa). Não pode ser o próprio usuário.
+          example: 83dcfaba-f0c1-705d-b109-2b381fed0971
+
+    ChatConversationUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        frozen:
+          type: boolean
+          description: Quando `true`, congela a conversa (impede novas mensagens).
+
+    ChatConversation:
+      type: object
+      required: [id, members, frozen]
+      properties:
+        id:
+          type: string
+          example: dm_1a2b3c4d_5e6f7a8b
+        name:
+          type: string
+          nullable: true
+        members:
+          type: array
+          items: { type: string }
+        frozen:
+          type: boolean
+        lastMessageAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastMessage:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            text: { type: string }
+            userId: { type: string }
+
+    ChatHidden:
+      type: object
+      required: [id, hidden]
+      properties:
+        id: { type: string, example: dm_1a2b3c4d_5e6f7a8b }
+        hidden: { type: boolean, example: true }
+
+    ChatMessageInput:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          example: Bom treino hoje?
+
+    ChatMessage:
+      type: object
+      required: [id, text, userId]
+      properties:
+        id: { type: string }
+        text: { type: string }
+        userId: { type: string }
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
