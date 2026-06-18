@@ -550,7 +550,9 @@ export const handlers = [
 
     const filtered = coachSearchFixtures
       .filter((coach) => {
-        const searchable = normalizeText([coach.name, coach.neighborhood, ...coach.specialties].join(' '))
+        const searchable = normalizeText(
+          [coach.name, coach.neighborhood, ...coach.specialties].join(' '),
+        )
         const matchesQuery = !query || searchable.includes(normalizeText(query))
         const matchesSpecialty =
           specialtiesFilter.length === 0 ||

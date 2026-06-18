@@ -85,7 +85,9 @@ export default function ClientCoachDetailPage() {
         }
         const { city, state, neighborhoods } = location.coverage
         const where =
-          neighborhoods.length > 0 ? neighborhoods.join(', ') : [city, state].filter(Boolean).join(' · ')
+          neighborhoods.length > 0
+            ? neighborhoods.join(', ')
+            : [city, state].filter(Boolean).join(' · ')
         return where ? `Atendimento a domicílio · ${where}` : 'Atendimento a domicílio'
       }),
     [coach],
