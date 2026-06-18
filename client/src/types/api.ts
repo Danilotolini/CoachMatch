@@ -442,3 +442,40 @@ export interface Transaction {
   refundedAt?: string | null
   createdAt: string
 }
+
+// ── Chat (mensageria 1:1 aluno↔coach) ───────────────────────────────
+export interface ChatConversationLastMessage {
+  id: string
+  text: string
+  userId: string
+}
+
+export interface ChatConversation {
+  id: string
+  name: string | null
+  members: string[]
+  frozen: boolean
+  lastMessageAt?: string | null
+  lastMessage?: ChatConversationLastMessage | null
+}
+
+export interface ChatMessage {
+  id: string
+  text: string
+  userId: string
+  createdAt?: string
+  updatedAt?: string
+  deletedAt?: string | null
+}
+
+export interface ChatHidden {
+  id: string
+  hidden: boolean
+}
+
+export interface ChatToken {
+  apiKey: string
+  userId: string
+  token: string
+  expiresAt: string | null
+}

@@ -36,6 +36,10 @@ import type {
   UploadUrlResponse,
   PaymentPayload,
   Transaction,
+  ChatConversation,
+  ChatHidden,
+  ChatMessage,
+  ChatToken,
 } from '@/types/api'
 import { gyms, initialCoach, initialSchedules, mockStudents, specialties } from '@/mocks/fixtures'
 
@@ -308,6 +312,8 @@ const state = {
   client: readStoredClient() ?? buildInitialClient(),
   schedules: readStoredSchedules() ?? buildInitialSchedules(),
   transactions: new Map<string, Transaction>(),
+  chatConversations: new Map<string, ChatConversation>(),
+  chatMessages: new Map<string, ChatMessage[]>(),
 }
 
 const seededStudentNameById = new Map(
@@ -499,6 +505,106 @@ function coachToSummary(coach: CoachListItem): CoachSummary {
 
 function nowIso(): string {
   return new Date().toISOString()
+}
+
+function chatSelfId(request: Request): string {
+  return new URL(request.url).pathname.includes('/coach/chat')
+    ? state.coach.coachId
+    : state.client.clientId
+}
+
+function chatConversationId(a: string, b: string): string {
+  return `dm_${[a, b].sort().join('_')}`
+}
+
+function handleChatToken(request: Request): Response {
+  const self = chatSelfId(request)
+  return HttpResponse.json<ChatToken>({
+    apiKey: 'stream_test_key',
+    userId: self,
+    token: `stream-token-${self}`,
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+  })
+}
+
+async function handleCreateChatConversation(request: Request): Promise<Response> {
+  await wait(200)
+  const self = chatSelfId(request)
+  const { peerId } = (await request.json()) as { peerId?: string }
+  if (!peerId || peerId === self) {
+    return HttpResponse.json({ errors: ['peerId inválido.'] }, { status: 400 })
+  }
+  const id = chatConversationId(self, peerId)
+  const existing = state.chatConversations.get(id)
+  if (existing) return HttpResponse.json<ChatConversation>(existing)
+  const conversation: ChatConversation = {
+    id,
+    name: null,
+    members: [self, peerId],
+    frozen: false,
+    lastMessageAt: null,
+    lastMessage: null,
+  }
+  state.chatConversations.set(id, conversation)
+  return HttpResponse.json<ChatConversation>(conversation)
+}
+
+function handleListChatConversations(request: Request): Response {
+  const self = chatSelfId(request)
+  const conversations = [...state.chatConversations.values()]
+    .filter((conversation) => conversation.members.includes(self))
+    .sort((a, b) => (b.lastMessageAt ?? '').localeCompare(a.lastMessageAt ?? ''))
+  return HttpResponse.json<ChatConversation[]>(conversations)
+}
+
+async function handleUpdateChatConversation(request: Request, id: string): Promise<Response> {
+  const conversation = state.chatConversations.get(id)
+  if (!conversation) {
+    return HttpResponse.json({ errors: ['Conversa não encontrada.'] }, { status: 404 })
+  }
+  const body = (await request.json()) as { name?: string; frozen?: boolean }
+  const updated: ChatConversation = {
+    ...conversation,
+    ...(body.name !== undefined ? { name: body.name } : {}),
+    ...(body.frozen !== undefined ? { frozen: body.frozen } : {}),
+  }
+  state.chatConversations.set(id, updated)
+  return HttpResponse.json<ChatConversation>(updated)
+}
+
+function handleHideChatConversation(id: string): Response {
+  state.chatConversations.delete(id)
+  state.chatMessages.delete(id)
+  return HttpResponse.json<ChatHidden>({ id, hidden: true })
+}
+
+function handleListChatMessages(id: string): Response {
+  return HttpResponse.json<ChatMessage[]>(state.chatMessages.get(id) ?? [])
+}
+
+async function handleSendChatMessage(request: Request, id: string): Promise<Response> {
+  await wait(150)
+  const self = chatSelfId(request)
+  const conversation = state.chatConversations.get(id)
+  if (!conversation) {
+    return HttpResponse.json({ errors: ['Conversa não encontrada.'] }, { status: 404 })
+  }
+  const { text } = (await request.json()) as { text?: string }
+  if (!text?.trim()) {
+    return HttpResponse.json({ errors: ['Mensagem vazia.'] }, { status: 400 })
+  }
+  const createdAt = nowIso()
+  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  const message: ChatMessage = { id: `msg_${Date.now()}`, text, userId: self, createdAt }
+  const messages = state.chatMessages.get(id) ?? []
+  messages.push(message)
+  state.chatMessages.set(id, messages)
+  state.chatConversations.set(id, {
+    ...conversation,
+    lastMessageAt: createdAt,
+    lastMessage: { id: message.id, text: message.text, userId: self },
+  })
+  return HttpResponse.json<ChatMessage>(message)
 }
 
 export const handlers = [
@@ -1430,4 +1536,36 @@ export const handlers = [
     state.transactions.set(refundId, refundTxn)
     return HttpResponse.json<Transaction>(refundTxn, { status: 201 })
   }),
+
+  http.post('*/coach/chat/token', ({ request }) => handleChatToken(request)),
+  http.post('*/student/chat/token', ({ request }) => handleChatToken(request)),
+
+  http.get('*/coach/chat/conversations', ({ request }) => handleListChatConversations(request)),
+  http.get('*/student/chat/conversations', ({ request }) => handleListChatConversations(request)),
+  http.post('*/coach/chat/conversations', ({ request }) => handleCreateChatConversation(request)),
+  http.post('*/student/chat/conversations', ({ request }) => handleCreateChatConversation(request)),
+  http.patch('*/coach/chat/conversations/:id', ({ request, params }) =>
+    handleUpdateChatConversation(request, String(params['id'])),
+  ),
+  http.patch('*/student/chat/conversations/:id', ({ request, params }) =>
+    handleUpdateChatConversation(request, String(params['id'])),
+  ),
+  http.delete('*/coach/chat/conversations/:id', ({ params }) =>
+    handleHideChatConversation(String(params['id'])),
+  ),
+  http.delete('*/student/chat/conversations/:id', ({ params }) =>
+    handleHideChatConversation(String(params['id'])),
+  ),
+  http.get('*/coach/chat/conversations/:id/messages', ({ params }) =>
+    handleListChatMessages(String(params['id'])),
+  ),
+  http.get('*/student/chat/conversations/:id/messages', ({ params }) =>
+    handleListChatMessages(String(params['id'])),
+  ),
+  http.post('*/coach/chat/conversations/:id/messages', ({ request, params }) =>
+    handleSendChatMessage(request, String(params['id'])),
+  ),
+  http.post('*/student/chat/conversations/:id/messages', ({ request, params }) =>
+    handleSendChatMessage(request, String(params['id'])),
+  ),
 ]
