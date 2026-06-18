@@ -17,18 +17,15 @@ export function searchCoaches(filters: CoachSearchFilters = {}): Promise<CoachSe
     {
       q: filters.q,
       'specialties[]': filters.specialties,
-      address: filters.address,
-      availableOn: filters.availableOn,
-      sort: filters.sort ?? 'rating',
-      page: filters.page ?? 1,
       limit: filters.limit ?? 12,
+      lastKey: filters.lastKey ? JSON.stringify(filters.lastKey) : undefined,
     },
     { role: 'client' },
   )
 }
 
 export function fetchCoachDetail(coachId: string): Promise<CoachDetail> {
-  return apiGet<CoachDetail>(`/coaches/${coachId}`, undefined, { role: 'client' })
+  return apiGet<CoachDetail>(`/student/coaches/${coachId}`, undefined, { role: 'client' })
 }
 
 export function updateCoachMe(payload: CoachUpdatePayload): Promise<Coach> {

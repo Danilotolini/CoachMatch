@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FilterSheet } from './FilterSheet'
 
@@ -39,54 +39,26 @@ describe('FilterSheet', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('permite editar filtros e aplicar com page resetada', async () => {
+  it('permite editar modalidades e aplicar', async () => {
     const user = userEvent.setup()
     const onApply = vi.fn()
-    const realDate = Date
 
-    vi.stubGlobal(
-      'Date',
-      class extends realDate {
-        constructor(...args: unknown[]) {
-          if (args.length === 0) {
-            super('2026-06-15T12:00:00Z')
-          } else {
-            super(...(args as ConstructorParameters<typeof Date>))
-          }
-        }
-        static now() {
-          return new realDate('2026-06-15T12:00:00Z').getTime()
-        }
-      } as DateConstructor,
-    )
-
-    const { container } = render(
+    render(
       <FilterSheet
         open
-        filters={{ address: 'Campinas', specialties: ['Yoga'], page: 4 }}
+        filters={{ specialties: ['Yoga'] }}
         onClose={vi.fn()}
         onApply={onApply}
         onClear={vi.fn()}
       />,
     )
 
-    const locationInput = screen.getByPlaceholderText('Localização')
-    const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement
-    expect(screen.getByDisplayValue('Campinas')).toBeInTheDocument()
-    expect(dateInput).toHaveAttribute('min', '2026-06-15')
-
-    await user.clear(locationInput)
-    await user.type(locationInput, 'São Paulo')
     await user.click(screen.getByRole('button', { name: 'Pilates' }))
     await user.click(screen.getByRole('button', { name: 'Yoga' }))
-    fireEvent.change(dateInput, { target: { value: '2026-06-20' } })
     await user.click(screen.getByRole('button', { name: 'APLICAR' }))
 
     expect(onApply).toHaveBeenCalledWith({
-      address: 'São Paulo',
       specialties: ['Pilates'],
-      page: 1,
-      availableOn: '2026-06-20',
     })
   })
 

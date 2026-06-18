@@ -7,13 +7,7 @@ interface ActiveFiltersBarProps {
 }
 
 export function ActiveFiltersBar({ filters, onRemove }: ActiveFiltersBarProps) {
-  const hasFilters =
-    !!filters.q ||
-    !!filters.address ||
-    !!filters.priceMin ||
-    !!filters.priceMax ||
-    !!filters.availableOn ||
-    (filters.specialties?.length ?? 0) > 0
+  const hasFilters = !!filters.q || (filters.specialties?.length ?? 0) > 0
 
   if (!hasFilters) return null
 
@@ -28,15 +22,6 @@ export function ActiveFiltersBar({ filters, onRemove }: ActiveFiltersBarProps) {
           }}
         />
       ) : null}
-      {filters.address ? (
-        <Chip
-          label={filters.address}
-          active
-          onRemove={() => {
-            onRemove('address')
-          }}
-        />
-      ) : null}
       {filters.specialties?.map((specialty) => (
         <Chip
           key={specialty}
@@ -47,33 +32,6 @@ export function ActiveFiltersBar({ filters, onRemove }: ActiveFiltersBarProps) {
           }}
         />
       ))}
-      {filters.priceMin ? (
-        <Chip
-          label={`De R$ ${String(filters.priceMin)}`}
-          active
-          onRemove={() => {
-            onRemove('priceMin')
-          }}
-        />
-      ) : null}
-      {filters.priceMax ? (
-        <Chip
-          label={`Até R$ ${String(filters.priceMax)}`}
-          active
-          onRemove={() => {
-            onRemove('priceMax')
-          }}
-        />
-      ) : null}
-      {filters.availableOn ? (
-        <Chip
-          label={filters.availableOn}
-          active
-          onRemove={() => {
-            onRemove('availableOn')
-          }}
-        />
-      ) : null}
     </div>
   )
 }

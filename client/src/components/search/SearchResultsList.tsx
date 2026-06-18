@@ -1,8 +1,8 @@
 import { CoachCard } from '@/components/coach/CoachCard'
-import type { CoachListItem } from '@/types/api'
+import type { CoachSummary } from '@/types/api'
 
 interface SearchResultsListProps {
-  coaches: CoachListItem[]
+  coaches: CoachSummary[]
   onCoachClick?: (coachId: string) => void
 }
 
@@ -12,13 +12,8 @@ export function SearchResultsList({ coaches, onCoachClick }: SearchResultsListPr
       {coaches.map((coach) => (
         <CoachCard
           key={coach.coachId}
-          name={coach.name}
-          specialties={coach.specialties.join(' · ')}
-          rating={coach.rating.toFixed(1)}
-          price={coach.priceFrom}
-          {...(coach.photo ? { image: coach.photo } : {})}
-          location={`${coach.neighborhood}, ${coach.city}`}
-          availability={coach.nextAvailability}
+          name={coach.profile.name}
+          specialties={coach.profile.specialties.join(' · ')}
           {...(onCoachClick
             ? {
                 onClick: () => {

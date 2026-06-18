@@ -16,24 +16,22 @@ vi.mock('@/api/payments', () => ({
 
 const coach: CoachDetail = {
   coachId: 'coach_border',
-  name: 'Marcos Vieira',
-  specialties: ['Musculação'],
-  rating: 4.9,
-  priceFrom: 180,
-  neighborhood: 'Pinheiros',
-  city: 'São Paulo',
-  nextAvailability: 'Hoje',
-  photo: null,
-  cref: '123456-G/SP',
-  bio: 'Coach de testes',
-  experienceYears: 8,
-  sessionsCount: 120,
-  responseTime: 'até 1h',
-  serviceAreas: ['Paulista'],
-  trainingStyles: ['Presencial'],
-  languages: ['Português'],
-  instagram: null,
-  reviews: [],
+  status: 'APPROVED',
+  profile: {
+    name: 'Marcos Vieira',
+    phone: null,
+    specialties: ['Musculação'],
+    cref: '123456-G/SP',
+    instagram: null,
+    profile_video: false,
+  },
+  work_location: [
+    {
+      type: 'GYM',
+      gymId: 'gym_1',
+      gym: { name: 'Studio X', neighborhood: 'Pinheiros', city: 'São Paulo', state: 'SP' },
+    },
+  ],
 }
 
 function makeSchedule(overrides: Partial<StudentScheduleItem>): StudentScheduleItem {
@@ -85,7 +83,7 @@ describe('ClientSchedulePage', () => {
   })
 
   it('mostra o dia do mes no fuso do Brasil em horarios na borda de timezone', async () => {
-    mockSchedulesResponse([makeSchedule({ scheduleId: 'sch_border' })])
+    mockSchedulesResponse([makeSchedule({ scheduleId: 'sch_border', paymentStatus: 'PAID' })])
 
     renderPage()
 
@@ -143,10 +141,11 @@ describe('ClientSchedulePage', () => {
     ).toBeInTheDocument()
   })
 
-  it('renderiza pedidos e historico, incluindo pagamento pendente', async () => {
+  it('paga a aula confirmada (BOOKED) na aba Próximas e renderiza pedidos/histórico', async () => {
     createPaymentMock.mockResolvedValue({ transactionId: 'tx_1' })
 
     mockSchedulesResponse([
+      // BOOKED não pago → aparece em Próximas com botão de pagar
       makeSchedule({ scheduleId: 'schedule_booked' }),
       makeSchedule({
         scheduleId: 'schedule_requested',
@@ -156,11 +155,6 @@ describe('ClientSchedulePage', () => {
           status: 'REQUESTED',
           requestedAt: '2026-06-15T12:00:00Z',
         },
-      }),
-      makeSchedule({
-        scheduleId: 'schedule_pending_payment',
-        scheduleStatus: 'COMPLETED',
-        paymentStatus: 'PENDING',
       }),
       makeSchedule({
         scheduleId: 'schedule_paid',
@@ -181,23 +175,25 @@ describe('ClientSchedulePage', () => {
     const { queryClient } = renderPage()
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
 
+    // Próximas (aba padrão): card BOOKED não pago — "Pagamento pendente" no chip e no simulador
     expect(await screen.findByText('Marcos Vieira')).toBeInTheDocument()
     expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getAllByText('Pagamento pendente')).toHaveLength(2)
 
     fireEvent.click(screen.getByRole('button', { name: 'Pedidos' }))
     expect(await screen.findByText('Aguardando treinador')).toBeInTheDocument()
     expect(screen.getByText(/Pedido em seg\., 15 de jun\./i)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Histórico' }))
-    expect(await screen.findAllByText('Pagamento pendente')).toHaveLength(2)
-    expect(screen.getByText('Pago')).toBeInTheDocument()
+    expect(await screen.findByText('Pago')).toBeInTheDocument()
     expect(screen.getByText('Recusado')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /pagar r\$\s*180/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Próximas' }))
+    fireEvent.click(await screen.findByRole('button', { name: /pagar r\$\s*180/i }))
 
     await waitFor(() => {
       expect(createPaymentMock).toHaveBeenCalledWith({
-        sessionId: 'schedule_pending_payment',
+        sessionId: 'schedule_booked',
         coachId: 'coach_border',
         studentId: 'client_demo',
         amount: 18000,

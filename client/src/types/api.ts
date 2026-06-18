@@ -41,8 +41,6 @@ export interface CoachUpdatePayload {
   work_location?: WorkLocation[]
 }
 
-export type CoachSearchSort = 'rating' | 'price_asc' | 'price_desc'
-
 export interface CoachListItem {
   coachId: string
   name: string
@@ -55,38 +53,79 @@ export interface CoachListItem {
   photo: string | null
 }
 
-export interface CoachDetail extends CoachListItem {
-  cref: string
-  bio: string
-  experienceYears: number
-  sessionsCount: number
-  responseTime: string
-  serviceAreas: string[]
-  trainingStyles: string[]
-  languages: string[]
+export interface CoachDetailGym {
+  name: string | null
+  neighborhood: string | null
+  city: string | null
+  state: string | null
+}
+
+export interface CoachDetailGymLocation {
+  type: 'GYM'
+  gymId: string | null
+  gym: CoachDetailGym | null
+}
+
+export type CoachDetailWorkLocation = CoachDetailGymLocation | CoachSummaryHomeLocation
+
+export interface CoachDetail {
+  coachId: string
+  status: CoachStatus
+  profile: CoachSummaryProfile
+  work_location: CoachDetailWorkLocation[]
+}
+
+export interface CoachSummaryProfile {
+  name: string
+  phone: string | null
+  specialties: string[]
+  cref: string | null
   instagram: string | null
-  reviews: {
-    id: string
-    studentName: string
-    rating: number
-    comment: string
-    date: string
-  }[]
+  profile_video: boolean
+}
+
+export interface CoachSummaryGymLocation {
+  type: 'GYM'
+  gymId: string | null
+}
+
+export interface CoachSummaryHomeLocation {
+  type: 'HOME_SERVICE'
+  coverage: {
+    city: string | null
+    state: string | null
+    neighborhoods: string[]
+  }
+}
+
+export type CoachSummaryWorkLocation = CoachSummaryGymLocation | CoachSummaryHomeLocation
+
+export interface CoachSummary {
+  coachId: string
+  profile: CoachSummaryProfile
+  work_location: CoachSummaryWorkLocation[]
+}
+
+export interface CoachSearchCursor {
+  coachId: string
 }
 
 export interface CoachSearchFilters {
   q?: string | undefined
   specialties?: string[] | undefined
-  address?: string | undefined
-  priceMin?: number | undefined
-  priceMax?: number | undefined
-  availableOn?: string | undefined
-  sort?: CoachSearchSort | undefined
-  page?: number | undefined
   limit?: number | undefined
+  lastKey?: CoachSearchCursor | null | undefined
 }
 
-export type CoachSearchResponse = PaginatedResponse<CoachListItem>
+export interface CoachSearchMeta {
+  limit: number
+  lastKey: CoachSearchCursor | null
+}
+
+export interface CoachSearchResponse {
+  data: CoachSummary[]
+  meta: CoachSearchMeta
+}
 
 export type ClientGender = 'F' | 'M' | 'NB' | 'NA'
 

@@ -25,20 +25,32 @@ describe('ClientSearchPage', () => {
     renderClientSearch()
 
     expect(screen.getByRole('heading', { name: 'Buscar treinador' })).toBeInTheDocument()
-    expect(await screen.findByText('Priscila Duarte')).toBeInTheDocument()
+    expect(await screen.findByText('Marcos Vieira')).toBeInTheDocument()
+    expect(screen.getByText('Julia Ramos')).toBeInTheDocument()
+  })
+
+  it('acumula resultados ao clicar em ver mais', async () => {
+    renderClientSearch()
+
+    expect(await screen.findByText('Marcos Vieira')).toBeInTheDocument()
+    expect(screen.queryByText('Rafael Souza')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'VER MAIS' }))
+
+    expect(await screen.findByText('Rafael Souza')).toBeInTheDocument()
     expect(screen.getByText('Marcos Vieira')).toBeInTheDocument()
   })
 
   it('exibe filtros vindos da URL e permite limpar', async () => {
-    renderClientSearch(['/client/search?q=funcional&address=São Paulo'])
+    renderClientSearch(['/client/search?q=funcional&specialties[]=Funcional'])
 
     expect(await screen.findByText('Busca: funcional')).toBeInTheDocument()
-    expect(screen.getByText('São Paulo')).toBeInTheDocument()
+    expect(screen.getByText('Funcional')).toBeInTheDocument()
 
-    await userEvent.click(screen.getByLabelText('Remover São Paulo'))
+    await userEvent.click(screen.getByLabelText('Remover Funcional'))
 
     await waitFor(() => {
-      expect(screen.queryByLabelText('Remover São Paulo')).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('Remover Funcional')).not.toBeInTheDocument()
     })
   })
 
@@ -53,21 +65,6 @@ describe('ClientSearchPage', () => {
     expect(await screen.findByText('Larissa Nunes')).toBeInTheDocument()
   })
 
-  it('troca ordenação por menor preço', async () => {
-    renderClientSearch()
-
-    await screen.findByText('Priscila Duarte')
-    await userEvent.click(screen.getByRole('radio', { name: 'Menor preço' }))
-
-    await waitFor(() => {
-      expect(screen.getByText('12 treinadores encontrados')).toBeInTheDocument()
-    })
-    expect(screen.getByRole('radio', { name: 'Menor preço' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    )
-  })
-
   it('mostra estado vazio e limpa os filtros', async () => {
     renderClientSearch(['/client/search?q=sem-resultado-improvavel'])
 
@@ -77,7 +74,7 @@ describe('ClientSearchPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'LIMPAR FILTROS' }))
 
-    expect(await screen.findByText('Priscila Duarte')).toBeInTheDocument()
+    expect(await screen.findByText('Marcos Vieira')).toBeInTheDocument()
   })
 
   it('mostra erro e permite buscar novamente', async () => {
@@ -93,17 +90,18 @@ describe('ClientSearchPage', () => {
           data: [
             {
               coachId: 'coach_retry',
-              name: 'Coach Retry',
-              specialties: ['Yoga'],
-              rating: 4.7,
-              priceFrom: 130,
-              city: 'São Paulo',
-              neighborhood: 'Moema',
-              nextAvailability: 'Hoje',
-              photo: null,
+              profile: {
+                name: 'Coach Retry',
+                phone: null,
+                specialties: ['Yoga'],
+                cref: null,
+                instagram: null,
+                profile_video: false,
+              },
+              work_location: [],
             },
           ],
-          pagination: { page: 1, limit: 9, total: 1, hasNext: false },
+          meta: { limit: 9, lastKey: null },
         })
       }),
     )
@@ -126,22 +124,23 @@ describe('ClientSearchPage', () => {
           data: [
             {
               coachId: 'coach_last_page',
-              name: 'Última Página',
-              specialties: ['Funcional'],
-              rating: 4.5,
-              priceFrom: 99,
-              city: 'Santos',
-              neighborhood: 'Boqueirão',
-              nextAvailability: 'Amanhã',
-              photo: null,
+              profile: {
+                name: 'Última Página',
+                phone: null,
+                specialties: ['Funcional'],
+                cref: null,
+                instagram: null,
+                profile_video: false,
+              },
+              work_location: [],
             },
           ],
-          pagination: { page: 1, limit: 9, total: 1, hasNext: false },
+          meta: { limit: 9, lastKey: null },
         }),
       ),
     )
 
-    renderClientSearch(['/client/search?specialties[]=Funcional&page=abc'])
+    renderClientSearch(['/client/search?specialties[]=Funcional'])
 
     expect(await screen.findByText('Última Página')).toBeInTheDocument()
     expect(screen.getByText('Fim dos resultados')).toBeInTheDocument()

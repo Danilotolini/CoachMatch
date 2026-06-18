@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
@@ -24,7 +24,15 @@ function renderClientCoachDetail(initialEntries = ['/client/coaches/coach_marcos
 
 describe('ClientCoachDetailPage', () => {
   beforeEach(async () => {
+    // Fixa o relógio para que os slots das fixtures (meados de jun/2026) caiam
+    // dentro da janela de busca; senão o teste quebra conforme a data avança.
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2026-06-16T09:00:00-03:00'))
     await apiPost('/dev/reset')
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('renderiza detalhes do treinador e permite solicitar agendamento', async () => {
