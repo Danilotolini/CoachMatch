@@ -298,4 +298,38 @@ describe('LoginPage', () => {
     expect(getLoginUrlSpy).toHaveBeenCalledWith('client')
     expect(window.location.href).toBe(url)
   })
+
+  // Regressão: no caminho timeout → relogin, a navegação concorrente para o
+  // login pode remontar o LoginPage. Um useRef nasceria zerado e dispararia um
+  // segundo getLoginUrl, sobrescrevendo o state/PKCE do redirect já em voo. O
+  // guard de módulo dedupa entre montagens da mesma carga de página.
+  it('não reinicia o /authorize ao remontar o LoginPage', async () => {
+    const url = 'https://student-cognito.test/oauth2/authorize?x=1'
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+
+    const { unmount } = renderPage('client')
+    expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
+    unmount()
+
+    renderPage('client')
+    await waitFor(() => {
+      expect(getLoginUrlSpy).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('libera novo /authorize após falha do getLoginUrl', async () => {
+    const getLoginUrlSpy = vi
+      .spyOn(cognito, 'getLoginUrl')
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce('https://cognito.test/oauth2/authorize?x=1')
+
+    const { unmount } = renderPage('coach')
+    expect(await screen.findByText('boom')).toBeInTheDocument()
+    unmount()
+
+    renderPage('coach')
+    await waitFor(() => {
+      expect(getLoginUrlSpy).toHaveBeenCalledTimes(2)
+    })
+  })
 })

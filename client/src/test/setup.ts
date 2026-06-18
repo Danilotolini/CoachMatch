@@ -47,6 +47,7 @@ vi.stubEnv('VITE_COGNITO_STUDENT_DOMAIN', 'test.auth.us-east-1.amazoncognito.com
 
 const { server } = await import('@/mocks/server')
 const { useSessionStore } = await import('@/stores/sessionStore')
+const { resetLoginRedirects } = await import('@/lib/loginRedirectGuard')
 
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' })
@@ -58,6 +59,7 @@ afterEach(() => {
   sessionStorage.clear()
   localStorage.clear()
   useSessionStore.setState({ activeRole: null, sessions: {} })
+  resetLoginRedirects()
 })
 
 afterAll(() => {

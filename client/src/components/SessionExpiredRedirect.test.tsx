@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { act, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { SessionExpiredRedirect } from './SessionExpiredRedirect'
@@ -6,10 +6,11 @@ import { SESSION_EXPIRED_EVENT } from '@/lib/auth'
 import { createWrapper } from '@/test/createWrapper'
 
 function renderWithRoutes(initialPath: string) {
-  const { wrapper: QueryWrapper } = createWrapper()
+  const { wrapper: QueryWrapper, queryClient } = createWrapper()
+  const clearSpy = vi.spyOn(queryClient, 'clear')
   window.history.pushState(null, '', initialPath)
 
-  return render(
+  const result = render(
     <QueryWrapper>
       <MemoryRouter initialEntries={[initialPath]}>
         <SessionExpiredRedirect />
@@ -22,6 +23,13 @@ function renderWithRoutes(initialPath: string) {
       </MemoryRouter>
     </QueryWrapper>,
   )
+  return { ...result, clearSpy }
+}
+
+function expireEvent(detail: { reason: 'expired' | 'unauthorized'; role?: 'client' | 'coach' }) {
+  act(() => {
+    window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail }))
+  })
 }
 
 describe('SessionExpiredRedirect', () => {
@@ -61,5 +69,25 @@ describe('SessionExpiredRedirect', () => {
     })
 
     expect(await screen.findByText('dashboard page')).toBeInTheDocument()
+  })
+
+  it('redireciona uma única vez quando vários eventos chegam juntos', async () => {
+    const { clearSpy } = renderWithRoutes('/client')
+
+    expireEvent({ reason: 'expired' })
+    expireEvent({ reason: 'expired' })
+    expireEvent({ reason: 'expired' })
+
+    expect(await screen.findByText('login aluno')).toBeInTheDocument()
+    expect(clearSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('não faz nada quando o evento chega já na tela de login', async () => {
+    const { clearSpy } = renderWithRoutes('/client/login')
+
+    expireEvent({ reason: 'expired' })
+
+    expect(await screen.findByText('login aluno')).toBeInTheDocument()
+    expect(clearSpy).not.toHaveBeenCalled()
   })
 })
