@@ -6,7 +6,7 @@ vi.mock('../../shared/config.js', () => ({
   createClient: () => ({ send: sendMock }),
 }));
 
-import { scanCoaches } from '../get-coaches/repository.js';
+import { queryCoaches } from '../get-coaches/repository.js';
 import { listCoaches } from '../get-coaches/index.js';
 import { handler } from '../get-coaches/handler.js';
 
@@ -56,20 +56,33 @@ function setupDynamo({ items = [], lastKey = null, gyms = [] } = {}) {
   });
 }
 
-const scanCall = () => sendMock.mock.calls.find(([c]) => c.input?.TableName)?.[0];
+const queryCall = () => sendMock.mock.calls.find(([c]) => c.input?.TableName)?.[0];
 const batchGetCall = () => sendMock.mock.calls.find(([c]) => c.input?.RequestItems)?.[0];
 const names = (result) => result.items.map((item) => item.profile.name);
 
 const baseParams = { q: null, specialties: [], limit: 12, lastKey: null };
 
-// ─── Repository (scanCoaches) ─────────────────────────────────────────────────
-describe('get-coaches › repository (scanCoaches)', () => {
+// ─── Repository (queryCoaches) ────────────────────────────────────────────────
+describe('get-coaches › repository (queryCoaches)', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('sem filtros retorna todos mapeados em ordem estável por coachId e não consulta a tabela de gyms', async () => {
-    setupDynamo({ items: [coachMarcos, coachJulia] });
+  it('consulta a GSI de status pegando só APPROVED (filtro e ordenação são da Query)', async () => {
+    setupDynamo({ items: [coachJulia, coachMarcos] });
 
-    const result = await scanCoaches({ ...baseParams });
+    await queryCoaches({ ...baseParams });
+
+    const input = queryCall().input;
+    expect(input.IndexName).toBe('status-coachId-index');
+    expect(input.KeyConditionExpression).toBe('#status = :status');
+    expect(input.ExpressionAttributeNames['#status']).toBe('status');
+    expect(input.ExpressionAttributeValues[':status']).toBe('APPROVED');
+  });
+
+  it('mapeia os itens na ordem retornada pela Query e não consulta a tabela de gyms', async () => {
+    // A Query já devolve ordenado por coachId (sort key da GSi); o repo confia nisso.
+    setupDynamo({ items: [coachJulia, coachMarcos] });
+
+    const result = await queryCoaches({ ...baseParams });
 
     expect(names(result)).toEqual(['Julia Ramos', 'Marcos Vieira']);
     expect(result.items[1]).toMatchObject({
@@ -81,31 +94,10 @@ describe('get-coaches › repository (scanCoaches)', () => {
     expect(batchGetCall()).toBeUndefined();
   });
 
-  it('ordena por coachId independente da ordem retornada pelo Scan', async () => {
-    setupDynamo({ items: [coachMarcos, coachJulia] });
-
-    const ordered = names(await scanCoaches({ ...baseParams }));
-
-    setupDynamo({ items: [coachJulia, coachMarcos] });
-    const reversed = names(await scanCoaches({ ...baseParams }));
-
-    expect(ordered).toEqual(['Julia Ramos', 'Marcos Vieira']);
-    expect(reversed).toEqual(ordered);
-  });
-
-  it('exclui coaches que não estão APPROVED', async () => {
-    const coachPendente = { ...coachMarcos, coachId: 'coach-pendente', status: 'PENDING_REVIEW' };
-    setupDynamo({ items: [coachPendente, coachJulia] });
-
-    const result = await scanCoaches({ ...baseParams });
-
-    expect(names(result)).toEqual(['Julia Ramos']);
-  });
-
   it('q casa por nome de forma case-insensitive', async () => {
     setupDynamo({ items: [coachMarcos, coachJulia] });
 
-    const result = await scanCoaches({ ...baseParams, q: 'MARCOS' });
+    const result = await queryCoaches({ ...baseParams, q: 'MARCOS' });
 
     expect(names(result)).toEqual(['Marcos Vieira']);
   });
@@ -113,7 +105,7 @@ describe('get-coaches › repository (scanCoaches)', () => {
   it('q casa por modalidade ignorando acento', async () => {
     setupDynamo({ items: [coachMarcos, coachJulia] });
 
-    const result = await scanCoaches({ ...baseParams, q: 'musculacao' });
+    const result = await queryCoaches({ ...baseParams, q: 'musculacao' });
 
     expect(names(result)).toEqual(['Marcos Vieira']);
   });
@@ -121,7 +113,7 @@ describe('get-coaches › repository (scanCoaches)', () => {
   it('q casa por bairro da academia (resolvendo o gym via BatchGet)', async () => {
     setupDynamo({ items: [coachMarcos, coachJulia], gyms: [gymPinheiros] });
 
-    const result = await scanCoaches({ ...baseParams, q: 'pinheiros' });
+    const result = await queryCoaches({ ...baseParams, q: 'pinheiros' });
 
     expect(names(result)).toEqual(['Marcos Vieira']);
     expect(batchGetCall().input.RequestItems.gyms.Keys).toEqual([{ gymId: 'gym-pinheiros' }]);
@@ -130,28 +122,31 @@ describe('get-coaches › repository (scanCoaches)', () => {
   it('specialties[] faz match exato de elemento (não substring)', async () => {
     setupDynamo({ items: [coachMarcos, coachJulia] });
 
-    expect(names(await scanCoaches({ ...baseParams, specialties: ['Musculação'] }))).toEqual([
+    expect(names(await queryCoaches({ ...baseParams, specialties: ['Musculação'] }))).toEqual([
       'Marcos Vieira',
     ]);
-    expect(names(await scanCoaches({ ...baseParams, specialties: ['Muscul'] }))).toEqual([]);
-    expect(names(await scanCoaches({ ...baseParams, specialties: ['Yoga'] }))).toEqual([]);
+    expect(names(await queryCoaches({ ...baseParams, specialties: ['Muscul'] }))).toEqual([]);
+    expect(names(await queryCoaches({ ...baseParams, specialties: ['Yoga'] }))).toEqual([]);
   });
 
   it('combina q e specialties[] em AND', async () => {
     setupDynamo({ items: [coachMarcos, coachJulia] });
 
-    const result = await scanCoaches({ ...baseParams, q: 'julia', specialties: ['Musculação'] });
+    const result = await queryCoaches({ ...baseParams, q: 'julia', specialties: ['Musculação'] });
 
     expect(names(result)).toEqual([]);
   });
 
   it('repassa lastKey como ExclusiveStartKey e devolve o LastEvaluatedKey', async () => {
-    setupDynamo({ items: [coachMarcos], lastKey: { coachId: 'coach-marcos' } });
+    setupDynamo({ items: [coachMarcos], lastKey: { status: 'APPROVED', coachId: 'coach-marcos' } });
 
-    const result = await scanCoaches({ ...baseParams, lastKey: { coachId: 'coach-julia' } });
+    const result = await queryCoaches({
+      ...baseParams,
+      lastKey: { status: 'APPROVED', coachId: 'coach-julia' },
+    });
 
-    expect(scanCall().input.ExclusiveStartKey).toEqual({ coachId: 'coach-julia' });
-    expect(result.lastKey).toEqual({ coachId: 'coach-marcos' });
+    expect(queryCall().input.ExclusiveStartKey).toEqual({ status: 'APPROVED', coachId: 'coach-julia' });
+    expect(result.lastKey).toEqual({ status: 'APPROVED', coachId: 'coach-marcos' });
   });
 });
 
@@ -193,7 +188,7 @@ describe('get-coaches › handler', () => {
     const body = JSON.parse(response.body);
     expect(body.data.map((c) => c.profile.name)).toEqual(['Julia Ramos']);
     expect(body.meta.limit).toBe(2);
-    expect(scanCall().input.ExclusiveStartKey).toEqual({ coachId: 'coach-x' });
+    expect(queryCall().input.ExclusiveStartKey).toEqual({ coachId: 'coach-x' });
   });
 
   it('usa o limit padrão (12) e sem cursor quando não há query string', async () => {
@@ -203,7 +198,7 @@ describe('get-coaches › handler', () => {
 
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.body).meta.limit).toBe(12);
-    expect(scanCall().input.ExclusiveStartKey).toBeUndefined();
+    expect(queryCall().input.ExclusiveStartKey).toBeUndefined();
   });
 
   it('retorna 500 quando o repositório falha', async () => {

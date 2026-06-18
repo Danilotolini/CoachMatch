@@ -1,7 +1,7 @@
-import { scanCoaches } from "./repository.js";
+import { queryCoaches } from "./repository.js";
 
 export async function listCoaches({ q, specialties, limit, lastKey }) {
-  const { items, lastKey: nextKey } = await scanCoaches({ q, specialties, limit, lastKey });
+  const { items, lastKey: nextKey } = await queryCoaches({ q, specialties, limit, lastKey });
 
   return {
     data: items,
