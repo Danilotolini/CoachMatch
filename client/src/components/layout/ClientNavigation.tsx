@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { logout } from '@/lib/cognito'
 import { Icon } from '@/components/ui/Icon'
 
-type ClientNavId = 'home' | 'search' | 'agenda' | 'profile'
+type ClientNavId = 'home' | 'search' | 'agenda' | 'chat' | 'profile'
 
 interface ClientNavItem {
   id: ClientNavId
@@ -15,11 +15,13 @@ const CLIENT_NAV_ITEMS: ClientNavItem[] = [
   { id: 'home', label: 'Início', icon: 'home', path: '/client' },
   { id: 'search', label: 'Buscar', icon: 'search', path: '/client/search' },
   { id: 'agenda', label: 'Agenda', icon: 'event', path: '/client/schedule' },
+  { id: 'chat', label: 'Conversas', icon: 'forum', path: '/client/chat' },
   { id: 'profile', label: 'Perfil', icon: 'person', path: '/client/profile' },
 ]
 
 function getActiveId(pathname: string): ClientNavId {
   if (pathname.startsWith('/client/profile')) return 'profile'
+  if (pathname.startsWith('/client/chat')) return 'chat'
   if (pathname.startsWith('/client/schedule')) return 'agenda'
   if (pathname.startsWith('/client/search')) return 'search'
   return 'home'
@@ -81,7 +83,7 @@ export function ClientBottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-outline-variant/10 bg-surface-container-low/95 backdrop-blur lg:hidden">
       <ul
-        className="grid grid-cols-4 px-1 pt-2"
+        className="grid grid-cols-5 px-1 pt-2"
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
       >
         {CLIENT_NAV_ITEMS.map((item) => {

@@ -1,4 +1,4 @@
-import { getActiveToken } from '@/stores/sessionStore'
+import { getActiveToken, getSessionToken } from '@/stores/sessionStore'
 import type { Role } from '@/stores/sessionStore'
 
 export const SESSION_EXPIRED_EVENT = 'coachmatch:session-expired'
@@ -62,6 +62,14 @@ export function isTokenExpired(token: string | null = getToken(), now = Date.now
 
 export function notifySessionExpired(detail: SessionExpiredDetail): void {
   window.dispatchEvent(new CustomEvent<SessionExpiredDetail>(SESSION_EXPIRED_EVENT, { detail }))
+}
+
+// `sub` do Cognito do usuário autenticado. É o id usado como membro/autor no chat.
+export function getUserId(role?: Role): string | null {
+  const token = role ? getSessionToken(role) : getToken()
+  if (!token) return null
+  const claims = getTokenClaims(token)
+  return claims ? stringClaim(claims, 'sub') : null
 }
 
 export function getAuthUser(): AuthUser {

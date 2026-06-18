@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
 import { getStudentScheduleRequests } from '@/api/schedule'
+import { StartChatButton } from '@/components/chat/StartChatButton'
 import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNavigation'
 import { SessionSummaryCard } from '@/components/schedule/SessionSummaryCard'
 import { Button } from '@/components/ui/Button'
@@ -65,10 +66,18 @@ function CoachSection({ slot }: { slot: Schedule }) {
     )
   }
 
-  return <CoachDetailView detail={query.data} gymId={slot.gymId} />
+  return <CoachDetailView detail={query.data} gymId={slot.gymId} coachId={slot.coachId} />
 }
 
-function CoachDetailView({ detail, gymId }: { detail: CoachDetail; gymId: string }) {
+function CoachDetailView({
+  detail,
+  gymId,
+  coachId,
+}: {
+  detail: CoachDetail
+  gymId: string
+  coachId: string
+}) {
   const { profile } = detail
   const gym = useMemo(() => {
     const match = detail.work_location.find(
@@ -84,18 +93,26 @@ function CoachDetailView({ detail, gymId }: { detail: CoachDetail; gymId: string
   return (
     <>
       <Card className="flex flex-col gap-3 p-5">
-        <div>
-          <span className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-            Treinador
-          </span>
-          <p className="mt-0.5 font-headline text-lg font-semibold tracking-tight text-on-surface">
-            {profile.name}
-          </p>
-          {profile.specialties.length > 0 && (
-            <p className="mt-1 font-body text-sm text-on-surface-variant">
-              {profile.specialties.join(' · ')}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <span className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+              Treinador
+            </span>
+            <p className="mt-0.5 font-headline text-lg font-semibold tracking-tight text-on-surface">
+              {profile.name}
             </p>
-          )}
+            {profile.specialties.length > 0 && (
+              <p className="mt-1 font-body text-sm text-on-surface-variant">
+                {profile.specialties.join(' · ')}
+              </p>
+            )}
+          </div>
+          <StartChatButton
+            role="client"
+            peerId={coachId}
+            peerName={profile.name}
+            chatPath="/client/chat"
+          />
         </div>
         <div className="flex flex-col gap-2.5 rounded-lg bg-surface-container-low p-4">
           {profile.cref && (

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
 import { fetchCoachStudentDetail } from '@/api/coaches'
 import { getCoachScheduleRequests } from '@/api/schedule'
+import { StartChatButton } from '@/components/chat/StartChatButton'
 import { CoachBottomNav, CoachSideNav } from '@/components/layout/CoachNavigation'
 import { SessionSummaryCard } from '@/components/schedule/SessionSummaryCard'
 import { Button } from '@/components/ui/Button'
@@ -33,11 +34,13 @@ function StudentSection({
   hasStudent,
   fallbackName,
   action,
+  chatPeerId,
 }: {
   studentId: string | null
   hasStudent: boolean
   fallbackName?: string | null | undefined
   action?: ReactNode
+  chatPeerId?: string | undefined
 }) {
   const query = useQuery({
     queryKey: ['coach-student-detail', studentId],
@@ -84,7 +87,18 @@ function StudentSection({
     )
   }
 
-  return <StudentDetail detail={query.data} action={action} />
+  const resolvedAction =
+    action ??
+    (chatPeerId ? (
+      <StartChatButton
+        role="coach"
+        peerId={chatPeerId}
+        peerName={query.data.name}
+        chatPath="/coach/chat"
+      />
+    ) : undefined)
+
+  return <StudentDetail detail={query.data} action={resolvedAction} />
 }
 
 function StudentDetail({ detail, action }: { detail: CoachStudentDetail; action?: ReactNode }) {
@@ -381,7 +395,11 @@ export default function CoachSessionDetailPage() {
               {slot.status === 'REQUESTED' ? (
                 <RequestsSection slot={slot} />
               ) : (
-                <StudentSection studentId={slot.studentId} hasStudent={!!slot.studentId} />
+                <StudentSection
+                  studentId={slot.studentId}
+                  hasStudent={!!slot.studentId}
+                  chatPeerId={slot.studentId ?? undefined}
+                />
               )}
               <CancelSessionButton slot={slot} />
             </>

@@ -30,10 +30,12 @@ import ClientSearchPage from '@/pages/ClientSearchPage'
 import ClientCoachDetailPage from '@/pages/ClientCoachDetailPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import {
+  ClientChatPage,
   ClientHealthFormPage,
   ClientOnboardingPage,
   ClientSchedulePage,
   ClientSessionDetailPage,
+  CoachChatPage,
   CoachOnboardingPage,
   CoachSchedulePage,
   CoachSessionDetailPage,
@@ -125,6 +127,16 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/client/chat',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <Suspense fallback={null}>
+              <ClientChatPage />
+            </Suspense>
+          </ClientRouteGuard>
+        ),
+      },
+      {
         path: '/client/profile',
         element: (
           <ClientRouteGuard requireOnboarded>
@@ -174,6 +186,16 @@ const router = createBrowserRouter([
           <CoachRouteGuard allow={['APPROVED']}>
             <Suspense fallback={null}>
               <CoachSessionDetailPage />
+            </Suspense>
+          </CoachRouteGuard>
+        ),
+      },
+      {
+        path: '/coach/chat',
+        element: (
+          <CoachRouteGuard allow={['APPROVED']}>
+            <Suspense fallback={null}>
+              <CoachChatPage />
             </Suspense>
           </CoachRouteGuard>
         ),

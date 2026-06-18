@@ -2,12 +2,14 @@ import type { Role } from '@/stores/sessionStore'
 
 const MOCK_CLAIMS: Record<Role, Record<string, string>> = {
   client: {
+    sub: 'client_demo',
     name: 'Aluno Demo',
     given_name: 'Aluno',
     family_name: 'Demo',
     email: 'aluno@coachmatch.app',
   },
   coach: {
+    sub: 'mock-coach-id',
     name: 'Treinador Demo',
     given_name: 'Treinador',
     family_name: 'Demo',
