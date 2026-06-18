@@ -753,6 +753,367 @@
             "description": "Salva o perfil do coach. Não altera o status (ver fluxo no README)."
           },
           "response": []
+        },
+        {
+          "name": "C15 - Chat: emite token do Stream",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/token",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "token"
+              ]
+            },
+            "description": "Emite o token de acesso do Stream (apiKey + token, válido 24h)."
+          },
+          "response": []
+        },
+        {
+          "name": "C16 - Chat: cria/recupera conversa com par",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"peerId\": \"<STUDENT_USER_ID>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations"
+              ]
+            },
+            "description": "Cria (ou recupera) a conversa direta com o par informado em peerId."
+          },
+          "response": []
+        },
+        {
+          "name": "C17 - Chat: lista conversas",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations?limit=30",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "30"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C18 - Chat: edita conversa (nome/frozen)",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Plano de treino\",\n  \"frozen\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b"
+              ]
+            },
+            "description": "Troque o id do canal no path pelo retornado em 'cria conversa'."
+          },
+          "response": []
+        },
+        {
+          "name": "C19 - Chat: oculta conversa",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C20 - Chat: envia mensagem",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Bom treino hoje?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C21 - Chat: lista mensagens",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages?limit=30&before=",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "30"
+                },
+                {
+                  "key": "before",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "'before' é o id de uma mensagem usada como cursor (anteriores a ela)."
+          },
+          "response": []
+        },
+        {
+          "name": "C22 - Chat: edita mensagem",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Bom treino hoje? (editado)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/messages/<MESSAGE_ID>",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "messages",
+                "<MESSAGE_ID>"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C23 - Chat: apaga mensagem",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/messages/<MESSAGE_ID>",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "messages",
+                "<MESSAGE_ID>"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -1738,6 +2099,367 @@
               }
             },
             "description": "amount em centavos; reason é opcional (máx. 255 caracteres)."
+          },
+          "response": []
+        },
+        {
+          "name": "S22 - Chat: emite token do Stream",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/token",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "token"
+              ]
+            },
+            "description": "Emite o token de acesso do Stream (apiKey + token, válido 24h)."
+          },
+          "response": []
+        },
+        {
+          "name": "S23 - Chat: cria/recupera conversa com par",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"peerId\": \"83dcfaba-f0c1-705d-b109-2b381fed0971\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations"
+              ]
+            },
+            "description": "Cria (ou recupera) a conversa direta com o par informado em peerId."
+          },
+          "response": []
+        },
+        {
+          "name": "S24 - Chat: lista conversas",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations?limit=30",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "30"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S25 - Chat: edita conversa (nome/frozen)",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Plano de treino\",\n  \"frozen\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b"
+              ]
+            },
+            "description": "Troque o id do canal no path pelo retornado em 'cria conversa'."
+          },
+          "response": []
+        },
+        {
+          "name": "S26 - Chat: oculta conversa",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S27 - Chat: envia mensagem",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Bom treino hoje?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S28 - Chat: lista mensagens",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages?limit=30&before=",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "30"
+                },
+                {
+                  "key": "before",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "'before' é o id de uma mensagem usada como cursor (anteriores a ela)."
+          },
+          "response": []
+        },
+        {
+          "name": "S29 - Chat: edita mensagem",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Bom treino hoje? (editado)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/messages/<MESSAGE_ID>",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "messages",
+                "<MESSAGE_ID>"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S30 - Chat: apaga mensagem",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/messages/<MESSAGE_ID>",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "messages",
+                "<MESSAGE_ID>"
+              ]
+            }
           },
           "response": []
         }

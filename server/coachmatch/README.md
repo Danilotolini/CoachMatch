@@ -51,11 +51,26 @@ src/
 │   ├── refund-payment/        # POST /payments/{transactionId}/refund
 │   └── shared/                # helpers específicos de pagamentos
 │
+├── api-chat/                  # Chat 1:1 aluno↔coach (Stream Chat)
+│   ├── token.js               # POST /chat/token — emite token de acesso do Stream
+│   ├── conversations.js       # handlers de conversas (create/list/update/remove)
+│   ├── messages.js            # handlers de mensagens (send/list/update/remove)
+│   ├── service/               # integração com o SDK do Stream (token/conversations/messages)
+│   ├── lib/                   # http.js (auth + map de erros), membership.js, errors.js
+│   └── validation/            # schemas Joi do chat
+│
 └── shared/
     ├── config.js              # createClient() — DynamoDBDocumentClient
+    ├── streamClient.js        # getStreamClient() — SDK server-side do Stream Chat
     └── exceptions.js          # DatabaseConnectionException, ValidationException,
                                # NotFoundException, ConflictException
 ```
+
+> **Chat é a exceção arquitetural.** Diferente das Lambdas de 3 camadas + DynamoDB,
+> `api-chat` não persiste nada localmente: delega tudo ao **Stream Chat** via
+> `shared/streamClient.js`. O handler é fino (`lib/http.handle` resolve o usuário das
+> claims do Cognito e mapeia erros → status), a regra fica em `service/` e a posse de
+> canal/mensagem é checada em `lib/membership.js`.
 
 ## Rotas implementadas
 
@@ -89,6 +104,24 @@ Triggers Cognito (não HTTP):
 > `coachSubmitForReview` (`POST /coach/me/submit-for-review`) está **desativada**
 > (bloco comentado no `serverless.yml`); o coach é cadastrado já ativo. Ver
 > [Pendências conhecidas](#pendências-conhecidas).
+
+### Chat (Stream)
+
+Cada rota existe sob `/coach/chat/*` (authorizer CoachAccess) e `/student/chat/*`
+(authorizer StudentAccess) — a mesma Lambda atende os dois papéis. `{id}` é o id do
+canal (conversa) ou da mensagem, conforme a rota.
+
+| Método | Rota | Lambda | Descrição |
+|--------|------|--------|-----------|
+| `POST`   | `/{role}/chat/token` | `chatToken` | Emite token de acesso do Stream (TTL 24h) |
+| `POST`   | `/{role}/chat/conversations` | `chatConversationCreate` | Cria/recupera a conversa direta com um par (`peerId`) |
+| `GET`    | `/{role}/chat/conversations` | `chatConversationList` | Lista as conversas do usuário (`?limit`) |
+| `PATCH`  | `/{role}/chat/conversations/{id}` | `chatConversationUpdate` | Edita nome/`frozen` da conversa |
+| `DELETE` | `/{role}/chat/conversations/{id}` | `chatConversationDelete` | Oculta a conversa para o usuário |
+| `POST`   | `/{role}/chat/conversations/{id}/messages` | `chatMessageSend` | Envia mensagem na conversa |
+| `GET`    | `/{role}/chat/conversations/{id}/messages` | `chatMessageList` | Lista mensagens (`?limit`, `?before`) |
+| `PATCH`  | `/{role}/chat/messages/{id}` | `chatMessageUpdate` | Edita mensagem do próprio autor |
+| `DELETE` | `/{role}/chat/messages/{id}` | `chatMessageDelete` | Apaga (soft delete) mensagem do próprio autor |
 
 ## Status de coach (fluxo)
 
