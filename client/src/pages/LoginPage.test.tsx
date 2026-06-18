@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
@@ -251,5 +252,50 @@ describe('LoginPage', () => {
     renderPage('coach')
 
     expect(await screen.findByText('Erro ao iniciar login.')).toBeInTheDocument()
+  })
+
+  // Regressão: ao cair no login sem sessão, getLoginUrl roda já no mount. O
+  // double-invoke de efeitos do StrictMode (dev) chamaria getLoginUrl duas
+  // vezes; como cada chamada grava state/PKCE concorrentes no sessionStorage e
+  // pode resolver fora de ordem, o redirect sairia com um state que a outra
+  // chamada já sobrescreveu — e o callback cairia em "Estado inválido".
+  it('inicia o login do Cognito uma única vez sob StrictMode (coach)', async () => {
+    const url = 'https://cognito.test/oauth2/authorize?x=1'
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={['/coach/login']}>
+          <Routes>
+            <Route path="/coach/login" element={<LoginPage audience="coach" />} />
+          </Routes>
+        </MemoryRouter>
+      </StrictMode>,
+    )
+
+    expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
+    expect(getLoginUrlSpy).toHaveBeenCalledTimes(1)
+    expect(getLoginUrlSpy).toHaveBeenCalledWith('coach')
+    expect(window.location.href).toBe(url)
+  })
+
+  it('inicia o login do Cognito uma única vez sob StrictMode (aluno)', async () => {
+    const url = 'https://student-cognito.test/oauth2/authorize?x=1'
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={['/client/login']}>
+          <Routes>
+            <Route path="/client/login" element={<LoginPage audience="client" />} />
+          </Routes>
+        </MemoryRouter>
+      </StrictMode>,
+    )
+
+    expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
+    expect(getLoginUrlSpy).toHaveBeenCalledTimes(1)
+    expect(getLoginUrlSpy).toHaveBeenCalledWith('client')
+    expect(window.location.href).toBe(url)
   })
 })
