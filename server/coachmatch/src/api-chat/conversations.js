@@ -15,8 +15,13 @@ const requireChannelId = (event) => {
 
 /** POST /chat/conversations — cria/recupera a conversa com um par. */
 export const create = handle(async (event, user) => {
-  const { peerId } = validate(createConversationSchema, parseBody(event));
-  return service.createConversation({ userId: user.id, peerId });
+  const { peerId, peerName } = validate(createConversationSchema, parseBody(event));
+  return service.createConversation({
+    userId: user.id,
+    userName: user.name,
+    peerId,
+    peerName,
+  });
 });
 
 /** GET /chat/conversations — lista as conversas do usuário. */
