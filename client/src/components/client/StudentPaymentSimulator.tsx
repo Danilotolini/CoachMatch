@@ -1,8 +1,7 @@
-import { useMutation } from '@tanstack/react-query'
-import { createPayment } from '@/api/payments'
+import { useState } from 'react'
+import { StudentPaymentModal } from '@/components/client/StudentPaymentModal'
 import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
-import { parseApiErrors } from '@/lib/http'
 
 interface StudentPaymentSimulatorProps {
   scheduleId: string
@@ -10,6 +9,9 @@ interface StudentPaymentSimulatorProps {
   studentId: string
   amountCents: number
   amountLabel: string
+  coachName?: string | undefined
+  specialtyLabel?: string | undefined
+  dateLabel?: string | undefined
   onPaid: () => void
 }
 
@@ -19,21 +21,12 @@ export function StudentPaymentSimulator({
   studentId,
   amountCents,
   amountLabel,
+  coachName,
+  specialtyLabel,
+  dateLabel,
   onPaid,
 }: StudentPaymentSimulatorProps) {
-  const paymentMutation = useMutation({
-    mutationFn: () =>
-      createPayment({
-        sessionId: scheduleId,
-        coachId,
-        studentId,
-        amount: amountCents,
-        method: 'pix',
-      }),
-    onSuccess: () => {
-      onPaid()
-    },
-  })
+  const [open, setOpen] = useState(false)
 
   return (
     <div className="rounded-lg bg-surface-container px-4 py-3">
@@ -45,16 +38,15 @@ export function StudentPaymentSimulator({
           <div className="min-w-0">
             <p className="font-headline text-sm font-semibold">Pagamento pendente</p>
             <p className="font-body text-xs text-on-surface-variant">
-              Pague esta aula via PIX para concluir o processo.
+              Pague esta aula via PIX ou cartão para concluir o processo.
             </p>
           </div>
         </div>
         <Button
           type="button"
           onClick={() => {
-            paymentMutation.mutate()
+            setOpen(true)
           }}
-          loading={paymentMutation.isPending}
           className="w-full py-3 sm:w-auto"
           icon="check_circle"
         >
@@ -62,11 +54,22 @@ export function StudentPaymentSimulator({
         </Button>
       </div>
 
-      {paymentMutation.isError ? (
-        <p className="mt-2 font-label text-xs text-error">
-          {parseApiErrors(paymentMutation.error, 'Não foi possível processar o pagamento.')}
-        </p>
-      ) : null}
+      {open && (
+        <StudentPaymentModal
+          scheduleId={scheduleId}
+          coachId={coachId}
+          studentId={studentId}
+          amountCents={amountCents}
+          amountLabel={amountLabel}
+          coachName={coachName}
+          specialtyLabel={specialtyLabel}
+          dateLabel={dateLabel}
+          onPaid={onPaid}
+          onClose={() => {
+            setOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }

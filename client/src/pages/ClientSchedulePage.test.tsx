@@ -188,7 +188,10 @@ describe('ClientSchedulePage', () => {
     expect(screen.getByText('Recusado')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Próximas' }))
+
+    // PAGAR abre o modal; o pagamento é confirmado dentro dele (PIX por padrão).
     fireEvent.click(await screen.findByRole('button', { name: /pagar r\$\s*180/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /já realizei o pagamento/i }))
 
     await waitFor(() => {
       expect(createPaymentMock).toHaveBeenCalledWith({
@@ -199,6 +202,9 @@ describe('ClientSchedulePage', () => {
         method: 'pix',
       })
     })
+
+    // A agenda só é invalidada ao concluir na tela de sucesso.
+    fireEvent.click(await screen.findByRole('button', { name: /concluir/i }))
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['student-schedule-requests'] })
     })

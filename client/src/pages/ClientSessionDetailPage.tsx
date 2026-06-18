@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
 import { getStudentScheduleRequests } from '@/api/schedule'
 import { StartChatButton } from '@/components/chat/StartChatButton'
+import { StudentPaymentSimulator } from '@/components/client/StudentPaymentSimulator'
 import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNavigation'
 import { SessionSummaryCard } from '@/components/schedule/SessionSummaryCard'
 import { Button } from '@/components/ui/Button'
@@ -15,7 +16,7 @@ import {
   useCancelStudentScheduleRequest,
 } from '@/hooks/useStudentSchedule'
 import { useStudentSpecialties } from '@/hooks/useStudentSpecialties'
-import { nowMs } from '@/lib/dateTime'
+import { formatScheduleDateTimeRange, nowMs } from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
 import type { CoachDetail, Schedule, StudentScheduleItem } from '@/types/api'
 
@@ -272,6 +273,49 @@ function StudentSessionActions({ slot, onCancelled }: { slot: Schedule; onCancel
   )
 }
 
+function formatMoney(value: string): string {
+  const amount = Number(value)
+  if (Number.isNaN(amount)) return value
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
+function StudentPaymentSection({
+  slot,
+  studentId,
+  specialtyLabel,
+  onPaid,
+}: {
+  slot: Schedule
+  studentId: string
+  specialtyLabel: string
+  onPaid: () => void
+}) {
+  const canPay = slot.status === 'BOOKED' && slot.paymentStatus !== 'PAID'
+  if (!canPay) return null
+
+  return (
+    <Card className="flex flex-col gap-3 p-5">
+      <span className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+        Pagamento
+      </span>
+      <StudentPaymentSimulator
+        scheduleId={slot.scheduleId}
+        coachId={slot.coachId}
+        studentId={studentId}
+        amountCents={Math.round(parseFloat(slot.price) * 100)}
+        amountLabel={formatMoney(slot.price)}
+        specialtyLabel={specialtyLabel}
+        dateLabel={formatScheduleDateTimeRange(slot)}
+        onPaid={onPaid}
+      />
+    </Card>
+  )
+}
+
 export default function ClientSessionDetailPage() {
   const { scheduleId } = useParams<{ scheduleId: string }>()
   const navigate = useNavigate()
@@ -327,6 +371,14 @@ export default function ClientSessionDetailPage() {
           ) : (
             <>
               <SessionSummaryCard slot={slot} specialtyLabel={specialtyLabel} />
+              <StudentPaymentSection
+                slot={slot}
+                studentId={studentId}
+                specialtyLabel={specialtyLabel}
+                onPaid={() => {
+                  void scheduleQuery.refetch()
+                }}
+              />
               <StudentSessionActions
                 slot={slot}
                 onCancelled={() => {
