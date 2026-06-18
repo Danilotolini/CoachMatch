@@ -40,6 +40,7 @@ Object.defineProperty(globalThis, 'sessionStorage', {
 // que qualquer módulo que dependa dele seja importado pelos testes.
 vi.stubEnv('VITE_API_BASE_URL', 'http://api.test')
 vi.stubEnv('VITE_COGNITO_CLIENT_ID', 'test-client-id')
+vi.stubEnv('VITE_COGNITO_CLIENT_SECRET', 'test-client-secret')
 vi.stubEnv('VITE_COGNITO_DOMAIN', 'test.auth.us-east-1.amazoncognito.com')
 vi.stubEnv('VITE_COGNITO_STUDENT_CLIENT_ID', '3rjn45koljliioocd5usijdv9s')
 vi.stubEnv('VITE_COGNITO_STUDENT_DOMAIN', 'test.auth.us-east-1.amazoncognito.com')
