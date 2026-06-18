@@ -88,6 +88,7 @@ provider:
             - dynamodb:Scan
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches/index/*
             - arn:aws:dynamodb:sa-east-1:138413505977:table/student
             - arn:aws:dynamodb:sa-east-1:138413505977:table/gyms
             - arn:aws:dynamodb:sa-east-1:138413505977:table/payments
@@ -597,9 +598,23 @@ resources:
         AttributeDefinitions:
           - AttributeName: coachId
             AttributeType: S
+          - AttributeName: status
+            AttributeType: S
         KeySchema:
           - AttributeName: coachId
             KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: status-coachId-index
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+              - AttributeName: coachId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1

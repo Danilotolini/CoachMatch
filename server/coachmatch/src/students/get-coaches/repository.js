@@ -1,15 +1,21 @@
-import { ScanCommand, BatchGetCommand } from "@aws-sdk/lib-dynamodb";
+import { QueryCommand, BatchGetCommand } from "@aws-sdk/lib-dynamodb";
 import { createClient } from "../../shared/config.js";
 
 const dynamo = createClient();
 
 const TABLE_NAME = process.env.COACHES_TABLE ?? "coaches";
 const GYMS_TABLE = process.env.GYMS_TABLE ?? "gyms";
+const STATUS_INDEX = process.env.COACHES_STATUS_INDEX ?? "status-coachId-index";
+const SEARCHABLE_STATUS = "APPROVED";
 
-export async function scanCoaches({ q, specialties, limit, lastKey }) {
+export async function queryCoaches({ q, specialties, limit, lastKey }) {
   const result = await dynamo.send(
-    new ScanCommand({
+    new QueryCommand({
       TableName: TABLE_NAME,
+      IndexName: STATUS_INDEX,
+      KeyConditionExpression: "#status = :status",
+      ExpressionAttributeNames:  { "#status": "status" },
+      ExpressionAttributeValues: { ":status": SEARCHABLE_STATUS },
       Limit: limit,
       ...(lastKey && { ExclusiveStartKey: lastKey }),
     })
@@ -18,24 +24,11 @@ export async function scanCoaches({ q, specialties, limit, lastKey }) {
   const items = result.Items ?? [];
   const gymsById = q ? await loadGyms(collectGymIds(items)) : new Map();
   const filtered = filterCoaches(items, { q, specialties, gymsById });
-  const ordered = sortByCoachId(filtered);
 
   return {
-    items:   mapItems(ordered),
+    items:   mapItems(filtered),
     lastKey: result.LastEvaluatedKey ?? null,
   };
-}
-
-function isSearchable(item) {
-  return item.status === "APPROVED";
-}
-
-// Ordem estável por coachId para que a mesma página sempre volte na mesma ordem
-// (o Scan do DynamoDB não garante ordenação).
-function sortByCoachId(items) {
-  return [...items].sort((a, b) =>
-    (a.coachId ?? "").localeCompare(b.coachId ?? "")
-  );
 }
 
 function normalize(value) {
@@ -90,8 +83,6 @@ function filterCoaches(items, { q, specialties, gymsById }) {
   const wanted = specialties ?? [];
 
   return items.filter((item) => {
-    if (!isSearchable(item)) return false;
-
     const coachSpecs = item.profile?.specialties ?? [];
 
     const matchesQuery =
