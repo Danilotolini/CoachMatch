@@ -762,12 +762,15 @@ paths:
     get:
       tags: [Student — Agenda]
       summary: Busca treinadores publicamente listáveis.
+      description: >
+        Retorna apenas treinadores ativos (status `APPROVED`). Os resultados são
+        ordenados de forma estável por `coachId`.
       operationId: searchCoaches
       parameters:
         - in: query
           name: q
           schema: { type: string }
-          description: Termo livre (nome, cidade, bairro, especialidade).
+          description: Termo livre (nome ou especialidade).
         - in: query
           name: "specialties[]"
           description: Filtra por uma ou mais especialidades. Pode repetir o parâmetro.
@@ -777,37 +780,47 @@ paths:
           style: form
           explode: true
         - in: query
-          name: address
-          schema: { type: string }
-          description: Filtro por bairro/cidade.
-        - in: query
-          name: availableOn
-          schema: { type: string, format: date }
-          description: Data ISO (yyyy-mm-dd) para filtrar disponibilidade.
-        - in: query
-          name: sort
-          schema:
-            $ref: "#/components/schemas/CoachSearchSort"
-        - in: query
-          name: page
-          schema: { type: integer, minimum: 1, default: 1 }
-        - in: query
           name: limit
           schema: { type: integer, minimum: 1, maximum: 100, default: 12 }
+        - in: query
+          name: lastKey
+          description: >
+            Cursor de paginação. JSON serializado devolvido em `meta.lastKey` da
+            página anterior (ex.: {"coachId":"..."}). Ausente na primeira página.
+          schema: { type: string }
       responses:
         "200":
-          description: Resultado paginado da busca.
+          description: Página da listagem de treinadores.
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/PaginatedEnvelope"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/CoachListItem"
+                $ref: "#/components/schemas/CoachSearchResponse"
+
+  /student/coaches/{coachId}:
+    get:
+      tags: [Student — Agenda]
+      summary: Detalha um treinador publicamente listável.
+      description: >
+        Retorna os dados não sensíveis de um treinador `APPROVED`, com as
+        localidades do tipo GYM enriquecidas com os dados da academia. Treinadores
+        inexistentes ou não listáveis respondem 404.
+      operationId: getCoachDetail
+      parameters:
+        - in: path
+          name: coachId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Detalhe do treinador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoachDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /student/coach/schedules/cancel:
     post:
@@ -1266,47 +1279,117 @@ components:
           items:
             $ref: "#/components/schemas/WorkLocation"
 
-    CoachSearchSort:
-      type: string
-      enum: [rating, price_asc, price_desc]
-      default: rating
-
-    CoachListItem:
+    CoachSummaryProfile:
       type: object
-      required:
-        [
-          coachId,
-          name,
-          specialties,
-          rating,
-          priceFrom,
-          neighborhood,
-          city,
-          nextAvailability,
-          photo,
-        ]
+      required: [name, phone, specialties, cref, instagram, profile_video]
       properties:
-        coachId: { type: string }
         name: { type: string }
+        phone: { type: string, nullable: true }
         specialties:
           type: array
           items: { type: string }
-        rating:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 5
-        priceFrom:
-          type: number
-          description: Preço a partir de (em BRL).
-        neighborhood: { type: string }
-        city: { type: string }
-        nextAvailability:
+        cref: { type: string, nullable: true, example: "012345-G/SP" }
+        instagram: { type: string, nullable: true, example: "@treinador" }
+        profile_video:
+          type: boolean
+          description: Indica se há vídeo de apresentação enviado.
+
+    CoachSummary:
+      type: object
+      required: [coachId, profile, work_location]
+      properties:
+        coachId: { type: string }
+        profile: { $ref: "#/components/schemas/CoachSummaryProfile" }
+        work_location:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkLocation"
+
+    CoachSearchCursor:
+      type: object
+      required: [coachId]
+      properties:
+        coachId: { type: string }
+
+    CoachSearchResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoachSummary"
+        meta:
+          type: object
+          required: [limit, lastKey]
+          properties:
+            limit: { type: integer }
+            lastKey:
+              nullable: true
+              allOf:
+                - $ref: "#/components/schemas/CoachSearchCursor"
+
+    CoachDetailGym:
+      type: object
+      required: [name, neighborhood, city, state]
+      properties:
+        name: { type: string, nullable: true }
+        neighborhood: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        state: { type: string, nullable: true }
+
+    CoachDetailGymLocation:
+      type: object
+      required: [type, gymId, gym]
+      properties:
+        type:
           type: string
-          description: Texto curto com a próxima janela disponível.
-        photo:
-          type: string
+          enum: [GYM]
+        gymId: { type: string, nullable: true }
+        gym:
           nullable: true
+          allOf:
+            - $ref: "#/components/schemas/CoachDetailGym"
+
+    CoachDetailHomeLocation:
+      type: object
+      required: [type, coverage]
+      properties:
+        type:
+          type: string
+          enum: [HOME_SERVICE]
+        coverage:
+          type: object
+          required: [city, state, neighborhoods]
+          properties:
+            city: { type: string, nullable: true }
+            state: { type: string, nullable: true }
+            neighborhoods:
+              type: array
+              items: { type: string }
+
+    CoachDetailWorkLocation:
+      oneOf:
+        - $ref: "#/components/schemas/CoachDetailGymLocation"
+        - $ref: "#/components/schemas/CoachDetailHomeLocation"
+      discriminator:
+        propertyName: type
+
+    CoachDetail:
+      type: object
+      description: >
+        Detalhe público de um treinador. Traz o máximo de dados não sensíveis
+        (o e-mail e dados de conta ficam de fora). As localidades do tipo GYM
+        vêm enriquecidas com os dados da academia.
+      required: [coachId, status, profile, work_location]
+      properties:
+        coachId: { type: string }
+        status: { $ref: "#/components/schemas/CoachStatus" }
+        profile: { $ref: "#/components/schemas/CoachSummaryProfile" }
+        work_location:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoachDetailWorkLocation"
 
     # ── Gym ───────────────────────────────────
     Gym:
@@ -1600,6 +1683,15 @@ components:
         startDateTime: { type: string, format: date-time }
         endDateTime: { type: string, format: date-time }
         scheduleStatus: { $ref: "#/components/schemas/ScheduleStatus" }
+        paymentStatus:
+          type: string
+          nullable: true
+          description: Status do pagamento. `null` enquanto não pago; `PAID` após confirmação.
+          example: PAID
+        paymentTransactionId:
+          type: string
+          nullable: true
+          description: Id da transação que pagou o schedule (presente quando `paymentStatus = PAID`).
         request:
           nullable: true
           description: Solicitação do aluno autenticado para este schedule.

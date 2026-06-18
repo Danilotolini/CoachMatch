@@ -1421,10 +1421,49 @@
                 {
                   "key": "limit",
                   "value": "12"
+                },
+                {
+                  "key": "lastKey",
+                  "value": "{\"coachId\":\"...\"}",
+                  "disabled": true
                 }
               ]
             },
-            "description": "q: busca textual livre. specialties[]: repetível para múltiplas. limit (default 12). lastKey: JSON p/ paginação."
+            "description": "q: busca textual livre. specialties[]: repetível para múltiplas. limit (default 12). lastKey: JSON do meta.lastKey da página anterior p/ paginação por cursor."
+          },
+          "response": []
+        },
+        {
+          "name": "S14b - Detalhe do coach (GET /student/coaches/{coachId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/coaches/83dcfaba-f0c1-705d-b109-2b381fed0971",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "coaches",
+                "83dcfaba-f0c1-705d-b109-2b381fed0971"
+              ]
+            },
+            "description": "Detalhe público de um treinador APPROVED. Retorna dados não sensíveis (sem e-mail/conta) e enriquece as localidades GYM com os dados da academia. 404 para coach inexistente ou não listável."
           },
           "response": []
         },
