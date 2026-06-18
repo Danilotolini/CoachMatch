@@ -404,6 +404,37 @@ paths:
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
 
+  /coach/students/{studentId}:
+    get:
+      tags: [Coach — Agenda]
+      summary: Detalha um aluno para o coach (dados de treino, sem contato).
+      description: >
+        Retorna nome, gênero, data de nascimento, objetivo e o questionário PAR-Q
+        (`health`) de um aluno, para uso do treinador na sessão. Não expõe dados de
+        contato/identificação (email, telefone, endereço). Exige que o coach
+        autenticado tenha ao menos uma sessão com o aluno (`403` caso contrário).
+      operationId: getCoachStudentDetail
+      parameters:
+        - in: path
+          name: studentId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Detalhe do aluno.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoachStudentDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   # ─────────────────────────────────────────────
   # Student — Perfil
   # ─────────────────────────────────────────────
@@ -1587,6 +1618,28 @@ components:
             - $ref: "#/components/schemas/ClientHealth"
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    CoachStudentDetail:
+      type: object
+      required: [studentId]
+      description: >
+        Recorte de um aluno visível ao treinador na sessão — sem dados de contato.
+      properties:
+        studentId: { type: string }
+        name: { type: string, nullable: true }
+        birthDate: { type: string, format: date, nullable: true }
+        gender:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ClientGender"
+        goal:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ClientGoal"
+        health:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ClientHealth"
 
     ClientProfilePayload:
       type: object
