@@ -53,6 +53,13 @@ export function getTodayBrazilYMD(reference = new Date()): string {
   return toBrazilYMD(reference)
 }
 
+// Instante atual em ms (epoch UTC). É independente de fuso — fuso só importa para
+// formatar data/hora na tela. Serve para centralizar o "agora" em vez de espalhar
+// `Date.now()` pelo app e evita a regra de pureza do React quando usado no render.
+export function nowMs(): number {
+  return Date.now()
+}
+
 // UTC noon avoids shifting the calendar date while adding whole days to a YYYY-MM-DD string.
 export function addDaysToYMD(dateStr: string, days: number): string {
   const date = new Date(`${dateStr}T12:00:00Z`)
