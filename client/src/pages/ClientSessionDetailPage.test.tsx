@@ -18,7 +18,8 @@ const coach: CoachDetail = {
     specialties: ['Musculação'],
     cref: '123456-G/SP',
     instagram: null,
-    profile_video: false,
+    photo_url: null,
+    video_url: null,
   },
   work_location: [
     {
