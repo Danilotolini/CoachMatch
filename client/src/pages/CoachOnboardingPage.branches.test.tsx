@@ -7,6 +7,7 @@ import { useOnboardingStore } from '@/stores/onboardingStore'
 const mockNavigate = vi.fn()
 const mockUpdateCoachMutate = vi.fn()
 const mockVideoMutate = vi.fn()
+const mockPhotoMutate = vi.fn()
 
 let mockAuthEmail: string | null = 'coach@coachmatch.app'
 let mockSpecialtiesData: { data: Array<{ id: string; label: string }> } | undefined = {
@@ -41,12 +42,18 @@ vi.mock('@/hooks/useCoachMe', () => ({
   }),
 }))
 
-vi.mock('@/hooks/useVideoUpload', () => ({
+vi.mock('@/hooks/useMediaUpload', () => ({
   useVideoUpload: () => ({
     mutate: mockVideoMutate,
     isPending: mockVideoState.isPending,
     progress: mockVideoState.progress,
     isError: mockVideoState.isError,
+  }),
+  usePhotoUpload: () => ({
+    mutate: mockPhotoMutate,
+    isPending: false,
+    progress: 0,
+    isError: false,
   }),
 }))
 

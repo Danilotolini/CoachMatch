@@ -15,7 +15,9 @@ export interface CoachProfile {
   specialties: string[]
   cref: string
   instagram: string
-  profile_video: boolean
+  /** URLs assinadas de leitura (bucket privado). null quando não há mídia. */
+  photo_url: string | null
+  video_url: string | null
 }
 
 export interface WorkLocationGym {
@@ -36,8 +38,24 @@ export interface Coach {
   updatedAt: string
 }
 
+/**
+ * Perfil enviado em PUT /coach/me. Diferente de `CoachProfile` (leitura): aqui as
+ * mídias são as KEYS do S3 (`photo_key`/`video_key`) retornadas pelo upload — o GET
+ * é que assina e devolve `photo_url`/`video_url`. Omitir a key mantém a mídia atual;
+ * enviar null/'' a remove.
+ */
+export interface CoachProfileUpdate {
+  name: string
+  phone: string | null
+  specialties: string[]
+  cref: string
+  instagram: string
+  photo_key?: string | null
+  video_key?: string | null
+}
+
 export interface CoachUpdatePayload {
-  profile?: Partial<CoachProfile>
+  profile?: CoachProfileUpdate
   work_location?: WorkLocation[]
 }
 
@@ -81,7 +99,8 @@ export interface CoachSummaryProfile {
   specialties: string[]
   cref: string | null
   instagram: string | null
-  profile_video: boolean
+  photo_url: string | null
+  video_url: string | null
 }
 
 export interface CoachSummaryGymLocation {
@@ -154,6 +173,8 @@ export interface Client {
   radius: number | null
   goal: ClientGoal | null
   health: ClientHealth | null
+  /** URL assinada de leitura da foto de perfil. null quando não há foto. */
+  photo_url: string | null
   createdAt: string
   updatedAt: string
 }
@@ -178,6 +199,8 @@ export interface ClientProfilePayload {
   state: string
   radius: 5 | 10 | 20
   goal: ClientGoal
+  /** Key do S3 da foto (do upload). Omitir mantém a atual; null/'' remove. */
+  photo_key?: string | null
 }
 
 export interface ClientHealthPayload {
@@ -456,6 +479,8 @@ export interface ChatConversation {
   members: string[]
   frozen: boolean
   lastMessageAt?: string | null
+  /** Foto do par (URL assinada), resolvida pelo backend a cada leitura. */
+  image?: string | null
   lastMessage?: ChatConversationLastMessage | null
 }
 

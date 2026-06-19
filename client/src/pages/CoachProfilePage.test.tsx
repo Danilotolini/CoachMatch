@@ -1,4 +1,5 @@
-import { describe, expect, it, beforeEach } from 'vitest'
+import { describe, expect, it, beforeEach, vi } from 'vitest'
+import { useEffect } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
@@ -9,6 +10,25 @@ import { createWrapper } from '@/test/createWrapper'
 import { initialCoach } from '@/mocks/fixtures'
 import { loginAs } from '@/test/session'
 import type { Coach, CoachUpdatePayload } from '@/types/api'
+
+// react-easy-crop e o canvas (toBlob) não rodam no happy-dom. Substituímos o
+// cropper por um stub que já reporta uma área válida e o recorte por um no-op
+// que devolve o próprio arquivo, mantendo o fluxo de upload testável.
+vi.mock('react-easy-crop', () => ({
+  default: ({
+    onCropComplete,
+  }: {
+    onCropComplete: (a: unknown, b: { x: number; y: number; width: number; height: number }) => void
+  }) => {
+    useEffect(() => {
+      onCropComplete({}, { x: 0, y: 0, width: 100, height: 100 })
+    }, [onCropComplete])
+    return null
+  },
+}))
+vi.mock('@/lib/cropImage', () => ({
+  cropToSquareFile: (file: File) => Promise.resolve(file),
+}))
 
 const approvedCoach: Coach = {
   ...initialCoach,
@@ -107,12 +127,49 @@ describe('CoachProfilePage', () => {
           cref: '654321-G/RJ',
           instagram: '@marina.performance',
           specialties: ['MUSCULATION', 'PILATES'],
-          profile_video: false,
         },
         work_location: [{ type: 'GYM', gymId: 'gym_smartfit_paulista' }],
       })
     })
     expect(await screen.findByText('Perfil atualizado.')).toBeInTheDocument()
+  })
+
+  it('faz upload de foto e envia photo_key no PUT /coach/me', async () => {
+    let receivedPayload: CoachUpdatePayload | null = null
+
+    server.use(
+      http.get('*/coach/me', () => HttpResponse.json<Coach>(approvedCoach)),
+      http.put('*/coach/me', async ({ request }) => {
+        receivedPayload = (await request.json()) as CoachUpdatePayload
+        return HttpResponse.json<Coach>({
+          ...approvedCoach,
+          profile: { ...approvedCoach.profile, photo_url: 'https://mock-s3.local/signed/foto' },
+          updatedAt: '2026-06-15T12:00:00Z',
+        })
+      }),
+    )
+
+    const user = userEvent.setup()
+    const { container } = renderPage()
+
+    expect(await screen.findByDisplayValue('Marina Silva')).toBeInTheDocument()
+
+    const photoInput = container.querySelector<HTMLInputElement>('input[accept*="image"]')
+    expect(photoInput).not.toBeNull()
+    const photo = new File([new Uint8Array([1, 2, 3])], 'perfil.jpg', { type: 'image/jpeg' })
+    await user.upload(photoInput as HTMLInputElement, photo)
+
+    // Confirma o recorte quadrado no modal antes do upload seguir.
+    await user.click(await screen.findByRole('button', { name: /Usar foto/i }))
+
+    // Espera o upload concluir (a key é guardada para enviar no submit).
+    expect(await screen.findByText(/Salve o perfil para confirmar a foto/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /SALVAR PERFIL/i }))
+
+    await waitFor(() => {
+      expect(receivedPayload?.profile?.photo_key).toMatch(/^uploads\/.*perfil\.jpg$/)
+    })
   })
 
   it('adiciona e remove academias e envia work_location no PUT', async () => {
