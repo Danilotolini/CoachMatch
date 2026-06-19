@@ -90,26 +90,44 @@ def lambda_handler(event, context):
         "requestedAt": now,
     }
 
-    existing_requests = schedule.get("requests") or []
+    existing_requests = schedule.get("requests")  # None or list
 
-    # Keep a single entry per student: drop any previous entry for this student
-    # (e.g. a CANCELLED one from a prior request) and add the fresh one.
-    updated_requests = [r for r in existing_requests if r["studentId"] != student_id]
-    updated_requests.append(new_request)
+    if existing_requests is None:
+        # 4.1 First request — initialize the array
+        updated_requests = [new_request]
+        requests_expression = "SET #req = :requests, #st = :status, updatedAt = :updatedAt"
+        expression_values = {
+            ":requests": updated_requests,
+            ":status": "REQUESTED",
+            ":updatedAt": now,
+        }
+    else:
+        # 4.1 Append to existing array
+        requests_expression = (
+            "SET #st = :status, updatedAt = :updatedAt "
+            "ADD #req :new_request"
+        )
+        # DynamoDB ADD on a List doesn't exist — use list_append via SET
+        requests_expression = (
+            "SET #req = list_append(#req, :new_request), "
+            "#st = :status, "
+            "updatedAt = :updatedAt"
+        )
+        expression_values = {
+            ":new_request": [new_request],
+            ":status": "REQUESTED",
+            ":updatedAt": now,
+        }
 
     try:
         table.update_item(
             Key={"scheduleId": schedule_id},
-            UpdateExpression="SET #req = :requests, #st = :status, updatedAt = :updatedAt",
+            UpdateExpression=requests_expression,
             ExpressionAttributeNames={
                 "#req": "requests",
                 "#st": "status",
             },
-            ExpressionAttributeValues={
-                ":requests": updated_requests,
-                ":status": "REQUESTED",
-                ":updatedAt": now,
-            },
+            ExpressionAttributeValues=expression_values,
             ConditionExpression="attribute_exists(scheduleId)",
         )
     except ClientError as e:
