@@ -53,6 +53,7 @@ describe('RouteErrorBoundary', () => {
         },
         element: <div>nunca renderiza</div>,
         errorElement: <RouteErrorBoundary />,
+        HydrateFallback: () => null,
       },
     ])
     render(<RouterProvider router={router} />)

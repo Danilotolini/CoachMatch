@@ -15,6 +15,7 @@ import {
   formatBrazilDay,
   formatBrazilDayOfMonth,
   formatStudentScheduleTimeRange,
+  nowMs,
 } from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
 import type {
@@ -168,16 +169,26 @@ export default function ClientSchedulePage() {
     return new Map<string, CoachDetail | undefined>(entries)
   }, [coachIds, coachQueries])
 
-  const viewItems = useMemo<ScheduleViewItem[]>(
-    () =>
-      schedules
-        .map((schedule) => ({
-          schedule,
-          coach: coachesById.get(schedule.coachId),
-        }))
-        .filter((item) => getFilter(item.schedule) === activeFilter),
-    [activeFilter, coachesById, schedules],
-  )
+  const viewItems = useMemo<ScheduleViewItem[]>(() => {
+    const now = nowMs()
+    return schedules
+      .map((schedule) => ({
+        schedule,
+        coach: coachesById.get(schedule.coachId),
+      }))
+      .filter((item) => getFilter(item.schedule) === activeFilter)
+      .filter(
+        (item) =>
+          activeFilter !== 'upcoming' || new Date(item.schedule.endDateTime).getTime() > now,
+      )
+      .sort((a, b) => {
+        if (activeFilter !== 'history') return 0
+        return (
+          new Date(b.schedule.startDateTime).getTime() -
+          new Date(a.schedule.startDateTime).getTime()
+        )
+      })
+  }, [activeFilter, coachesById, schedules])
 
   return (
     <main className="relative flex min-h-[max(884px,100dvh)] w-full bg-surface text-on-surface">
@@ -200,7 +211,7 @@ export default function ClientSchedulePage() {
           </button>
         </header>
 
-        <section className="mx-auto grid w-full max-w-6xl flex-1 gap-5 px-4 pb-12 sm:px-6 md:px-10 lg:grid-cols-[minmax(0,1fr)_21rem]">
+        <section className="mx-auto grid w-full max-w-6xl flex-1 gap-5 px-4 pb-12 sm:px-6 md:px-10">
           <div className="flex min-w-0 flex-col gap-5">
             <Card className="p-4">
               <ScheduleCalendar
@@ -276,24 +287,6 @@ export default function ClientSchedulePage() {
               </div>
             ) : null}
           </div>
-
-          <aside className="hidden lg:block">
-            <Card className="sticky top-8 overflow-hidden p-0">
-              <div className="kinetic-grid relative bg-surface-container p-5">
-                <div className="relative z-10 flex flex-col gap-4">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    icon="search"
-                    onClick={() => void navigate('/client/search')}
-                    className="w-full"
-                  >
-                    BUSCAR PERSONAL
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </aside>
         </section>
       </div>
 
