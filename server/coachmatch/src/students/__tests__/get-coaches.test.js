@@ -6,6 +6,10 @@ vi.mock('../../shared/config.js', () => ({
   createClient: () => ({ send: sendMock }),
 }));
 
+vi.mock('../../shared/s3.js', () => ({
+  signGetUrl: vi.fn(async (key) => (key ? `https://signed.example/${key}` : null)),
+}));
+
 import { queryCoaches } from '../get-coaches/repository.js';
 import { listCoaches } from '../get-coaches/index.js';
 import { handler } from '../get-coaches/handler.js';
@@ -20,7 +24,7 @@ const coachMarcos = {
     specialties: ['Musculação', 'Hipertrofia'],
     cref: 'CREF 1-G/SP',
     instagram: '@marcos',
-    profile_video: false,
+    photo_key: 'uploads/marcos-foto.jpg',
   },
   work_location: [{ type: 'GYM', gymId: 'gym-pinheiros' }],
 };
@@ -34,7 +38,6 @@ const coachJulia = {
     specialties: ['Funcional'],
     cref: null,
     instagram: null,
-    profile_video: false,
   },
   work_location: [],
 };
@@ -94,6 +97,16 @@ describe('get-coaches › repository (queryCoaches)', () => {
     expect(batchGetCall()).toBeUndefined();
   });
 
+  it('assina photo_url/video_url a partir das keys e não expõe as keys', async () => {
+    setupDynamo({ items: [coachMarcos] });
+
+    const result = await queryCoaches({ ...baseParams });
+
+    expect(result.items[0].profile.photo_url).toBe('https://signed.example/uploads/marcos-foto.jpg');
+    expect(result.items[0].profile.video_url).toBeNull();
+    expect(result.items[0].profile).not.toHaveProperty('photo_key');
+  });
+
   it('q casa por nome de forma case-insensitive', async () => {
     setupDynamo({ items: [coachMarcos, coachJulia] });
 
@@ -137,6 +150,36 @@ describe('get-coaches › repository (queryCoaches)', () => {
     expect(names(result)).toEqual([]);
   });
 
+  it('com filtro, varre páginas até juntar matches (Limit conta itens lidos, não filtrados)', async () => {
+    const lastKeyP1 = { status: 'APPROVED', coachId: 'coach-julia' };
+    sendMock.mockImplementationOnce(() =>
+      Promise.resolve({ Items: [coachJulia], LastEvaluatedKey: lastKeyP1 }),
+    );
+    sendMock.mockImplementationOnce(() =>
+      Promise.resolve({ Items: [coachMarcos], LastEvaluatedKey: null }),
+    );
+
+    const result = await queryCoaches({ ...baseParams, specialties: ['Musculação'] });
+
+    expect(names(result)).toEqual(['Marcos Vieira']);
+    expect(result.lastKey).toBeNull();
+    // Página 1 não tinha match; o cursor da página 1 foi reusado na página 2.
+    expect(sendMock).toHaveBeenCalledTimes(2);
+    expect(sendMock.mock.calls[1][0].input.ExclusiveStartKey).toEqual(lastKeyP1);
+  });
+
+  it('com filtro, para no teto de páginas e devolve o cursor para continuar depois', async () => {
+    sendMock.mockImplementation(() =>
+      Promise.resolve({ Items: [coachJulia], LastEvaluatedKey: { coachId: 'next' } }),
+    );
+
+    const result = await queryCoaches({ ...baseParams, specialties: ['Yoga'] });
+
+    expect(names(result)).toEqual([]);
+    expect(result.lastKey).toEqual({ coachId: 'next' });
+    expect(sendMock).toHaveBeenCalledTimes(8); // MAX_FILTER_PAGES
+  });
+
   it('repassa lastKey como ExclusiveStartKey e devolve o LastEvaluatedKey', async () => {
     setupDynamo({ items: [coachMarcos], lastKey: { status: 'APPROVED', coachId: 'coach-marcos' } });
 
@@ -176,12 +219,15 @@ describe('get-coaches › index (listCoaches)', () => {
 describe('get-coaches › handler', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('parseia lastKey (JSON), specialties[] e limit, retornando 200 com data/meta', async () => {
+  it('parseia lastKey (JSON), specialties[] (payload 2.0, separado por vírgula) e limit', async () => {
     setupDynamo({ items: [coachMarcos, coachJulia] });
 
     const response = await handler({
-      queryStringParameters: { limit: '2', lastKey: JSON.stringify({ coachId: 'coach-x' }) },
-      multiValueQueryStringParameters: { 'specialties[]': ['Funcional'] },
+      queryStringParameters: {
+        limit: '2',
+        lastKey: JSON.stringify({ coachId: 'coach-x' }),
+        'specialties[]': 'Funcional',
+      },
     });
 
     expect(response.statusCode).toBe(200);
@@ -189,6 +235,18 @@ describe('get-coaches › handler', () => {
     expect(body.data.map((c) => c.profile.name)).toEqual(['Julia Ramos']);
     expect(body.meta.limit).toBe(2);
     expect(queryCall().input.ExclusiveStartKey).toEqual({ coachId: 'coach-x' });
+  });
+
+  it('parseia specialties[] do multiValueQueryStringParameters (payload 1.0 / offline)', async () => {
+    setupDynamo({ items: [coachMarcos, coachJulia] });
+
+    const response = await handler({
+      queryStringParameters: { limit: '2' },
+      multiValueQueryStringParameters: { 'specialties[]': ['Funcional'] },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body).data.map((c) => c.profile.name)).toEqual(['Julia Ramos']);
   });
 
   it('usa o limit padrão (12) e sem cursor quando não há query string', async () => {
