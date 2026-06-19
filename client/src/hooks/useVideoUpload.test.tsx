@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { useVideoUpload } from './useVideoUpload'
+import { usePhotoUpload, useVideoUpload } from './useVideoUpload'
 import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
 import { loginAs } from '@/test/session'
@@ -10,6 +10,10 @@ const MOCK_S3_URL = 'https://mock-s3.local/upload'
 
 function makeFile(name = 'video.mp4'): File {
   return new File([new Uint8Array([1, 2, 3])], name, { type: 'video/mp4' })
+}
+
+function makePhoto(name = 'foto.jpg'): File {
+  return new File([new Uint8Array([1, 2, 3])], name, { type: 'image/jpeg' })
 }
 
 beforeEach(() => {
@@ -82,5 +86,35 @@ describe('useVideoUpload', () => {
     })
 
     expect(key).toMatch(/^uploads\/.*sem-tipo\.mp4$/)
+  })
+})
+
+describe('usePhotoUpload', () => {
+  it('usa o endpoint do papel client (/student/upload-url) e retorna a key', async () => {
+    loginAs('client')
+    let requestedPath: string | undefined
+    server.use(
+      http.post('*/student/upload-url', async ({ request }) => {
+        requestedPath = new URL(request.url).pathname
+        const body = (await request.json()) as { filename: string; contentType: string }
+        const key = `uploads/${body.filename}`
+        return HttpResponse.json({
+          key,
+          expiresIn: 300,
+          upload: { url: MOCK_S3_URL, fields: { key, 'Content-Type': body.contentType } },
+        })
+      }),
+    )
+
+    const { wrapper } = createWrapper()
+    const { result } = renderHook(() => usePhotoUpload('client'), { wrapper })
+
+    let key: string | undefined
+    await act(async () => {
+      key = await result.current.mutateAsync(makePhoto('perfil.jpg'))
+    })
+
+    expect(requestedPath).toBe('/student/upload-url')
+    expect(key).toBe('uploads/perfil.jpg')
   })
 })
