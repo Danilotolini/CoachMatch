@@ -8,6 +8,7 @@ import { Chip } from '@/components/ui/Chip'
 import { Icon } from '@/components/ui/Icon'
 import { Input } from '@/components/ui/Input'
 import { VideoUploadCard } from '@/components/coach/VideoUploadCard'
+import { PhotoUploadCard } from '@/components/coach/PhotoUploadCard'
 import { CoachBottomNav, CoachSideNav } from '@/components/layout/CoachNavigation'
 import { GymPicker, type GymOption } from '@/components/onboarding/GymPicker'
 import {
@@ -18,7 +19,8 @@ import {
 import { useCoachMe, useUpdateCoachMe } from '@/hooks/useCoachMe'
 import { useGyms } from '@/hooks/useGyms'
 import { useSpecialties } from '@/hooks/useSpecialties'
-import { useVideoUpload } from '@/hooks/useVideoUpload'
+import { usePhotoUpload, useVideoUpload } from '@/hooks/useMediaUpload'
+import { usePhotoCrop } from '@/hooks/usePhotoCrop'
 import type { Coach, CoachProfile, Gym, WorkLocation } from '@/types/api'
 
 interface CoachProfileFormState {
@@ -159,9 +161,14 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
   const [errors, setErrors] = useState<CoachProfileFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [hasVideo, setHasVideo] = useState(coach.profile.profile_video)
+  // `undefined` = mídia inalterada (o GET devolve URL assinada, não a key); string = nova key.
+  const [photoKey, setPhotoKey] = useState<string | undefined>(undefined)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(coach.profile.photo_url)
+  const [videoKey, setVideoKey] = useState<string | undefined>(undefined)
+  const [videoPreview, setVideoPreview] = useState<string | null>(coach.profile.video_url)
   const [videoFileName, setVideoFileName] = useState<string | null>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [selectedGymIds, setSelectedGymIds] = useState<string[]>(() =>
     extractGymIds(coach.work_location),
   )
@@ -169,6 +176,7 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
   const [gymError, setGymError] = useState<string | null>(null)
   const updateCoach = useUpdateCoachMe()
   const videoUpload = useVideoUpload()
+  const photoUpload = usePhotoUpload()
   const { data: specialtiesData } = useSpecialties()
   const { data: gymsData } = useGyms()
 
@@ -224,15 +232,31 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
     setVideoFileName(file.name)
     setSubmitError(null)
     setSuccessMessage(null)
+    const localUrl = URL.createObjectURL(file)
     videoUpload.mutate(file, {
-      onSuccess: () => {
-        setHasVideo(true)
+      onSuccess: (key) => {
+        setVideoKey(key)
+        setVideoPreview(localUrl)
       },
       onError: () => {
         setVideoFileName(null)
       },
     })
   }
+
+  const handlePhotoFile = (file: File) => {
+    setSubmitError(null)
+    setSuccessMessage(null)
+    const localUrl = URL.createObjectURL(file)
+    photoUpload.mutate(file, {
+      onSuccess: (key) => {
+        setPhotoKey(key)
+        setPhotoPreview(localUrl)
+      },
+    })
+  }
+
+  const photoCrop = usePhotoCrop(handlePhotoFile)
 
   const updateField = <K extends keyof CoachProfileFormState>(
     key: K,
@@ -280,12 +304,17 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
           cref: form.cref,
           instagram: form.instagram ? `@${form.instagram}` : '',
           specialties: form.specialties,
-          profile_video: hasVideo,
+          // Só enviamos as keys quando a mídia mudou; omitir preserva a atual no back-end.
+          ...(photoKey !== undefined ? { photo_key: photoKey } : {}),
+          ...(videoKey !== undefined ? { video_key: videoKey } : {}),
         },
         work_location: workLocation,
       })
       setForm(profileToForm(updatedCoach.profile))
-      setHasVideo(updatedCoach.profile.profile_video)
+      setPhotoPreview(updatedCoach.profile.photo_url)
+      setVideoPreview(updatedCoach.profile.video_url)
+      setPhotoKey(undefined)
+      setVideoKey(undefined)
       setSelectedGymIds(extractGymIds(updatedCoach.work_location))
       setSuccessMessage('Perfil atualizado.')
     } catch (error) {
@@ -302,6 +331,7 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
         initials={initialsFromName(displayName)}
         meta={meta}
         statusLabel={profileStatusLabel(coach)}
+        photoUrl={photoPreview}
       />
 
       <form
@@ -428,19 +458,57 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
 
           <aside className="flex flex-col gap-5">
             <ProfileSection
+              title="Foto de perfil"
+              description="A foto é o primeiro contato do aluno com você na vitrine."
+              icon="account_circle"
+            >
+              <PhotoUploadCard
+                label={photoPreview ? 'Trocar foto' : 'Enviar foto'}
+                previewUrl={photoPreview}
+                uploading={photoUpload.isPending}
+                progress={photoUpload.progress}
+                error={photoUpload.isError ? 'Falha no upload. Tente outra imagem.' : undefined}
+                hint={
+                  photoKey !== undefined && !photoUpload.isPending
+                    ? 'Salve o perfil para confirmar a foto na vitrine.'
+                    : undefined
+                }
+                onPick={() => photoInputRef.current?.click()}
+              />
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  if (file) photoCrop.requestCrop(file)
+                  event.target.value = ''
+                }}
+              />
+            </ProfileSection>
+
+            <ProfileSection
               title="Vídeo de apresentação"
               description="Um vídeo curto aumenta sua conversão na vitrine."
               icon="videocam"
             >
+              {videoPreview ? (
+                <video
+                  src={videoPreview}
+                  controls
+                  className="mb-3 w-full rounded-xl border border-outline-variant/10 bg-black"
+                />
+              ) : null}
               <VideoUploadCard
-                label={hasVideo ? 'Trocar vídeo' : 'Enviar vídeo'}
-                uploaded={hasVideo}
+                label={videoPreview ? 'Trocar vídeo' : 'Enviar vídeo'}
+                uploaded={!!videoPreview}
                 uploading={videoUpload.isPending}
                 progress={videoUpload.progress}
                 fileName={videoFileName}
                 error={videoUpload.isError ? 'Falha no upload. Tente outro arquivo.' : undefined}
                 hint={
-                  hasVideo && !videoUpload.isPending
+                  videoKey !== undefined && !videoUpload.isPending
                     ? 'Salve o perfil para confirmar a publicação na vitrine.'
                     : undefined
                 }
@@ -490,6 +558,7 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
           </Button>
         </div>
       </form>
+      {photoCrop.cropModal}
     </>
   )
 }

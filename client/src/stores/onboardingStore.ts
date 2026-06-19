@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { maskCref } from '@/lib/cref'
 import { maskInstagram, maskPhone, onlyDigits } from '@/lib/formatters'
-import type { CoachProfile, CoachUpdatePayload, Gym, WorkLocation } from '@/types/api'
+import type { CoachProfileUpdate, CoachUpdatePayload, Gym, WorkLocation } from '@/types/api'
 
 export interface SelectedGym {
   id: string
@@ -18,6 +18,7 @@ export interface OnboardingFormState {
   cref: string
   specialties: string[]
   gyms: SelectedGym[]
+  photoKey: string | null
   videoKey: string | null
 }
 
@@ -38,6 +39,7 @@ interface OnboardingStore {
   addGym: (gym: Gym) => void
   removeGym: (gymId: string) => void
   setGymError: (message: string) => void
+  setPhotoKey: (key: string | null) => void
   setVideoKey: (key: string | null) => void
   validate: () => boolean
   reset: () => void
@@ -50,6 +52,7 @@ const initialForm: OnboardingFormState = {
   cref: '',
   specialties: [],
   gyms: [],
+  photoKey: null,
   videoKey: null,
 }
 
@@ -102,13 +105,14 @@ function buildWorkLocation(form: OnboardingFormState): WorkLocation[] {
 }
 
 export function buildCoachUpdatePayload(form: OnboardingFormState): CoachUpdatePayload {
-  const profile: Partial<CoachProfile> = {
+  const profile: CoachProfileUpdate = {
     name: form.name.trim(),
     phone: onlyDigits(form.phone),
     instagram: form.instagram ? `@${form.instagram}` : '',
     cref: form.cref,
     specialties: form.specialties,
-    profile_video: !!form.videoKey,
+    photo_key: form.photoKey,
+    video_key: form.videoKey,
   }
 
   return {
@@ -183,6 +187,12 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   },
   setGymError: (message) => {
     set((state) => ({ errors: { ...state.errors, gyms: message } }))
+  },
+  setPhotoKey: (key) => {
+    set((state) => ({
+      form: { ...state.form, photoKey: key },
+      errors: clearError(state.errors, 'photoKey'),
+    }))
   },
   setVideoKey: (key) => {
     set((state) => ({

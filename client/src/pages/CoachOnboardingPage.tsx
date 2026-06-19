@@ -5,11 +5,13 @@ import { Input } from '@/components/ui/Input'
 import { Chip } from '@/components/ui/Chip'
 import { Icon } from '@/components/ui/Icon'
 import { VideoUploadCard } from '@/components/coach/VideoUploadCard'
+import { PhotoUploadCard } from '@/components/coach/PhotoUploadCard'
 import { GymPicker } from '@/components/onboarding/GymPicker'
 import { getAuthUser } from '@/lib/auth'
 import { useSpecialties } from '@/hooks/useSpecialties'
 import { useUpdateCoachMe } from '@/hooks/useCoachMe'
-import { useVideoUpload } from '@/hooks/useVideoUpload'
+import { usePhotoUpload, useVideoUpload } from '@/hooks/useMediaUpload'
+import { usePhotoCrop } from '@/hooks/usePhotoCrop'
 import { buildCoachUpdatePayload, useOnboardingStore } from '@/stores/onboardingStore'
 import type { Specialty } from '@/types/api'
 
@@ -32,6 +34,7 @@ export default function CoachOnboardingPage() {
   const authUser = getAuthUser()
   const updateCoach = useUpdateCoachMe()
   const videoUpload = useVideoUpload()
+  const photoUpload = usePhotoUpload()
   const form = useOnboardingStore((state) => state.form)
   const errors = useOnboardingStore((state) => state.errors)
   const specialtySearch = useOnboardingStore((state) => state.specialtySearch)
@@ -44,6 +47,7 @@ export default function CoachOnboardingPage() {
   const addGym = useOnboardingStore((state) => state.addGym)
   const removeGym = useOnboardingStore((state) => state.removeGym)
   const setVideoKey = useOnboardingStore((state) => state.setVideoKey)
+  const setPhotoKey = useOnboardingStore((state) => state.setPhotoKey)
   const validate = useOnboardingStore((state) => state.validate)
   const resetOnboarding = useOnboardingStore((state) => state.reset)
   const { data: specialtiesData } = useSpecialties(specialtySearch)
@@ -51,7 +55,9 @@ export default function CoachOnboardingPage() {
   const specialtyOptions = specialtiesData?.data ?? FALLBACK_SPECIALTIES
 
   const videoInputRef = useRef<HTMLInputElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [videoFileName, setVideoFileName] = useState<string | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const isSubmitting = updateCoach.isPending
@@ -69,6 +75,19 @@ export default function CoachOnboardingPage() {
       },
     })
   }
+
+  const handlePhotoFile = (file: File) => {
+    setSubmitError(null)
+    const localUrl = URL.createObjectURL(file)
+    photoUpload.mutate(file, {
+      onSuccess: (key) => {
+        setPhotoKey(key)
+        setPhotoPreview(localUrl)
+      },
+    })
+  }
+
+  const photoCrop = usePhotoCrop(handlePhotoFile)
 
   const submit = () => {
     setSubmitError(null)
@@ -236,10 +255,26 @@ export default function CoachOnboardingPage() {
                     e.target.value = ''
                   }}
                 />
-                <UploadCard
-                  icon="photo_camera"
-                  title="Foto de Perfil"
-                  description="JPG ou PNG, até 5MB."
+                <PhotoUploadCard
+                  label="Foto de Perfil"
+                  previewUrl={photoPreview}
+                  uploading={photoUpload.isPending}
+                  progress={photoUpload.progress}
+                  error={
+                    photoUpload.isError ? 'Falha no upload. Tente outra imagem.' : errors.photoKey
+                  }
+                  onPick={() => photoInputRef.current?.click()}
+                />
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) photoCrop.requestCrop(file)
+                    e.target.value = ''
+                  }}
                 />
               </div>
             </div>
@@ -338,6 +373,7 @@ export default function CoachOnboardingPage() {
           </div>
         </main>
       </div>
+      {photoCrop.cropModal}
     </div>
   )
 }
@@ -350,28 +386,5 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </h2>
       {children}
     </section>
-  )
-}
-
-function UploadCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: string
-  title: string
-  description: string
-}) {
-  return (
-    <button
-      type="button"
-      className="bg-surface-container-low rounded-xl p-5 border border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center hover:bg-surface-container-highest transition-colors cursor-pointer group min-h-40"
-    >
-      <div className="w-12 h-12 bg-surface-container-highest rounded-full flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-        <Icon name={icon} className="text-primary" />
-      </div>
-      <h3 className="font-headline text-sm font-semibold text-on-surface mb-1">{title}</h3>
-      <p className="font-body text-xs text-on-surface-variant max-w-50">{description}</p>
-    </button>
   )
 }

@@ -7,6 +7,7 @@ interface ProfileHeroProps {
   initials: string
   meta: string[]
   statusLabel: string
+  photoUrl?: string | null
 }
 
 interface ProfileInfoItem {
@@ -44,14 +45,23 @@ export function ProfileHero({
   initials,
   meta,
   statusLabel,
+  photoUrl,
 }: ProfileHeroProps) {
   return (
     <section className="overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low">
       <div className="kinetic-grid flex flex-col gap-6 p-6 md:p-8 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex min-w-0 flex-col gap-5 md:flex-row md:items-center">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary-fixed shadow-[0_10px_30px_rgba(244,255,198,0.14)]">
-            <span className="font-headline text-2xl font-black uppercase">{initials}</span>
-          </div>
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={name}
+              className="h-20 w-20 shrink-0 rounded-full object-cover shadow-[0_10px_30px_rgba(244,255,198,0.14)]"
+            />
+          ) : (
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary-fixed shadow-[0_10px_30px_rgba(244,255,198,0.14)]">
+              <span className="font-headline text-2xl font-black uppercase">{initials}</span>
+            </div>
+          )}
           <div className="min-w-0">
             <span className="font-label text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
               {eyebrow}

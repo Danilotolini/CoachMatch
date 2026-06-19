@@ -302,6 +302,7 @@ describe('reset', () => {
       cref: '',
       specialties: [],
       gyms: [],
+      photoKey: null,
       videoKey: null,
     })
     expect(state.errors).toEqual({})
@@ -318,6 +319,7 @@ describe('buildCoachUpdatePayload', () => {
     store.update('cref', '123456-G/SP')
     store.toggleSpecialty('Musculação')
     store.addGym(baseGym)
+    store.setPhotoKey('uploads/p.jpg')
     store.setVideoKey('uploads/v.mp4')
 
     const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form)
@@ -327,7 +329,8 @@ describe('buildCoachUpdatePayload', () => {
       instagram: '@meuperfil',
       cref: '123456-G/SP',
       specialties: ['Musculação'],
-      profile_video: true,
+      photo_key: 'uploads/p.jpg',
+      video_key: 'uploads/v.mp4',
       name: 'João Silva',
     })
     expect(payload.work_location).toEqual([{ type: 'GYM', gymId: 'gym-1' }])
@@ -344,8 +347,9 @@ describe('buildCoachUpdatePayload', () => {
     expect(payload.profile?.instagram).toBe('')
   })
 
-  it('marca profile_video=false quando não há videoKey', () => {
+  it('mantém photo_key/video_key nulos quando não há mídia', () => {
     const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form)
-    expect(payload.profile?.profile_video).toBe(false)
+    expect(payload.profile?.photo_key).toBeNull()
+    expect(payload.profile?.video_key).toBeNull()
   })
 })
