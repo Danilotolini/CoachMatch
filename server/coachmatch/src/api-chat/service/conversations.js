@@ -1,6 +1,7 @@
 import { getStreamClient } from "../../shared/streamClient.js";
 import { ChatValidationError } from "../lib/errors.js";
 import { assertMembership } from "../lib/membership.js";
+import { resolveMemberImages } from "../lib/profiles.js";
 
 const CHANNEL_TYPE = "messaging";
 
@@ -11,16 +12,28 @@ const buildChannelId = (a, b) => {
   return `dm_${slug(first)}_${slug(second)}`;
 };
 
-/** Serializa um canal do Stream para o formato exposto pela API. */
-const serializeChannel = (channel) => {
+const memberIds = (channel) => Object.keys(channel.state?.members ?? {});
+
+/** Numa conversa 1:1, o "par" é o outro membro a partir da ótica de quem pede. */
+const peerOf = (members, selfId) => members.find((id) => id !== selfId) ?? null;
+
+/**
+ * Serializa um canal do Stream para o formato exposto pela API. A `image` é a
+ * foto do par (a conversa é 1:1), resolvida por requisição — varia conforme quem
+ * olha, então não pode ser guardada no canal como o `name`.
+ */
+const serializeChannel = (channel, { selfId, imagesByUser } = {}) => {
   const data = channel.data ?? {};
   const lastMessage = channel.state?.messages?.at?.(-1) ?? null;
+  const members = memberIds(channel);
+  const peerId = selfId ? peerOf(members, selfId) : null;
   return {
     id: channel.id,
     name: data.name ?? null,
-    members: Object.keys(channel.state?.members ?? {}),
+    members,
     frozen: Boolean(data.frozen),
     lastMessageAt: data.last_message_at ?? null,
+    image: peerId ? (imagesByUser?.get(peerId) ?? null) : null,
     lastMessage: lastMessage
       ? { id: lastMessage.id, text: lastMessage.text, userId: lastMessage.user?.id }
       : null,
@@ -50,7 +63,8 @@ export const createConversation = async ({ userId, userName, peerId, peerName })
   });
 
   await channel.create();
-  return serializeChannel(channel);
+  const imagesByUser = await resolveMemberImages([peerId]);
+  return serializeChannel(channel, { selfId: userId, imagesByUser });
 };
 
 /** Lista as conversas em que o usuário é membro, mais recentes primeiro. */
@@ -61,7 +75,9 @@ export const listConversations = async ({ userId, limit = 30 }) => {
     { last_message_at: -1 },
     { limit, state: true, watch: false }
   );
-  return channels.map(serializeChannel);
+  const peerIds = channels.map((channel) => peerOf(memberIds(channel), userId));
+  const imagesByUser = await resolveMemberImages(peerIds);
+  return channels.map((channel) => serializeChannel(channel, { selfId: userId, imagesByUser }));
 };
 
 /** Atualiza metadados da conversa (nome, frozen). Exige ser membro. */
@@ -75,7 +91,8 @@ export const updateConversation = async ({ userId, channelId, data }) => {
 
   await channel.updatePartial({ set });
   await channel.query({ state: true, watch: false });
-  return serializeChannel(channel);
+  const imagesByUser = await resolveMemberImages([peerOf(memberIds(channel), userId)]);
+  return serializeChannel(channel, { selfId: userId, imagesByUser });
 };
 
 /** Oculta a conversa para o usuário (não destrói o histórico do outro membro). */
