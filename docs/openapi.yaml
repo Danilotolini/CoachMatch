@@ -88,12 +88,13 @@ paths:
   /coach/upload-url:
     post:
       tags: [Coach — Uploads]
-      summary: Gera URL pré-assinada (POST policy do S3) para upload de arquivos estáticos.
+      summary: Gera URL pré-assinada (POST policy do S3) para upload de foto ou vídeo.
       description: >-
-        Apesar do uso atual ser o vídeo de apresentação do treinador, não é
-        específica de vídeo: aceita qualquer tipo de arquivo (o `contentType` vem
-        da requisição), limitada apenas pelo tamanho máximo configurado e pelo
-        prefixo `uploads/` na key.
+        Mesmo endpoint serve foto e vídeo do treinador: aceita qualquer tipo de
+        arquivo (o `contentType` vem da requisição), limitada apenas pelo tamanho
+        máximo configurado e pelo prefixo `uploads/` na key. A `key` retornada é
+        persistida no perfil via `photo_key`/`video_key` em PUT /coach/me; a leitura
+        assina e devolve `photo_url`/`video_url`.
       operationId: createCoachUploadUrl
       requestBody:
         required: true
@@ -105,10 +106,10 @@ paths:
               properties:
                 filename:
                   type: string
-                  example: perfil-joao.mp4
+                  example: perfil-joao.jpg
                 contentType:
                   type: string
-                  example: video/mp4
+                  example: image/jpeg
       responses:
         "200":
           description: URL e campos para envio multipart.
@@ -509,11 +510,12 @@ paths:
   /student/upload-url:
     post:
       tags: [Student — Uploads]
-      summary: Gera URL pré-assinada (POST policy do S3) para upload de arquivos do aluno.
+      summary: Gera URL pré-assinada (POST policy do S3) para upload da foto do aluno.
       description: >-
-        Aceita qualquer tipo de arquivo (o `contentType` vem da requisição),
-        limitada apenas pelo tamanho máximo configurado e pelo prefixo `uploads/`
-        na key.
+        Mesmo endpoint de upload de foto/vídeo (o `contentType` vem da requisição),
+        limitada pelo tamanho máximo configurado e pelo prefixo `uploads/` na key. A
+        `key` retornada é persistida via `photo_key` em POST /student/me/profile; a
+        leitura assina e devolve `photo_url`.
       operationId: createStudentUploadUrl
       requestBody:
         required: true
@@ -525,10 +527,10 @@ paths:
               properties:
                 filename:
                   type: string
-                  example: documento-aluno.pdf
+                  example: foto-aluno.jpg
                 contentType:
                   type: string
-                  example: application/pdf
+                  example: image/jpeg
       responses:
         "200":
           description: URL e campos para envio multipart.
@@ -1616,6 +1618,10 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/ClientHealth"
+        photo_url:
+          type: string
+          nullable: true
+          description: URL pré-assinada (GET) da foto de perfil. null quando não há foto.
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -1656,27 +1662,46 @@ components:
         state: { type: string, minLength: 2, maxLength: 2, example: SP }
         radius:
           type: integer
-          enum: [5, 10, 20]
-          description: Raio de atendimento em km.
+          minimum: 1
+          maximum: 100
+          description: Raio de atendimento em km (1 a 100).
         goal:
           type: string
           enum: [WEIGHT_LOSS, HYPERTROPHY, CONDITIONING, REHAB, PERFORMANCE]
+        photo_key:
+          type: string
+          nullable: true
+          description: >
+            Key do S3 da foto (retornada por POST /student/upload-url). Omitir mantém a
+            foto atual; null/"" remove.
+          example: "uploads/3f2a-foto.jpg"
 
     ClientHealthPayload:
       type: object
-      required: [answers, notes, lgpdConsent, medicalDisclaimer]
+      required: [answers, lgpdConsent, medicalDisclaimer]
       properties:
         answers:
           type: object
-          additionalProperties:
-            type: string
-            enum: [YES, NO]
-          description: Mapa pergunta → resposta.
+          required: [heart, chest_pain, dizziness, bone_joint, medication]
+          description: >
+            Respostas do PAR-Q. Exatamente estas 5 perguntas, cada uma "YES" ou "NO".
+          properties:
+            heart: { type: string, enum: ["YES", "NO"] }
+            chest_pain: { type: string, enum: ["YES", "NO"] }
+            dizziness: { type: string, enum: ["YES", "NO"] }
+            bone_joint: { type: string, enum: ["YES", "NO"] }
+            medication: { type: string, enum: ["YES", "NO"] }
         notes:
           type: string
           description: Observações livres do aluno.
-        lgpdConsent: { type: boolean }
-        medicalDisclaimer: { type: boolean }
+        lgpdConsent:
+          type: boolean
+          enum: [true]
+          description: Consentimento LGPD obrigatório; deve ser true.
+        medicalDisclaimer:
+          type: boolean
+          enum: [true]
+          description: Aceite do disclaimer médico obrigatório; deve ser true.
 
     # ── Coach ─────────────────────────────────
     CoachStatus:
@@ -1693,7 +1718,7 @@ components:
 
     CoachProfile:
       type: object
-      required: [name, phone, specialties, cref, instagram, profile_video]
+      required: [name, phone, specialties, cref, instagram, photo_url, video_url]
       properties:
         name: { type: string }
         phone:
@@ -1704,11 +1729,55 @@ components:
           items: { type: string }
         cref: { type: string, example: "012345-G/SP" }
         instagram: { type: string, example: "@treinador" }
-        profile_video:
-          type: boolean
-          description: Indica se há vídeo de apresentação enviado.
+        photo_url:
+          type: string
+          nullable: true
+          description: >
+            URL pré-assinada (GET) da foto de perfil no bucket privado. null quando não há
+            foto. Gerada na leitura a partir da `photo_key` persistida; expira (SIGNED_URL_EXPIRES).
+        video_url:
+          type: string
+          nullable: true
+          description: >
+            URL pré-assinada (GET) do vídeo de apresentação. null quando não há vídeo.
+
+    CoachProfileUpdate:
+      type: object
+      required: [name, phone, specialties, cref]
+      description: >
+        Perfil enviado em PUT /coach/me. As mídias são as KEYS do S3
+        (`photo_key`/`video_key`) retornadas por POST /coach/upload-url — a leitura é que
+        assina e devolve `photo_url`/`video_url`. Omitir uma key mantém a mídia atual;
+        enviar null/"" a remove.
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        specialties:
+          type: array
+          items: { type: string }
+          minItems: 1
+        cref: { type: string, example: "012345-G/SP" }
+        instagram: { type: string, default: "", example: "@treinador" }
+        photo_key:
+          type: string
+          nullable: true
+          example: "uploads/3f2a-foto.jpg"
+        video_key:
+          type: string
+          nullable: true
+          example: "uploads/9b1c-video.mp4"
 
     WorkLocation:
+      oneOf:
+        - $ref: "#/components/schemas/WorkLocationGym"
+        - $ref: "#/components/schemas/WorkLocationHomeService"
+      discriminator:
+        propertyName: type
+        mapping:
+          GYM: "#/components/schemas/WorkLocationGym"
+          HOME_SERVICE: "#/components/schemas/WorkLocationHomeService"
+
+    WorkLocationGym:
       type: object
       required: [type, gymId]
       properties:
@@ -1716,6 +1785,24 @@ components:
           type: string
           enum: [GYM]
         gymId: { type: string }
+
+    WorkLocationHomeService:
+      type: object
+      required: [type, coverage]
+      properties:
+        type:
+          type: string
+          enum: [HOME_SERVICE]
+        coverage:
+          type: object
+          required: [city, state]
+          properties:
+            city: { type: string, example: São Paulo }
+            state: { type: string, minLength: 2, maxLength: 2, example: SP }
+            neighborhoods:
+              type: array
+              items: { type: string }
+              description: Bairros atendidos. Ausente vira lista vazia.
 
     Coach:
       type: object
@@ -1747,9 +1834,7 @@ components:
       type: object
       properties:
         profile:
-          allOf:
-            - $ref: "#/components/schemas/CoachProfile"
-          description: Campos parciais aceitos.
+          $ref: "#/components/schemas/CoachProfileUpdate"
         work_location:
           type: array
           items:
@@ -1757,7 +1842,7 @@ components:
 
     CoachSummaryProfile:
       type: object
-      required: [name, phone, specialties, cref, instagram, profile_video]
+      required: [name, phone, specialties, cref, instagram, photo_url, video_url]
       properties:
         name: { type: string }
         phone: { type: string, nullable: true }
@@ -1766,9 +1851,14 @@ components:
           items: { type: string }
         cref: { type: string, nullable: true, example: "012345-G/SP" }
         instagram: { type: string, nullable: true, example: "@treinador" }
-        profile_video:
-          type: boolean
-          description: Indica se há vídeo de apresentação enviado.
+        photo_url:
+          type: string
+          nullable: true
+          description: URL pré-assinada (GET) da foto de perfil. null quando não há foto.
+        video_url:
+          type: string
+          nullable: true
+          description: URL pré-assinada (GET) do vídeo de apresentação. null quando não há vídeo.
 
     CoachSummary:
       type: object
@@ -2258,11 +2348,11 @@ components:
 
     CardPaymentPayload:
       type: object
-      required: [sessionId, coachId, studentId, amount, method, card]
+      # studentId não vai no body: é derivado do JWT (claim sub) e ignorado se enviado.
+      required: [sessionId, coachId, amount, method, card]
       properties:
-        sessionId: { type: string, format: uuid }
+        sessionId: { type: string, minLength: 1, maxLength: 128, description: "Referência opaca ao recurso pago (ex.: scheduleId). Não é UUID." }
         coachId: { type: string, format: uuid }
-        studentId: { type: string, format: uuid }
         amount:
           type: integer
           description: Valor em centavos (mínimo 100 = R$ 1,00).
@@ -2282,11 +2372,11 @@ components:
 
     PixPaymentPayload:
       type: object
-      required: [sessionId, coachId, studentId, amount, method]
+      # studentId não vai no body: é derivado do JWT (claim sub) e ignorado se enviado.
+      required: [sessionId, coachId, amount, method]
       properties:
-        sessionId: { type: string, format: uuid }
+        sessionId: { type: string, minLength: 1, maxLength: 128, description: "Referência opaca ao recurso pago (ex.: scheduleId). Não é UUID." }
         coachId: { type: string, format: uuid }
-        studentId: { type: string, format: uuid }
         amount:
           type: integer
           description: Valor em centavos (mínimo 100 = R$ 1,00).
@@ -2340,7 +2430,7 @@ components:
             url:
               type: string
               format: uri
-              example: https://coachmatch-uploads.s3.amazonaws.com
+              example: https://coachmatch-profile-videos-138413505977-sa-east-1-an.s3.sa-east-1.amazonaws.com
             fields:
               type: object
               additionalProperties: { type: string }
@@ -2407,6 +2497,10 @@ components:
           type: string
           format: date-time
           nullable: true
+        image:
+          type: string
+          nullable: true
+          description: URL assinada da foto de perfil do par (resolvida a cada leitura).
         lastMessage:
           type: object
           nullable: true

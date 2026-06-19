@@ -12,7 +12,7 @@ on:
         required: true
         type: choice
         options:
-          - develop
+          # - develop  # desativado até a infra de develop existir (ver .github/RUNBOOK.md)
           - production
       confirm:
         description: 'Digite CONFIRMAR para prosseguir'
@@ -302,6 +302,18 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       # v4 is the current LTS — v2 is deprecated and will stop working
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -309,26 +321,37 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: sa-east-1
 
+      # Backend sempre vai para o stage dev (único ambiente real), independente
+      # do environment escolhido. SERVERLESS_ACCESS_KEY é exigido pelo SF v4 em CI.
+      - name: Deploy backend (serverless, stage dev)
+        run: cd server/coachmatch && pnpm run deploy:dev
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+
       - uses: actions/download-artifact@v4
         with:
           name: client-build
           path: client/dist
 
-      - name: Deploy para develop (staging)
-        if: github.event.inputs.environment == 'develop'
-        run: |
-          aws s3 sync client/dist s3://${{ secrets.S3_BUCKET_DEVELOP }}/ --delete
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DEVELOP_ID }} \
-            --paths "/*"
-          echo "✅ Deploy realizado em develop (staging)" >> $GITHUB_STEP_SUMMARY
+      # ── Deploy para develop (staging) ─────────────────────────────────────────
+      # DESATIVADO: o ambiente de develop ainda não existe na AWS (sem bucket S3
+      # nem distribuição CloudFront próprios). Reativar quando a infra de develop
+      # for criada. Ver pendência em .github/RUNBOOK.md.
+      # - name: Deploy para develop (staging)
+      #   if: github.event.inputs.environment == 'develop'
+      #   run: |
+      #     aws s3 sync client/dist s3://${{ vars.S3_BUCKET_DEVELOP }}/coachmatch_site --delete
+      #     aws cloudfront create-invalidation \
+      #       --distribution-id ${{ vars.CLOUDFRONT_DEVELOP_ID }} \
+      #       --paths "/*"
+      #     echo "✅ Deploy realizado em develop (staging)" >> $GITHUB_STEP_SUMMARY
 
       - name: Deploy para production
         if: github.event.inputs.environment == 'production' && github.ref == 'refs/heads/main'
         run: |
-          aws s3 sync client/dist s3://${{ secrets.S3_BUCKET_PRODUCTION }}/ --delete
+          aws s3 sync client/dist s3://${{ vars.S3_BUCKET_PRODUCTION }}/coachmatch_site --delete
           aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_PRODUCTION_ID }} \
+            --distribution-id ${{ vars.CLOUDFRONT_PRODUCTION_ID }} \
             --paths "/*"
           echo "✅ Deploy realizado em production" >> $GITHUB_STEP_SUMMARY
 

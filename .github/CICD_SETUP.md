@@ -67,14 +67,18 @@ O pipeline completo que executa em todos os pushes e PRs.
 | Stage | Descrição | Quando |
 |-------|-----------|--------|
 | **Lint** | ESLint + TypeScript type check | Todos os pushes |
-| **Security** | npm audit + Snyk | Todos os pushes |
+| **Security** | pnpm audit | Todos os pushes |
 | **Backend Tests** | Vitest + DynamoDB Local | Todos os pushes |
 | **Frontend Tests** | Vitest + React Testing Library | Todos os pushes |
 | **Build** | Build verification | Após testes |
 | **E2E Tests** | Playwright | PR + main |
 | **Quality Gate** | Verifica todos os checks | Sempre |
-| **Deploy Staging** | S3 + CloudFront (develop) | Pushes em develop |
-| **Deploy Production** | S3 + CloudFront (main) | Pushes em main |
+| **Deploy** | Backend (`serverless deploy --stage dev`) + Frontend (S3 + CloudFront) | **Manual** via `workflow_dispatch` (digitar `CONFIRMAR`) |
+
+> ⚠️ **Estado atual:** o deploy é **manual**, não automático. Existe **um único
+> ambiente** (produção); o de `develop` está comentado até a infra ser criada
+> (ver pendência em [`RUNBOOK.md`](RUNBOOK.md)). O frontend é publicado no prefixo
+> `coachmatch_site/` do bucket `coachmatch`, servido pelo CloudFront `E2FXMRNR2KASRR`.
 
 ### 2. **dependencies.yml** (Semanal)
 Mantém dependências atualizadas automaticamente.
@@ -100,37 +104,36 @@ Monitora performance do projeto.
 Configure estas variáveis de ambiente em **Settings → Secrets and Variables → Actions**:
 
 ```
-# ── Deploy AWS ───────────────────────────────────────────────────────
-AWS_ACCESS_KEY_ID              # IAM user com permissões S3 + CloudFront
+# ── Secrets (credenciais) ────────────────────────────────────────────
+AWS_ACCESS_KEY_ID              # IAM user com permissões serverless + S3 + CloudFront
 AWS_SECRET_ACCESS_KEY          # Chave secreta do IAM user
+SERVERLESS_ACCESS_KEY          # Exigido pelo Serverless Framework v4 em CI
 
-S3_BUCKET_DEVELOP              # Ex: coachmatch-staging
-S3_BUCKET_PRODUCTION           # Ex: coachmatch-production
+# ── Variables (identificadores, não sensíveis — aba "Variables") ──────
+S3_BUCKET_PRODUCTION           # = coachmatch (sync vai para o prefixo /coachmatch_site)
+CLOUDFRONT_PRODUCTION_ID       # = E2FXMRNR2KASRR
+# develop ainda não tem infra — adicionar como variables quando existir:
+# S3_BUCKET_DEVELOP / CLOUDFRONT_DEVELOP_ID
 
-CLOUDFRONT_DEVELOP_ID          # ID da distribuição CloudFront (staging)
-CLOUDFRONT_PRODUCTION_ID       # ID da distribuição CloudFront (production)
-
-# ── Front-end (Vite build) ────────────────────────────────────────────
+# ── Front-end (Vite build — secrets) ──────────────────────────────────
 VITE_API_BASE_URL              # Ex: https://api.coachmatch.com.br
-                               # Fallback automático se não configurado: mesma URL
-
 VITE_COGNITO_CLIENT_ID         # App client ID do pool de Coaches
-VITE_COGNITO_CLIENT_SECRET     # App client secret do pool de Coaches
 VITE_COGNITO_DOMAIN            # Ex: https://login.coachmatch.com.br
-
 VITE_COGNITO_STUDENT_CLIENT_ID # App client ID do pool de Alunos
 VITE_COGNITO_STUDENT_DOMAIN    # Ex: https://student.coachmatch.com.br
 
 # ── Observabilidade / Qualidade ───────────────────────────────────────
-CODECOV_TOKEN                  # Token do projeto em codecov.io (obrigatório)
-SNYK_TOKEN                     # Token de acesso ao snyk.io (opcional)
+CODECOV_TOKEN                  # Token do projeto em codecov.io (opcional — fail_ci_if_error: false)
 ```
 
+> **Nota:** `apiKey`, `apiSecret`, `apiGatewayId`, região e account ID do backend
+> vêm de `server/coachmatch/config.yml` (commitado) — não são secrets.
+>
 > **Nota sobre fallbacks**: `VITE_API_BASE_URL`, `VITE_COGNITO_DOMAIN` e
 > `VITE_COGNITO_STUDENT_DOMAIN` possuem fallbacks hardcoded para URLs de
-> produção caso o secret não esteja configurado. As chaves Cognito
-> (`CLIENT_ID`, `CLIENT_SECRET`) não têm fallback — o build vai passar mas
-> o login não vai funcionar sem elas.
+> produção caso o secret não esteja configurado. Os `CLIENT_ID` do Cognito
+> têm fallback de placeholder — o build passa, mas o login não funciona sem os
+> valores reais.
 
 ### 2. Branch Protection Rules
 
@@ -153,20 +156,18 @@ Status checks obrigatórios:
 
 ### 3. Environment Configuration
 
-Crie dois ambientes em **Settings → Environments**:
-
-#### Staging
-```
-Environment name: staging
-Deployment branches: develop
-```
+Hoje só há **um ambiente** real. Crie em **Settings → Environments**:
 
 #### Production
+
 ```
 Environment name: production
-Deployment branches: main
 Required reviewers: 1 person (recomendado)
 ```
+
+> O deploy é manual (`workflow_dispatch`), então não há regra de auto-deploy por
+> branch. O ambiente `staging`/`develop` deve ser criado junto com a infra de
+> develop (ver pendência no [`RUNBOOK.md`](RUNBOOK.md)).
 
 ### 4. Dependabot Configuration (Alternativa)
 

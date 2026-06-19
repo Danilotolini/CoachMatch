@@ -105,7 +105,7 @@
           "response": []
         },
         {
-          "name": "C02 - Obter URL para envio do Video para o S3",
+          "name": "C02 - Obter URL de upload (foto/vídeo) para o S3",
           "event": [
             {
               "listen": "test",
@@ -743,7 +743,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"profile\": {\n    \"name\": \"João Silva\",\n    \"phone\": \"11999999999\",\n    \"instagram\": \"@joao.treina\",\n    \"cref\": \"012345-G/SP\",\n    \"specialties\": [\n      \"Musculação\",\n      \"Crossfit\"\n    ],\n    \"profile_video\": false\n  },\n  \"work_location\": [\n    {\n      \"type\": \"GYM\",\n      \"gymId\": \"gym_b1cac932\"\n    },\n    {\n      \"type\": \"HOME_SERVICE\",\n      \"coverage\": {\n        \"city\": \"São Paulo\",\n        \"state\": \"SP\",\n        \"neighborhoods\": [\n          \"Pinheiros\",\n          \"Vila Madalena\"\n        ]\n      }\n    }\n  ]\n}",
+              "raw": "{\n  \"profile\": {\n    \"name\": \"João Silva\",\n    \"phone\": \"11999999999\",\n    \"instagram\": \"@joao.treina\",\n    \"cref\": \"012345-G/SP\",\n    \"specialties\": [\n      \"Musculação\",\n      \"Crossfit\"\n    ],\n    \"photo_key\": \"uploads/3f2a-foto.jpg\",\n    \"video_key\": \"uploads/9b1c-video.mp4\"\n  },\n  \"work_location\": [\n    {\n      \"type\": \"GYM\",\n      \"gymId\": \"gym_b1cac932\"\n    },\n    {\n      \"type\": \"HOME_SERVICE\",\n      \"coverage\": {\n        \"city\": \"São Paulo\",\n        \"state\": \"SP\",\n        \"neighborhoods\": [\n          \"Pinheiros\",\n          \"Vila Madalena\"\n        ]\n      }\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1241,6 +1241,81 @@
           "response": []
         },
         {
+          "name": "S01b - Obter URL de upload (foto) para o S3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "if (!json.upload || !json.upload.url || !json.upload.fields) {",
+                  "  console.error(\"ERRO: Estrutura inesperada na resposta\", json);",
+                  "  throw new Error(\"Resposta não tem 'upload.url' ou 'upload.fields'\");",
+                  "}",
+                  "",
+                  "pm.globals.set(\"uploadUrl\", json.upload.url);",
+                  "pm.globals.set(\"uploadKey\", json.key);",
+                  "",
+                  "Object.entries(json.upload.fields).forEach(([k, v]) => {",
+                  "  pm.globals.set(`upload_${k}`, v);",
+                  "});",
+                  "",
+                  "console.log(\"Upload URL salva em globals:\", json.upload.url, \"| key:\", json.key);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "packages": {},
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filename\": \"foto-aluno.jpg\",\n  \"contentType\": \"image/jpeg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/upload-url",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "upload-url"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "S02 - Obter especialidades dos Coaches (Aluno)",
           "request": {
             "auth": {
@@ -1716,7 +1791,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Maria Souza\",\n  \"phone\": \"(11) 99999-9999\",\n  \"birthDate\": \"1995-04-23\",\n  \"gender\": \"F\",\n  \"cep\": \"01310-100\",\n  \"city\": \"São Paulo\",\n  \"state\": \"SP\",\n  \"radius\": 10,\n  \"goal\": \"HYPERTROPHY\"\n}",
+              "raw": "{\n  \"name\": \"Maria Souza\",\n  \"phone\": \"(11) 99999-9999\",\n  \"birthDate\": \"1995-04-23\",\n  \"gender\": \"F\",\n  \"cep\": \"01310-100\",\n  \"city\": \"São Paulo\",\n  \"state\": \"SP\",\n  \"radius\": 10,\n  \"goal\": \"HYPERTROPHY\",\n  \"photo_key\": \"uploads/3f2a-foto.jpg\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
