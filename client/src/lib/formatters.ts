@@ -19,3 +19,8 @@ export function maskInstagram(value: string): string {
     .replace(/[^a-z0-9._]/g, '')
     .slice(0, 30)
 }
+
+/** URL do perfil público no Instagram a partir de um handle (`@user` ou `user`). */
+export function instagramUrl(value: string): string {
+  return `https://instagram.com/${maskInstagram(value)}`
+}
