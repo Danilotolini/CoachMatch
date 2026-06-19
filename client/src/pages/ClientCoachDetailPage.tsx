@@ -2,13 +2,14 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
 import { CrefBadge } from '@/components/coach/CrefBadge'
+import { InstagramLink } from '@/components/coach/InstagramLink'
 import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNavigation'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Icon } from '@/components/ui/Icon'
 import { getStudentCoachSchedules, requestStudentSchedule } from '@/api/schedule'
 import { useCoachDetail } from '@/hooks/useCoachDetail'
-import { formatCoachScheduleSlot } from '@/lib/dateTime'
+import { formatCoachScheduleSlot, nowMs } from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
 import type { CoachScheduleSlot } from '@/types/api'
 import { buildStudentCoachScheduleWindow } from './clientCoachDetailWindow'
@@ -45,13 +46,16 @@ export default function ClientCoachDetailPage() {
     staleTime: 30 * 1000,
   })
 
-  const availableSchedules = useMemo(
-    () =>
-      (scheduleQuery.data ?? [])
-        .filter((schedule) => schedule.status === 'AVAILABLE' || schedule.status === 'REQUESTED')
-        .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime()),
-    [scheduleQuery.data],
-  )
+  const availableSchedules = useMemo(() => {
+    const now = nowMs()
+    return (scheduleQuery.data ?? [])
+      .filter(
+        (schedule) =>
+          (schedule.status === 'AVAILABLE' || schedule.status === 'REQUESTED') &&
+          new Date(schedule.startDateTime).getTime() > now,
+      )
+      .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime())
+  }, [scheduleQuery.data])
   const firstScheduleId = availableSchedules.length > 0 ? availableSchedules[0].scheduleId : null
   const activeScheduleId = selectedScheduleId ?? firstScheduleId
   const selectedSchedule = availableSchedules.find(
@@ -147,37 +151,48 @@ export default function ClientCoachDetailPage() {
           {coach ? (
             <>
               <div className="flex min-w-0 flex-col gap-5">
-                <Card className="overflow-hidden p-0">
-                  <div className="relative min-h-84 bg-surface-container">
-                    <div className="kinetic-grid absolute inset-0" />
-                    <div className="absolute inset-x-0 bottom-0 h-3/4 bg-linear-to-t from-surface-container-lowest via-surface-container-lowest/72 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
-                      <div className="mb-4 flex flex-wrap items-center gap-2">
-                        <CrefBadge />
+                <Card className="p-5 sm:p-6">
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+                    <div
+                      className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-surface-container bg-cover bg-center sm:h-32 sm:w-32"
+                      {...(coach.profile.photo_url
+                        ? { style: { backgroundImage: `url(${coach.profile.photo_url})` } }
+                        : {})}
+                    >
+                      {coach.profile.photo_url ? null : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Icon name="person" size={40} className="text-on-surface-variant" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CrefBadge cref={coach.profile.cref} />
                       </div>
-                      <h2 className="font-headline text-3xl font-bold tracking-tight sm:text-4xl">
+                      <h2 className="mt-3 font-headline text-2xl font-bold tracking-tight sm:text-3xl">
                         {coach.profile.name}
                       </h2>
                       {coach.profile.instagram ? (
-                        <p className="mt-2 font-body text-sm text-on-surface-variant">
-                          {coach.profile.instagram}
+                        <p className="mt-1 font-body text-sm text-on-surface-variant">
+                          <InstagramLink
+                            handle={coach.profile.instagram}
+                            className="inline-flex items-center gap-1 transition-colors hover:text-primary"
+                          />
                         </p>
                       ) : null}
+                      {coach.profile.specialties.length > 0 ? (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {coach.profile.specialties.map((specialty) => (
+                            <span
+                              key={specialty}
+                              className="rounded-full bg-surface-container-high px-3 py-1.5 font-label text-xs font-medium text-on-surface"
+                            >
+                              {specialty}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
-                  </div>
-                </Card>
-
-                <Card className="p-5">
-                  <SectionTitle icon="fitness_center" title="Especialidades" />
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {coach.profile.specialties.map((specialty) => (
-                      <span
-                        key={specialty}
-                        className="rounded-full bg-surface-container-high px-3 py-1.5 font-label text-xs font-medium text-on-surface"
-                      >
-                        {specialty}
-                      </span>
-                    ))}
                   </div>
                 </Card>
 
@@ -201,6 +216,17 @@ export default function ClientCoachDetailPage() {
                     )}
                   </div>
                 </Card>
+
+                {coach.profile.video_url ? (
+                  <Card className="p-5">
+                    <SectionTitle icon="videocam" title="Vídeo de apresentação" />
+                    <video
+                      src={coach.profile.video_url}
+                      controls
+                      className="mt-4 max-h-[70vh] w-full rounded-xl border border-outline-variant/10 bg-black object-contain"
+                    />
+                  </Card>
+                ) : null}
               </div>
 
               <aside className="lg:sticky lg:top-8 lg:self-start">
@@ -287,18 +313,20 @@ export default function ClientCoachDetailPage() {
                     </p>
                   ) : null}
 
-                  <Button
-                    type="button"
-                    onClick={handleSchedule}
-                    loading={requestMutation.isPending}
-                    disabled={
-                      !selectedSchedule || successScheduleId === selectedSchedule.scheduleId
-                    }
-                    className="mt-5 hidden w-full lg:inline-flex"
-                    icon="event_available"
-                  >
-                    AGENDAR
-                  </Button>
+                  <div className="mt-5 hidden lg:block">
+                    <Button
+                      type="button"
+                      onClick={handleSchedule}
+                      loading={requestMutation.isPending}
+                      disabled={
+                        !selectedSchedule || successScheduleId === selectedSchedule.scheduleId
+                      }
+                      className="w-full"
+                      icon="event_available"
+                    >
+                      AGENDAR
+                    </Button>
+                  </div>
                 </Card>
               </aside>
             </>
@@ -341,7 +369,14 @@ function DetailSkeleton() {
   return (
     <div className="grid gap-5 lg:col-span-2 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="flex flex-col gap-5">
-        <div className="h-84 animate-pulse rounded-xl bg-surface-container-low" />
+        <div className="flex gap-5 rounded-xl bg-surface-container-low p-5 sm:p-6">
+          <div className="h-28 w-28 shrink-0 animate-pulse rounded-2xl bg-surface-container sm:h-32 sm:w-32" />
+          <div className="min-w-0 flex-1 space-y-3 py-1">
+            <div className="h-5 w-24 animate-pulse rounded bg-surface-container" />
+            <div className="h-7 w-2/3 animate-pulse rounded bg-surface-container" />
+            <div className="h-6 w-1/2 animate-pulse rounded bg-surface-container" />
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="h-24 animate-pulse rounded-xl bg-surface-container-low" />

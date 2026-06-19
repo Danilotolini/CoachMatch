@@ -14,6 +14,7 @@ export function SearchResultsList({ coaches, onCoachClick }: SearchResultsListPr
           key={coach.coachId}
           name={coach.profile.name}
           specialties={coach.profile.specialties.join(' · ')}
+          {...(coach.profile.photo_url ? { image: coach.profile.photo_url } : {})}
           {...(onCoachClick
             ? {
                 onClick: () => {
@@ -36,9 +37,9 @@ export function SearchResultsSkeleton() {
       {Array.from({ length: 6 }).map((_, index) => (
         <div
           key={index}
-          className="h-73 animate-pulse overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low"
+          className="animate-pulse overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low"
         >
-          <div className="h-40 bg-surface-container" />
+          <div className="aspect-4/3 bg-surface-container" />
           <div className="space-y-3 p-4">
             <div className="h-5 w-2/3 rounded bg-surface-container-high" />
             <div className="h-3 w-full rounded bg-surface-container-high" />
