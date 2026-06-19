@@ -34,4 +34,7 @@ export const studentProfileSchema = Joi.object({
 
   // Front-end envia enum: WEIGHT_LOSS | HYPERTROPHY | CONDITIONING | REHAB | PERFORMANCE
   goal: Joi.string().required(),
+
+  // Key do S3 da foto de perfil (retornada pelo upload). O GET assina e devolve photo_url.
+  photo_key: Joi.string().allow(null, '').optional(),
 });
