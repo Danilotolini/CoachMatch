@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useChatMessages, useChatRealtime, useSendChatMessage } from '@/hooks/useChat'
+import { ChatAvatar } from '@/components/chat/ChatAvatar'
 import { Icon } from '@/components/ui/Icon'
 import { getUserId } from '@/lib/auth'
 import { formatBrazilTime } from '@/lib/dateTime'
@@ -11,7 +12,9 @@ interface MessageThreadProps {
   role: Role
   conversationId: string
   title: string
+  image?: string | null
   onBack: () => void
+  onHeaderClick?: (() => void) | undefined
 }
 
 function sortByCreatedAt(messages: ChatMessage[]): ChatMessage[] {
@@ -22,7 +25,14 @@ function sortByCreatedAt(messages: ChatMessage[]): ChatMessage[] {
   })
 }
 
-export function MessageThread({ role, conversationId, title, onBack }: MessageThreadProps) {
+export function MessageThread({
+  role,
+  conversationId,
+  title,
+  image,
+  onBack,
+  onHeaderClick,
+}: MessageThreadProps) {
   const { connected } = useChatRealtime(role, conversationId)
   const { data, isLoading, isError, error } = useChatMessages(role, conversationId, {
     realtime: connected,
@@ -66,12 +76,25 @@ export function MessageThread({ role, conversationId, title, onBack }: MessageTh
         >
           <Icon name="arrow_back" size={20} />
         </button>
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-primary">
-          <Icon name="person" size={20} />
-        </span>
-        <h2 className="truncate font-headline text-base font-semibold tracking-tight text-on-surface">
-          {title}
-        </h2>
+        {onHeaderClick ? (
+          <button
+            type="button"
+            onClick={onHeaderClick}
+            className="flex min-w-0 items-center gap-3 rounded-full text-left transition-opacity hover:opacity-80"
+          >
+            <ChatAvatar image={image} name={title} className="h-10 w-10" iconSize={20} />
+            <h2 className="truncate font-headline text-base font-semibold tracking-tight text-on-surface">
+              {title}
+            </h2>
+          </button>
+        ) : (
+          <>
+            <ChatAvatar image={image} name={title} className="h-10 w-10" iconSize={20} />
+            <h2 className="truncate font-headline text-base font-semibold tracking-tight text-on-surface">
+              {title}
+            </h2>
+          </>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
