@@ -39,7 +39,11 @@ export const updateCoachInputSchema = Joi.object({
     cref:          Joi.string().required(),
 
     specialties:   Joi.array().items(Joi.string()).min(1).required(),
-    profile_video: Joi.boolean().default(false),
+
+    // Keys do S3 retornadas pelo upload (foto de perfil e vídeo de apresentação).
+    // O GET assina e devolve photo_url/video_url; aqui só persistimos a key.
+    photo_key:     Joi.string().allow(null, '').optional(),
+    video_key:     Joi.string().allow(null, '').optional(),
   }).required(),
 
   work_location: Joi.array()

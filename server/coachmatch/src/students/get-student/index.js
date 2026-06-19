@@ -1,14 +1,16 @@
 import { findStudentById } from './repository.js';
 import { NotFoundException } from '../../shared/exceptions.js';
+import { signGetUrl } from '../../shared/s3.js';
 
 /**
  * Mapeia o registro DynamoDB para a forma Client esperada pelo front-end.
  * Usa `clientId` (não `studentId`) para alinhar com o tipo Client do frontend.
+ * `photo_key` fica só no banco; a resposta devolve `photo_url` assinada.
  *
  * @param {object} record - Registro bruto do DynamoDB.
- * @returns {object} Perfil do aluno formatado.
+ * @returns {Promise<object>} Perfil do aluno formatado.
  */
-const mapToClient = (record) => ({
+const mapToClient = async (record) => ({
   clientId:   record.studentId,
   email:      record.email,
   status:     record.status,
@@ -22,6 +24,7 @@ const mapToClient = (record) => ({
   radius:     record.radius         ?? null,
   goal:       record.goal           ?? null,
   health:     record.health         ?? null,
+  photo_url:  await signGetUrl(record.photo_key),
 });
 
 /**

@@ -31,12 +31,31 @@ export const updateCoachProfile = async (coachId, body) => {
       ? `@${profile.instagram}`
       : profile.instagram;
 
+  // O GET devolve photo_url/video_url (assinadas), não as keys — então o front não
+  // consegue reenviá-las. Preservamos a key atual quando o campo não vem no payload;
+  // string vazia/null limpa a mídia explicitamente.
+  const photo_key = resolveMediaKey(profile.photo_key, current.profile?.photo_key);
+  const video_key = resolveMediaKey(profile.video_key, current.profile?.video_key);
+
   await persistCoachUpdate(coachId, {
     profile: {
       ...profile,
       cref:      normalizedCref,
       instagram: normalizedInstagram,
+      photo_key,
+      video_key,
     },
     work_location,
   });
+};
+
+/**
+ * Resolve a key de mídia a persistir:
+ *  - campo ausente (undefined) → mantém a key atual;
+ *  - string vazia/null → limpa a mídia (null);
+ *  - string preenchida → nova key.
+ */
+const resolveMediaKey = (incoming, current) => {
+  if (incoming === undefined) return current ?? null;
+  return incoming || null;
 };

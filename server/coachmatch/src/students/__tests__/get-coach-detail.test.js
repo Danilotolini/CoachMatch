@@ -6,6 +6,10 @@ vi.mock('../../shared/config.js', () => ({
   createClient: () => ({ send: sendMock }),
 }));
 
+vi.mock('../../shared/s3.js', () => ({
+  signGetUrl: vi.fn(async (key) => (key ? `https://signed.example/${key}` : null)),
+}));
+
 import { findCoachById, loadGyms } from '../get-coach-detail/repository.js';
 import { getCoachDetail } from '../get-coach-detail/index.js';
 import { handler } from '../get-coach-detail/handler.js';
@@ -20,7 +24,8 @@ const coachMarcos = {
     specialties: ['Musculação', 'Hipertrofia'],
     cref: 'CREF 1-G/SP',
     instagram: '@marcos',
-    profile_video: true,
+    photo_key: 'uploads/marcos-foto.jpg',
+    video_key: 'uploads/marcos-video.mp4',
   },
   work_location: [
     { type: 'GYM', gymId: 'gym-pinheiros' },
@@ -105,7 +110,8 @@ describe('get-coach-detail › index (getCoachDetail)', () => {
         specialties: ['Musculação', 'Hipertrofia'],
         cref: 'CREF 1-G/SP',
         instagram: '@marcos',
-        profile_video: true,
+        photo_url: 'https://signed.example/uploads/marcos-foto.jpg',
+        video_url: 'https://signed.example/uploads/marcos-video.mp4',
       },
       work_location: [
         {

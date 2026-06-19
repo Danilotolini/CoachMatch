@@ -14,43 +14,45 @@ const TABLE = 'student';
 export const updateStudentProfile = async (studentId, profileData) => {
   const docClient = createClient();
 
+  const names = {
+    '#name':      'name',
+    '#phone':     'phone',
+    '#birthDate': 'birthDate',
+    '#gender':    'gender',
+    '#cep':       'cep',
+    '#city':      'city',
+    '#state':     'state',
+    '#radius':    'radius',
+    '#goal':      'goal',
+  };
+  const values = {
+    ':name':      profileData.name,
+    ':phone':     profileData.phone,
+    ':birthDate': profileData.birthDate,
+    ':gender':    profileData.gender,
+    ':cep':       profileData.cep,
+    ':city':      profileData.city,
+    ':state':     profileData.state,
+    ':radius':    profileData.radius,
+    ':goal':      profileData.goal,
+  };
+  const sets = Object.keys(names).map((name) => `${name} = :${name.slice(1)}`);
+
+  // photo_key só é tocado quando o campo vem no payload (string vazia/null limpa a foto).
+  if (profileData.photo_key !== undefined) {
+    names['#photo_key'] = 'photo_key';
+    values[':photo_key'] = profileData.photo_key || null;
+    sets.push('#photo_key = :photo_key');
+  }
+
   // Sempre atualiza os campos de perfil
   await docClient.send(
     new UpdateCommand({
       TableName: TABLE,
       Key: { studentId },
-      UpdateExpression: `SET
-        #name       = :name,
-        #phone      = :phone,
-        #birthDate  = :birthDate,
-        #gender     = :gender,
-        #cep        = :cep,
-        #city       = :city,
-        #state      = :state,
-        #radius     = :radius,
-        #goal       = :goal`,
-      ExpressionAttributeNames: {
-        '#name':      'name',
-        '#phone':     'phone',
-        '#birthDate': 'birthDate',
-        '#gender':    'gender',
-        '#cep':       'cep',
-        '#city':      'city',
-        '#state':     'state',
-        '#radius':    'radius',
-        '#goal':      'goal',
-      },
-      ExpressionAttributeValues: {
-        ':name':      profileData.name,
-        ':phone':     profileData.phone,
-        ':birthDate': profileData.birthDate,
-        ':gender':    profileData.gender,
-        ':cep':       profileData.cep,
-        ':city':      profileData.city,
-        ':state':     profileData.state,
-        ':radius':    profileData.radius,
-        ':goal':      profileData.goal,
-      },
+      UpdateExpression: `SET ${sets.join(', ')}`,
+      ExpressionAttributeNames: names,
+      ExpressionAttributeValues: values,
     })
   );
 

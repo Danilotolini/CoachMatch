@@ -4,6 +4,10 @@ vi.mock('../get-coach/repository.js', () => ({
   findCoachById: vi.fn(),
 }));
 
+vi.mock('../../shared/s3.js', () => ({
+  signGetUrl: vi.fn(async (key) => (key ? `https://signed.example/${key}` : null)),
+}));
+
 import { handler } from '../get-coach/handler.js';
 import { getCoachProfile } from '../get-coach/index.js';
 import { findCoachById } from '../get-coach/repository.js';
@@ -27,7 +31,8 @@ const buildCoachRecord = (overrides = {}) => ({
     instagram: '@joao',
     cref: 'CREF 123456-G/SP',
     specialties: ['Musculação'],
-    profile_video: false,
+    photo_key: 'uploads/foto.jpg',
+    video_key: 'uploads/video.mp4',
   },
   work_location: [{ type: 'GYM', gymId: 'gym-1' }],
   createdAt: '2026-01-01T00:00:00.000Z',
@@ -55,13 +60,23 @@ describe('get-coach › index (getCoachProfile)', () => {
     const result = await getCoachProfile(COACH_ID);
 
     expect(result.profile).toMatchObject({
-      name:          'João Silva',
-      phone:         '11999999999',
-      instagram:     '@joao',
-      cref:          'CREF 123456-G/SP',
-      specialties:   ['Musculação'],
-      profile_video: false,
+      name:        'João Silva',
+      phone:       '11999999999',
+      instagram:   '@joao',
+      cref:        'CREF 123456-G/SP',
+      specialties: ['Musculação'],
     });
+  });
+
+  it('devolve photo_url/video_url assinadas e não expõe profile_video/keys', async () => {
+    findCoachById.mockResolvedValue(buildCoachRecord());
+    const result = await getCoachProfile(COACH_ID);
+
+    expect(result.profile.photo_url).toBe('https://signed.example/uploads/foto.jpg');
+    expect(result.profile.video_url).toBe('https://signed.example/uploads/video.mp4');
+    expect(result.profile).not.toHaveProperty('profile_video');
+    expect(result.profile).not.toHaveProperty('photo_key');
+    expect(result.profile).not.toHaveProperty('video_key');
   });
 
   it('retorna work_location como array passado direto', async () => {
@@ -91,7 +106,8 @@ describe('get-coach › index (getCoachProfile)', () => {
     expect(result.profile.specialties).toEqual([]);
     expect(result.profile.cref).toBe('');
     expect(result.profile.instagram).toBe('');
-    expect(result.profile.profile_video).toBe(false);
+    expect(result.profile.photo_url).toBeNull();
+    expect(result.profile.video_url).toBeNull();
     expect(result.work_location).toEqual([]);
     expect(result.visibility).toBe('VISIBLE');
   });
