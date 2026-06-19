@@ -13,7 +13,7 @@ Esta pasta reúne as lambdas escritas em Python que já estão **deployadas na A
 
 ### Perfil
 
-- `generate-profile-video-upload-url.py`: gera uma URL pré-assinada (presigned POST) no S3 para upload de arquivos estáticos. Apesar do nome, não é específica de vídeo — aceita qualquer tipo de arquivo (o `Content-Type` vem da requisição e o default é `application/octet-stream`), limitada apenas pelo tamanho máximo (`MAX_BYTES`, 50 MB por padrão) e pelo prefixo `uploads/` na key. O uso atual é o vídeo de apresentação do treinador.
+- `generate-profile-video-upload-url.py`: gera uma URL pré-assinada (presigned POST) no S3 para upload de arquivos estáticos. Apesar do nome, não é específica de vídeo — aceita qualquer tipo de arquivo (o `Content-Type` vem da requisição e o default é `application/octet-stream`), limitada apenas pelo tamanho máximo (`MAX_BYTES`, 50 MB por padrão) e pelo prefixo `uploads/` na key. É usada para **foto e vídeo** do treinador (rotas `POST /coach/upload-url` e `ANY /student/upload-url`) e também para a foto do aluno. O bucket é **privado**: a `key` retornada é persistida no perfil (`photo_key`/`video_key`) e os endpoints de leitura (Node) assinam e devolvem `photo_url`/`video_url`.
 
 ## Ajuste em requisições GET
 

@@ -66,6 +66,13 @@ provider:
   stage: ${param:stage}
   region: ${param:region}
 
+  # Bucket privado de mídias (foto/vídeo). Os endpoints de leitura assinam URLs de GET.
+  # Fica em provider.environment para valer em todas as funções que chamam shared/s3.js.
+  # É o mesmo bucket usado pela lambda Python de upload (generate-profile-video-upload-url).
+  environment:
+    BUCKET_NAME: ${param:bucketName, "coachmatch-profile-videos-138413505977-sa-east-1-an"}
+    SIGNED_URL_EXPIRES: ${param:signedUrlExpires, "3600"}
+
   # httpApi por stage (ver custom.httpApiByStage):
   #   • dev   → API externa (id = qht6965nv9). O Serverless NÃO pode gerenciar
   #             authorizers numa API externa, então NÃO declaramos o bloco
@@ -108,6 +115,12 @@ provider:
             - sqs:SendMessage
           Resource:
             - !GetAtt PaymentSucceededQueue.Arn
+        # Endpoints de leitura assinam URLs de GET das mídias (foto/vídeo) no bucket privado
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+          Resource:
+            - arn:aws:s3:::coachmatch-profile-videos-138413505977-sa-east-1-an/*
 
 functions:
 

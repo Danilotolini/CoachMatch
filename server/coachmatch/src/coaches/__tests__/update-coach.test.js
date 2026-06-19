@@ -30,12 +30,11 @@ const currentCoach = {
 /** Payload aninhado que o front-end envia via buildCoachUpdatePayload() */
 const validBody = {
   profile: {
-    name:          'João Silva',
-    phone:         '11999999999',
-    instagram:     '@joao',
-    cref:          '123456-G/SP',
-    specialties:   ['Musculação'],
-    profile_video: false,
+    name:        'João Silva',
+    phone:       '11999999999',
+    instagram:   '@joao',
+    cref:        '123456-G/SP',
+    specialties: ['Musculação'],
   },
   work_location: [{ type: 'GYM', gymId: 'gym-1' }],
 };
@@ -49,12 +48,11 @@ const updatedCoachRecord = {
   ...currentCoach,
   status: 'APPROVED',
   profile: {
-    name:          'João Silva',
-    phone:         '11999999999',
-    specialties:   ['Musculação'],
-    cref:          'CREF 123456-G/SP',
-    instagram:     '@joao',
-    profile_video: false,
+    name:        'João Silva',
+    phone:       '11999999999',
+    specialties: ['Musculação'],
+    cref:        'CREF 123456-G/SP',
+    instagram:   '@joao',
   },
   work_location: [{ type: 'GYM', gymId: 'gym-1' }],
   createdAt: '2026-01-01T00:00:00.000Z',
@@ -87,10 +85,24 @@ describe('update-coach › schema (payload aninhado do front-end)', () => {
     expect(error).toBeUndefined();
   });
 
-  it('usa false como padrão para profile_video ausente', () => {
-    const body = { ...validBody, profile: { ...validBody.profile, profile_video: undefined } };
-    const { value } = updateCoachInputSchema.validate(body);
-    expect(value.profile.profile_video).toBe(false);
+  it('aceita photo_key e video_key (keys do S3)', () => {
+    const body = {
+      ...validBody,
+      profile: { ...validBody.profile, photo_key: 'uploads/abc-foto.jpg', video_key: 'uploads/def-video.mp4' },
+    };
+    const { error, value } = updateCoachInputSchema.validate(body);
+    expect(error).toBeUndefined();
+    expect(value.profile.photo_key).toBe('uploads/abc-foto.jpg');
+    expect(value.profile.video_key).toBe('uploads/def-video.mp4');
+  });
+
+  it('aceita photo_key/video_key nulos ou vazios (limpar mídia)', () => {
+    const body = {
+      ...validBody,
+      profile: { ...validBody.profile, photo_key: null, video_key: '' },
+    };
+    const { error } = updateCoachInputSchema.validate(body);
+    expect(error).toBeUndefined();
   });
 
   it('usa [] como padrão para work_location ausente', () => {
@@ -157,6 +169,39 @@ describe('update-coach › index (updateCoachProfile)', () => {
     await updateCoachProfile(COACH_ID, validBody);
     const { work_location } = persistCoachUpdate.mock.calls[0][1];
     expect(work_location).toEqual([{ type: 'GYM', gymId: 'gym-1' }]);
+  });
+
+  it('persiste photo_key/video_key quando enviados', async () => {
+    const body = {
+      ...validBody,
+      profile: { ...validBody.profile, photo_key: 'uploads/foto.jpg', video_key: 'uploads/video.mp4' },
+    };
+    await updateCoachProfile(COACH_ID, body);
+    const { profile } = persistCoachUpdate.mock.calls[0][1];
+    expect(profile.photo_key).toBe('uploads/foto.jpg');
+    expect(profile.video_key).toBe('uploads/video.mp4');
+  });
+
+  it('preserva keys atuais quando o payload não as reenvia', async () => {
+    findCoachById.mockResolvedValue({
+      ...currentCoach,
+      profile: { ...currentCoach.profile, photo_key: 'uploads/atual.jpg', video_key: 'uploads/atual.mp4' },
+    });
+    await updateCoachProfile(COACH_ID, validBody);
+    const { profile } = persistCoachUpdate.mock.calls[0][1];
+    expect(profile.photo_key).toBe('uploads/atual.jpg');
+    expect(profile.video_key).toBe('uploads/atual.mp4');
+  });
+
+  it('limpa a mídia quando a key vem vazia/null', async () => {
+    findCoachById.mockResolvedValue({
+      ...currentCoach,
+      profile: { ...currentCoach.profile, photo_key: 'uploads/atual.jpg' },
+    });
+    const body = { ...validBody, profile: { ...validBody.profile, photo_key: '' } };
+    await updateCoachProfile(COACH_ID, body);
+    const { profile } = persistCoachUpdate.mock.calls[0][1];
+    expect(profile.photo_key).toBeNull();
   });
 
   it('ativa o coach (status APPROVED) ao persistir o perfil', async () => {

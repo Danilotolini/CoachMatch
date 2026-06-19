@@ -1,5 +1,6 @@
 import { findCoachById, loadGyms } from "./repository.js";
 import { NotFoundException } from "../../shared/exceptions.js";
+import { signGetUrl } from "../../shared/s3.js";
 
 const SEARCHABLE_STATUS = "APPROVED";
 
@@ -21,17 +22,23 @@ function collectGymIds(coach) {
     .map((loc) => loc.gymId);
 }
 
-function mapCoach(coach, gymsById) {
+async function mapCoach(coach, gymsById) {
+  const [photo_url, video_url] = await Promise.all([
+    signGetUrl(coach.profile?.photo_key),
+    signGetUrl(coach.profile?.video_key),
+  ]);
+
   return {
     coachId: coach.coachId ?? null,
     status: coach.status ?? null,
     profile: {
-      name:          coach.profile?.name          ?? null,
-      phone:         coach.profile?.phone          ?? null,
-      specialties:   coach.profile?.specialties    ?? [],
-      cref:          coach.profile?.cref           ?? null,
-      instagram:     coach.profile?.instagram      ?? null,
-      profile_video: coach.profile?.profile_video  ?? false,
+      name:        coach.profile?.name        ?? null,
+      phone:       coach.profile?.phone        ?? null,
+      specialties: coach.profile?.specialties  ?? [],
+      cref:        coach.profile?.cref         ?? null,
+      instagram:   coach.profile?.instagram    ?? null,
+      photo_url,
+      video_url,
     },
     work_location: mapWorkLocations(coach.work_location ?? [], gymsById),
   };

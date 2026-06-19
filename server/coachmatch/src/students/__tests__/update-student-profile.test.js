@@ -117,6 +117,15 @@ describe('update-student-profile › schema', () => {
     const { error } = studentProfileSchema.validate({ ...validProfileData, birthDate: '15/06/1995' });
     expect(error?.details[0].path).toContain('birthDate');
   });
+
+  it('aceita photo_key opcional (key do S3)', () => {
+    const { error, value } = studentProfileSchema.validate({
+      ...validProfileData,
+      photo_key: 'uploads/aluno-foto.jpg',
+    });
+    expect(error).toBeUndefined();
+    expect(value.photo_key).toBe('uploads/aluno-foto.jpg');
+  });
 });
 
 // ─── Business Logic (index) ───────────────────────────────────────────────────
@@ -133,6 +142,14 @@ describe('update-student-profile › index (updateProfile)', () => {
     expect(updateStudentProfile).toHaveBeenCalledWith(STUDENT_ID, expect.objectContaining({
       name: validProfileData.name,
       goal: validProfileData.goal,
+    }));
+  });
+
+  it('repassa photo_key ao repositório quando enviado', async () => {
+    await updateProfile(STUDENT_ID, { ...validProfileData, photo_key: 'uploads/aluno-foto.jpg' });
+
+    expect(updateStudentProfile).toHaveBeenCalledWith(STUDENT_ID, expect.objectContaining({
+      photo_key: 'uploads/aluno-foto.jpg',
     }));
   });
 

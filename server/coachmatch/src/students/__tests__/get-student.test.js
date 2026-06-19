@@ -5,6 +5,10 @@ vi.mock('../get-student/repository.js', () => ({
   findStudentById: vi.fn(),
 }));
 
+vi.mock('../../shared/s3.js', () => ({
+  signGetUrl: vi.fn(async (key) => (key ? `https://signed.example/${key}` : null)),
+}));
+
 import { handler } from '../get-student/handler.js';
 import { getStudentProfile } from '../get-student/index.js';
 import { findStudentById } from '../get-student/repository.js';
@@ -73,6 +77,16 @@ describe('get-student › index (getStudentProfile)', () => {
     expect(result.phone).toBeNull();
     expect(result.birthDate).toBeNull();
     expect(result.health).toBeNull();
+    expect(result.photo_url).toBeNull();
+  });
+
+  it('devolve photo_url assinada a partir de photo_key e não expõe a key', async () => {
+    findStudentById.mockResolvedValue(buildStudentRecord({ photo_key: 'uploads/aluno-foto.jpg' }));
+
+    const result = await getStudentProfile(STUDENT_ID);
+
+    expect(result.photo_url).toBe('https://signed.example/uploads/aluno-foto.jpg');
+    expect(result).not.toHaveProperty('photo_key');
   });
 
   it('lança NotFoundException quando estudante não existe', async () => {
