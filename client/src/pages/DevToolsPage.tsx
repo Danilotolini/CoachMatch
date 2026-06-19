@@ -5,77 +5,49 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Icon } from '@/components/ui/Icon'
 import { apiGet, apiPost } from '@/lib/http'
-import { buildMockIdToken } from '@/dev/mockSession'
+import { logout } from '@/lib/cognito'
 import { useOnboardingStore } from '@/stores/onboardingStore'
 import { useSessionStore } from '@/stores/sessionStore'
-import type { Client, ClientHealthPayload, ClientStatus, Coach, CoachStatus } from '@/types/api'
+import type { Client, ClientStatus, Coach, CoachStatus } from '@/types/api'
 
 const MOCK_COACH_STORAGE_KEY = 'coachmatch:mock:coach'
 const MOCK_CLIENT_STORAGE_KEY = 'coachmatch:mock:client'
 
 const APP_ROUTE_GROUPS = [
   {
-    title: 'Geral',
-    routes: [
-      { path: '/', label: 'Entrada' },
-      { path: '/dev', label: 'Dev local' },
-    ],
-  },
-  {
     title: 'Aluno',
     routes: [
-      { path: '/client/login', label: 'Login Aluno' },
       { path: '/client', label: 'Home Aluno' },
-      { path: '/client/onboarding', label: 'Onboarding Aluno' },
+      { path: '/client/onboarding', label: 'Criacao Perfil Aluno' },
       { path: '/client/health', label: 'Saude Aluno' },
     ],
   },
   {
     title: 'Treinador',
     routes: [
-      { path: '/coach/login', label: 'Login Treinador' },
-      { path: '/coach', label: 'Dashboard Treinador' },
-      { path: '/coach/onboarding', label: 'Onboarding Treinador' },
-      { path: '/coach/pending-review', label: 'Analise Treinador' },
-      { path: '/coach/rejected', label: 'Treinador Rejeitado' },
-    ],
-  },
-  {
-    title: 'Auth',
-    routes: [
-      { path: '/auth/cognito/callback', label: 'Callback Treinador' },
-      { path: '/auth/cognito/student/callback', label: 'Callback Aluno' },
+      { path: '/coach', label: 'Home Treinador' },
+      { path: '/coach/onboarding', label: 'Criacao Perfil Treinador' },
     ],
   },
 ]
 
-const COACH_STATUSES: CoachStatus[] = [
-  'ONBOARDING_PROFILE',
-  'PENDING_REVIEW',
-  'APPROVED',
-  'REJECTED',
-]
+const COACH_STATUSES: CoachStatus[] = ['PENDING_PROFILE', 'APPROVED']
 
-const CLIENT_STATUSES: ClientStatus[] = ['ONBOARDING_PROFILE', 'ONBOARDING_HEALTH', 'ACTIVE']
-
-const DEMO_CLIENT_HEALTH: ClientHealthPayload = {
-  answers: {
-    heart: 'NO',
-    chest_pain: 'NO',
-    dizziness: 'NO',
-    bone_joint: 'NO',
-    medication: 'NO',
-  },
-  notes: '',
-  lgpdConsent: true,
-  medicalDisclaimer: true,
-}
+const CLIENT_STATUSES: ClientStatus[] = ['PENDING_PROFILE', 'ONBOARDING_HEALTH', 'ACTIVE']
 
 function hasMockingEnabled(): boolean {
   return import.meta.env.VITE_API_MOCKING === 'enabled'
 }
 
-function SessionPill({ active, children }: { active: boolean; children: React.ReactNode }) {
+function Pill({
+  active,
+  dot = false,
+  children,
+}: {
+  active: boolean
+  dot?: boolean
+  children: React.ReactNode
+}) {
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase ${
@@ -84,41 +56,62 @@ function SessionPill({ active, children }: { active: boolean; children: React.Re
           : 'bg-surface-container-high text-on-surface-variant'
       }`}
     >
-      <span className={`h-2 w-2 rounded-full ${active ? 'bg-on-primary-fixed' : 'bg-outline'}`} />
+      {dot && (
+        <span className={`h-2 w-2 rounded-full ${active ? 'bg-on-primary-fixed' : 'bg-outline'}`} />
+      )}
       {children}
     </span>
   )
 }
 
-function StateBadge({ active, children }: { active: boolean; children: React.ReactNode }) {
+function StatusGrid<T extends string>({
+  statuses,
+  current,
+  onSelect,
+  className = '',
+}: {
+  statuses: readonly T[]
+  current?: T | undefined
+  onSelect: (status: T) => void
+  className?: string
+}) {
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase ${
-        active
-          ? 'bg-primary text-on-primary-fixed'
-          : 'bg-surface-container-high text-on-surface-variant'
-      }`}
-    >
-      {children}
-    </span>
+    <div className={`grid grid-cols-3 gap-2 ${className}`}>
+      {statuses.map((status) => (
+        <button
+          key={status}
+          type="button"
+          onClick={() => {
+            onSelect(status)
+          }}
+          className={`wrap-break-word rounded-lg px-2 py-3 text-center text-[11px] font-bold uppercase leading-tight transition-all active:scale-[0.99] ${
+            current === status
+              ? 'bg-primary text-on-primary-fixed'
+              : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+          }`}
+        >
+          {status}
+        </button>
+      ))}
+    </div>
   )
 }
 
 export default function DevToolsPage() {
   const queryClient = useQueryClient()
-  const { activeRole, sessions, startSession } = useSessionStore()
+  const { sessions, endSession } = useSessionStore()
   const resetOnboarding = useOnboardingStore((state) => state.reset)
   const [message, setMessage] = useState('Pronto para preparar um cenario local.')
 
   const coachMe = useQuery({
     queryKey: ['coachMe'],
-    queryFn: () => apiGet<Coach>('/coaches/me'),
+    queryFn: () => apiGet<Coach>('/coach/me'),
     enabled: hasMockingEnabled(),
   })
 
   const clientMe = useQuery({
     queryKey: ['clientMe'],
-    queryFn: () => apiGet<Client>('/clients/me'),
+    queryFn: () => apiGet<Client>('/student/me'),
     enabled: hasMockingEnabled(),
   })
 
@@ -130,29 +123,6 @@ export default function DevToolsPage() {
     },
     onError: () => {
       setMessage('Nao consegui mudar o status. Ligue VITE_API_MOCKING=enabled para usar o MSW.')
-    },
-  })
-
-  const resetMockState = useMutation({
-    mutationFn: () => apiPost<{ coach: Coach; client: Client }>('/dev/reset'),
-    onSuccess: ({ coach, client }) => {
-      queryClient.setQueryData(['coachMe'], coach)
-      queryClient.setQueryData(['clientMe'], client)
-      setMessage('State do MSW resetado para os fixtures iniciais.')
-    },
-    onError: () => {
-      setMessage('Nao consegui resetar o MSW. Ligue VITE_API_MOCKING=enabled para usar o painel.')
-    },
-  })
-
-  const markClientOnboarded = useMutation({
-    mutationFn: () => apiPost<Client>('/clients/me/health', DEMO_CLIENT_HEALTH),
-    onSuccess: (client) => {
-      queryClient.setQueryData(['clientMe'], client)
-      setMessage('Aluno marcado como ACTIVE no mock do backend.')
-    },
-    onError: () => {
-      setMessage('Nao consegui marcar o aluno. Ligue VITE_API_MOCKING=enabled para usar o MSW.')
     },
   })
 
@@ -179,56 +149,17 @@ export default function DevToolsPage() {
 
   const coachVisibilityLabel = coachMe.data?.visibility ?? 'SEM MOCK'
 
-  function resetLocalStorage() {
-    localStorage.removeItem(MOCK_COACH_STORAGE_KEY)
-    localStorage.removeItem(MOCK_CLIENT_STORAGE_KEY)
-    useSessionStore.setState({ activeRole: null, sessions: {} })
-    useSessionStore.persist.clearStorage()
-    queryClient.clear()
-    resetOnboarding()
-  }
-
-  async function resetMockFixtures() {
-    if (!hasMockingEnabled()) return null
-    return resetMockState.mutateAsync()
-  }
-
-  async function prepareLocalClean() {
-    resetLocalStorage()
-    await resetMockFixtures()
-    queryClient.clear()
-    setMessage('Sessao, cache, mock do treinador e formulario local limpos.')
-  }
-
-  async function prepareClientClean() {
-    resetLocalStorage()
-    const fixtures = await resetMockFixtures()
-    if (fixtures) {
-      queryClient.setQueryData(['clientMe'], fixtures.client)
+  function clearRoleLocal(role: 'client' | 'coach') {
+    endSession(role)
+    if (role === 'coach') {
+      localStorage.removeItem(MOCK_COACH_STORAGE_KEY)
+      queryClient.removeQueries({ queryKey: ['coachMe'] })
+    } else {
+      localStorage.removeItem(MOCK_CLIENT_STORAGE_KEY)
+      queryClient.removeQueries({ queryKey: ['clientMe'] })
+      resetOnboarding()
     }
-    startSession('client', buildMockIdToken('client'))
-    setMessage('Aluno base logado, sem onboarding.')
-  }
-
-  async function prepareCoachClean() {
-    resetLocalStorage()
-    const fixtures = await resetMockFixtures()
-    if (fixtures) {
-      queryClient.setQueryData(['coachMe'], fixtures.coach)
-    } else if (hasMockingEnabled()) {
-      await setCoachStatus.mutateAsync('ONBOARDING_PROFILE')
-    }
-    startSession('coach', buildMockIdToken('coach'))
-    setMessage('Treinador base logado, ainda nao aprovado.')
-  }
-
-  async function approveCoach() {
-    await setCoachStatus.mutateAsync('APPROVED')
-  }
-
-  async function refetchCoachMe() {
-    await queryClient.invalidateQueries({ queryKey: ['coachMe'] })
-    setMessage('Query coachMe invalidada. A proxima tela busca o mock atualizado.')
+    setMessage(`Estado local do ${role === 'coach' ? 'treinador' : 'aluno'} limpo.`)
   }
 
   return (
@@ -240,13 +171,6 @@ export default function DevToolsPage() {
               Dev local
             </p>
             <h1 className="mt-3 font-headline text-3xl font-bold md:text-5xl">Painel de estados</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-on-surface-variant">
-              Controle sessoes demo, papel ativo e dados mock sem passar pelo Cognito em cada teste.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <SessionPill active={activeRole === 'client'}>Aluno</SessionPill>
-            <SessionPill active={activeRole === 'coach'}>Treinador</SessionPill>
           </div>
         </header>
 
@@ -257,180 +181,94 @@ export default function DevToolsPage() {
           </div>
         </Card>
 
-        <section className="grid gap-4 lg:grid-cols-2">
-          <Card className="p-5">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="font-headline text-xl font-bold">Aluno</h2>
-                <p className="mt-1 text-sm text-on-surface-variant">
-                  Sessao local e estado real retornado por <code>/clients/me</code>.
-                </p>
-              </div>
-              <Icon name="person" className="text-on-surface-variant" />
-            </div>
+        <section>
+          <h2 className="mb-3 font-headline text-xl font-bold">Sessões</h2>
 
-            <dl className="grid gap-3 text-sm">
-              <div className="rounded-lg bg-surface-container p-3">
-                <dt className="text-on-surface-variant">Sessao</dt>
-                <dd className="mt-1 font-headline font-bold">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h3 className="font-headline text-lg font-bold">Aluno</h3>
+                <Pill active={hasSession.client}>
                   {hasSession.client ? 'Sessao ativa' : 'Sem sessao'}
-                </dd>
+                </Pill>
               </div>
-            </dl>
 
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              {CLIENT_STATUSES.map((status) => (
-                <button
-                  key={status}
-                  type="button"
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
                   onClick={() => {
-                    setClientOnboarded.mutate(status)
+                    logout('client')
                   }}
-                  className={`rounded-lg px-3 py-3 text-left text-xs font-bold uppercase transition-all active:scale-[0.99] ${
-                    clientMe.data?.status === status
-                      ? 'bg-primary text-on-primary-fixed'
-                      : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
-                  }`}
+                  disabled={!hasSession.client}
                 >
-                  {status}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-5 grid gap-2 sm:grid-cols-2">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  void prepareClientClean()
-                }}
-                loading={resetMockState.isPending}
-              >
-                RESET
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  markClientOnboarded.mutate()
-                }}
-                loading={markClientOnboarded.isPending}
-              >
-                CONCLUIR ONBOARDING
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="p-5">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="font-headline text-xl font-bold">Treinador</h2>
-                <p className="mt-1 text-sm text-on-surface-variant">
-                  Sessao local e status real retornado por <code>/coaches/me</code>.
-                </p>
-              </div>
-              <Icon name="fitness_center" className="text-on-surface-variant" />
-            </div>
-
-            <dl className="grid gap-3 text-sm sm:grid-cols-2">
-              <div className="rounded-lg bg-surface-container p-3">
-                <dt className="text-on-surface-variant">Sessao</dt>
-                <dd className="mt-1 font-headline font-bold">
-                  {hasSession.coach ? 'Sessao ativa' : 'Sem sessao'}
-                </dd>
-              </div>
-              <div className="rounded-lg bg-surface-container p-3">
-                <dt className="text-on-surface-variant">Visibilidade</dt>
-                <dd className="mt-2">
-                  <StateBadge active={coachMe.data?.visibility === 'VISIBLE'}>
-                    {coachVisibilityLabel}
-                  </StateBadge>
-                </dd>
-              </div>
-            </dl>
-
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              {COACH_STATUSES.map((status) => (
-                <button
-                  key={status}
-                  type="button"
+                  DESLOGAR
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={() => {
-                    setCoachStatus.mutate(status)
+                    clearRoleLocal('client')
                   }}
-                  className={`rounded-lg px-3 py-3 text-left text-xs font-bold uppercase transition-all active:scale-[0.99] ${
-                    coachMe.data?.status === status
-                      ? 'bg-primary text-on-primary-fixed'
-                      : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
-                  }`}
                 >
-                  {status}
-                </button>
-              ))}
-            </div>
+                  LIMPAR LOCAL
+                </Button>
+              </div>
 
-            <div className="mt-5 grid gap-2 sm:grid-cols-2">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  void prepareCoachClean()
+              <StatusGrid
+                className="mt-3"
+                statuses={CLIENT_STATUSES}
+                current={clientMe.data?.status}
+                onSelect={(status) => {
+                  setClientOnboarded.mutate(status)
                 }}
-                loading={resetMockState.isPending || setCoachStatus.isPending}
-              >
-                RESET
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  void approveCoach()
+              />
+            </Card>
+
+            <Card className="p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h3 className="font-headline text-lg font-bold">Treinador</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Pill active={hasSession.coach}>
+                    {hasSession.coach ? 'Sessao ativa' : 'Sem sessao'}
+                  </Pill>
+                  {hasSession.coach && (
+                    <Pill active={coachMe.data?.visibility === 'VISIBLE'}>
+                      {coachVisibilityLabel}
+                    </Pill>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    logout('coach')
+                  }}
+                  disabled={!hasSession.coach}
+                >
+                  DESLOGAR
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    clearRoleLocal('coach')
+                  }}
+                >
+                  LIMPAR LOCAL
+                </Button>
+              </div>
+
+              <StatusGrid
+                className="mt-3"
+                statuses={COACH_STATUSES}
+                current={coachMe.data?.status}
+                onSelect={(status) => {
+                  setCoachStatus.mutate(status)
                 }}
-                loading={setCoachStatus.isPending}
-              >
-                APROVAR
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  void refetchCoachMe()
-                }}
-              >
-                REFRESH COACHME
-              </Button>
-            </div>
-          </Card>
+              />
+            </Card>
+          </div>
         </section>
-
-        <Card className="p-5">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="font-headline text-xl font-bold">Ações</h2>
-              <p className="mt-1 text-sm text-on-surface-variant">
-                Prepare sessoes e mocks locais para testar os fluxos.
-              </p>
-            </div>
-            <Icon name="tune" className="text-on-surface-variant" />
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                void prepareLocalClean()
-              }}
-              loading={resetMockState.isPending}
-              icon="delete_sweep"
-            >
-              LIMPAR LOCAL
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                resetMockState.mutate()
-              }}
-              loading={resetMockState.isPending}
-              icon="restart_alt"
-            >
-              RESETAR MSW
-            </Button>
-          </div>
-        </Card>
 
         <section>
           <h2 className="mb-3 font-headline text-xl font-bold">Rotas da aplicacao</h2>

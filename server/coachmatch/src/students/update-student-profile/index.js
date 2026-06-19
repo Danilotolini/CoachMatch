@@ -4,7 +4,7 @@ import { ValidationException } from '../../shared/exceptions.js';
 
 /**
  * Atualiza o perfil do estudante com dados pessoais e de localização.
- * Avança o status de ONBOARDING_PROFILE → ONBOARDING_HEALTH.
+ * Avança o status de PENDING_PROFILE → ONBOARDING_HEALTH.
  *
  * @param {string} studentId - ID do estudante extraído do JWT.
  * @param {object} profileData - Dados do perfil enviados pelo cliente.

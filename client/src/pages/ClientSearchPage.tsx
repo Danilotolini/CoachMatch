@@ -5,23 +5,14 @@ import { FilterSheet } from '@/components/search/FilterSheet'
 import { SearchEmptyState } from '@/components/search/SearchEmptyState'
 import { SearchHeader } from '@/components/search/SearchHeader'
 import { SearchResultsList, SearchResultsSkeleton } from '@/components/search/SearchResultsList'
-import { SortControl } from '@/components/search/SortControl'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Icon } from '@/components/ui/Icon'
 import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNavigation'
 import { useCoachSearch } from '@/hooks/useCoachSearch'
-import { logout } from '@/lib/cognito'
-import type { CoachSearchFilters, CoachSearchSort } from '@/types/api'
+import type { CoachSearchFilters } from '@/types/api'
 
 const DEFAULT_LIMIT = 9
-
-function numberParam(searchParams: URLSearchParams, key: string): number | undefined {
-  const raw = searchParams.get(key)
-  if (!raw) return undefined
-  const value = Number(raw)
-  return Number.isFinite(value) && value > 0 ? value : undefined
-}
 
 function arrayParam(searchParams: URLSearchParams, key: string): string[] | undefined {
   const values = [...searchParams.getAll(key), ...searchParams.getAll(`${key}[]`)]
@@ -35,10 +26,6 @@ function filtersFromParams(searchParams: URLSearchParams): CoachSearchFilters {
   return {
     q: searchParams.get('q') ?? undefined,
     specialties: arrayParam(searchParams, 'specialties'),
-    address: searchParams.get('address') ?? undefined,
-    availableOn: searchParams.get('availableOn') ?? undefined,
-    sort: (searchParams.get('sort') as CoachSearchSort | null) ?? 'rating',
-    page: numberParam(searchParams, 'page') ?? 1,
     limit: DEFAULT_LIMIT,
   }
 }
@@ -49,10 +36,6 @@ function paramsFromFilters(filters: CoachSearchFilters): URLSearchParams {
   filters.specialties?.forEach((specialty) => {
     params.append('specialties', specialty)
   })
-  if (filters.address) params.set('address', filters.address)
-  if (filters.availableOn) params.set('availableOn', filters.availableOn)
-  if (filters.sort && filters.sort !== 'rating') params.set('sort', filters.sort)
-  if (filters.page && filters.page > 1) params.set('page', String(filters.page))
   return params
 }
 
@@ -61,12 +44,20 @@ export default function ClientSearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [filtersOpen, setFiltersOpen] = useState(false)
   const filters = useMemo(() => filtersFromParams(searchParams), [searchParams])
-  const { data, isLoading, isFetching, isError, refetch } = useCoachSearch(filters)
-  const coaches = data?.data ?? []
-  const pagination = data?.pagination
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useCoachSearch(filters)
+  const coaches = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data])
 
   function updateFilters(next: CoachSearchFilters) {
-    setSearchParams(paramsFromFilters({ ...filters, ...next, page: next.page ?? 1 }))
+    setSearchParams(paramsFromFilters({ ...filters, ...next }))
   }
 
   function removeFilter(key: keyof CoachSearchFilters, value?: string) {
@@ -82,13 +73,9 @@ export default function ClientSearchPage() {
     setFiltersOpen(false)
   }
 
-  function handleLogout() {
-    logout('client', '/')
-  }
-
   return (
     <main className="relative flex min-h-[max(884px,100dvh)] w-full bg-surface text-on-surface">
-      <ClientSideNav onLogout={handleLogout} />
+      <ClientSideNav />
 
       <div className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">
         <header className="glass-header sticky top-0 z-20 flex items-center gap-3 px-4 py-4 sm:px-6 md:px-10 lg:relative lg:bg-transparent lg:px-10 lg:py-8 lg:backdrop-blur-none">
@@ -121,21 +108,15 @@ export default function ClientSearchPage() {
               setFiltersOpen(true)
             }}
           />
-          <SortControl
-            value={filters.sort ?? 'rating'}
-            onChange={(sort) => {
-              updateFilters({ sort })
-            }}
-          />
           <ActiveFiltersBar filters={filters} onRemove={removeFilter} />
 
           <div className="flex items-center justify-between gap-4">
             <p className="font-body text-sm text-on-surface-variant">
-              {pagination
-                ? `${String(pagination.total)} treinadores encontrados`
-                : 'Buscando treinadores'}
+              {isLoading
+                ? 'Buscando treinadores'
+                : `${String(coaches.length)} treinadores encontrados`}
             </p>
-            {isFetching && !isLoading ? (
+            {isFetching && !isLoading && !isFetchingNextPage ? (
               <span className="font-label text-xs text-primary">Atualizando...</span>
             ) : null}
           </div>
@@ -162,19 +143,25 @@ export default function ClientSearchPage() {
           ) : null}
 
           {!isLoading && !isError && coaches.length > 0 ? (
-            <SearchResultsList coaches={coaches} />
+            <SearchResultsList
+              coaches={coaches}
+              onCoachClick={(coachId) => {
+                void navigate(`/client/coaches/${coachId}`)
+              }}
+            />
           ) : null}
 
-          {!isLoading && !isError && pagination?.hasNext ? (
+          {!isLoading && !isError && hasNextPage ? (
             <Button
               type="button"
               variant="secondary"
+              disabled={isFetchingNextPage}
               onClick={() => {
-                updateFilters({ page: (filters.page ?? 1) + 1 })
+                void fetchNextPage()
               }}
               className="mx-auto w-full max-w-xs"
             >
-              VER MAIS
+              {isFetchingNextPage ? 'CARREGANDO...' : 'VER MAIS'}
             </Button>
           ) : !isLoading && !isError && coaches.length > 0 ? (
             <p className="py-2 text-center font-label text-xs text-on-surface-variant">

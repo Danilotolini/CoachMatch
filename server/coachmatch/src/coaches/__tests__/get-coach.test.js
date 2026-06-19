@@ -70,28 +70,16 @@ describe('get-coach › index (getCoachProfile)', () => {
     expect(result.work_location).toEqual([{ type: 'GYM', gymId: 'gym-1' }]);
   });
 
-  it('mapeia status PENDING_PROFILE → ONBOARDING_PROFILE', async () => {
+  it('mantém status PENDING_PROFILE', async () => {
     findCoachById.mockResolvedValue(buildCoachRecord({ status: 'PENDING_PROFILE' }));
     const result = await getCoachProfile(COACH_ID);
-    expect(result.status).toBe('ONBOARDING_PROFILE');
-  });
-
-  it('não altera status PENDING_REVIEW', async () => {
-    findCoachById.mockResolvedValue(buildCoachRecord({ status: 'PENDING_REVIEW' }));
-    const result = await getCoachProfile(COACH_ID);
-    expect(result.status).toBe('PENDING_REVIEW');
+    expect(result.status).toBe('PENDING_PROFILE');
   });
 
   it('não altera status APPROVED', async () => {
     findCoachById.mockResolvedValue(buildCoachRecord({ status: 'APPROVED' }));
     const result = await getCoachProfile(COACH_ID);
     expect(result.status).toBe('APPROVED');
-  });
-
-  it('não altera status REJECTED', async () => {
-    findCoachById.mockResolvedValue(buildCoachRecord({ status: 'REJECTED' }));
-    const result = await getCoachProfile(COACH_ID);
-    expect(result.status).toBe('REJECTED');
   });
 
   it('retorna valores padrão seguros para profile ausente', async () => {
@@ -125,7 +113,7 @@ describe('get-coach › handler', () => {
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
     expect(body.coachId).toBe(COACH_ID);
-    expect(body.status).toBe('ONBOARDING_PROFILE');
+    expect(body.status).toBe('PENDING_PROFILE');
     expect(body.profile).toMatchObject({ name: 'João Silva' });
     expect(body.work_location).toBeDefined();
   });

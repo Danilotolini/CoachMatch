@@ -3,11 +3,11 @@ import { useParams } from 'react-router'
 import { ProgressHeader } from '@/components/layout/ProgressHeader'
 import { useCreatePayment } from '@/hooks/useCreatePayment'
 import { useCoachMe } from '@/hooks/useCoachMe'
-import type { PaymentMethod, CardInfo } from '@/types/api'
+import type { PaymentMethod } from '@/types/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type CardStatus = 'idle' | 'loading' | 'approved' | 'refused' | 'pending'
+type CardStatus = 'idle' | 'loading' | 'approved' | 'refused' | 'refunded'
 
 interface CardForm {
   number: string
@@ -120,7 +120,7 @@ function PaymentResult({
   amount,
   onRetry,
 }: {
-  status: 'approved' | 'refused' | 'pending'
+  status: 'approved' | 'refused' | 'refunded'
   amount: number
   onRetry: () => void
 }) {
@@ -141,12 +141,12 @@ function PaymentResult({
       description: 'Verifique os dados do cartão ou tente outro método de pagamento.',
       cta: 'Tentar novamente' as string | null,
     },
-    pending: {
-      icon: 'pending',
+    refunded: {
+      icon: 'undo',
       iconColor: 'text-tertiary',
       bg: 'bg-tertiary/10',
-      title: 'Aguardando Confirmação',
-      description: 'Seu pagamento está em análise. Você será notificado em breve.',
+      title: 'Pagamento Estornado',
+      description: 'O valor foi estornado e será creditado em breve.',
       cta: null as string | null,
     },
   }
@@ -200,7 +200,7 @@ function PaymentResult({
         <button
           type="button"
           onClick={onRetry}
-          className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold py-4 rounded-lg uppercase tracking-wide hover:brightness-105 transition-all active:scale-[0.98]"
+          className="w-full bg-linear-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold py-4 rounded-lg uppercase tracking-wide hover:brightness-105 transition-all active:scale-[0.98]"
         >
           {c.cta}
         </button>
@@ -299,7 +299,7 @@ function PixPanel({
         type="button"
         disabled={loading}
         onClick={onConfirm}
-        className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-base py-4 rounded-lg uppercase tracking-wide shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
+        className="w-full bg-linear-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-base py-4 rounded-lg uppercase tracking-wide shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -457,7 +457,7 @@ function CardPanel({
         type="button"
         disabled={loading}
         onClick={handleSubmit}
-        className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-base py-4 rounded-lg uppercase tracking-wide shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
+        className="w-full bg-linear-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-base py-4 rounded-lg uppercase tracking-wide shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:shadow-[0_10px_40px_rgba(244,255,198,0.25)] hover:brightness-105 transition-all active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -492,19 +492,17 @@ export default function PaymentPage() {
     setError(null)
     setCardStatus('loading')
 
-    const cardInfo: CardInfo = {
-      number: card.number,
-      holder: card.holder,
-      expiryMonth: card.expiryMonth,
-      expiryYear: card.expiryYear,
-      cvv: card.cvv,
-    }
-
     createPaymentMutation.mutate(
       {
         sessionId: params.sessionId ?? MOCK_SESSION.sessionId,
         method: 'credit_card',
-        card: cardInfo,
+        card: {
+          number: card.number,
+          holder: card.holder,
+          expiryMonth: card.expiryMonth,
+          expiryYear: card.expiryYear,
+          cvv: card.cvv,
+        },
         amount: MOCK_SESSION.amount,
         coachId: coach?.email ?? 'coach_mock',
         studentId: coach?.email ?? 'student_mock',
@@ -551,7 +549,7 @@ export default function PaymentPage() {
   }
 
   const showResult =
-    cardStatus === 'approved' || cardStatus === 'refused' || cardStatus === 'pending'
+    cardStatus === 'approved' || cardStatus === 'refused' || cardStatus === 'refunded'
 
   return (
     <div className="min-h-dvh flex flex-col bg-surface text-on-surface">
@@ -572,7 +570,7 @@ export default function PaymentPage() {
 
         {error && (
           <div className="bg-error/10 border border-error/30 rounded-lg p-4 flex gap-3">
-            <span className="material-symbols-outlined text-error flex-shrink-0 mt-0.5">error</span>
+            <span className="material-symbols-outlined text-error shrink-0 mt-0.5">error</span>
             <p className="font-body text-sm text-error">{error}</p>
           </div>
         )}

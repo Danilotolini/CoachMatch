@@ -1,19 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { searchCoaches } from '@/api/coaches'
 import { getToken } from '@/lib/auth'
-import type { CoachSearchFilters } from '@/types/api'
+import type { CoachSearchCursor, CoachSearchFilters } from '@/types/api'
 
 function compactFilters(filters: CoachSearchFilters): CoachSearchFilters {
   return {
     q: filters.q?.trim() ? filters.q.trim() : undefined,
     specialties: filters.specialties?.filter(Boolean).sort(),
-    address: filters.address?.trim() ? filters.address.trim() : undefined,
-    priceMin: filters.priceMin,
-    priceMax: filters.priceMax,
-    availableOn: filters.availableOn,
-    sort: filters.sort ?? 'rating',
-    page: filters.page ?? 1,
     limit: filters.limit ?? 12,
   }
 }
@@ -40,11 +34,12 @@ export function useCoachSearch(filters: CoachSearchFilters) {
     [debouncedQ, filters],
   )
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['coach-search', normalized],
-    queryFn: () => searchCoaches(normalized),
+    queryFn: ({ pageParam }) => searchCoaches({ ...normalized, lastKey: pageParam }),
+    initialPageParam: null as CoachSearchCursor | null,
+    getNextPageParam: (lastPage) => lastPage.meta.lastKey,
     enabled: !!getToken(),
-    placeholderData: keepPreviousData,
     staleTime: 30 * 1000,
   })
 }

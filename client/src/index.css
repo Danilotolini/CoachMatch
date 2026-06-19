@@ -129,6 +129,10 @@
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
   --radius-full: 9999px;
+
+  /* Sombras-assinatura */
+  --shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.35);
+  --shadow-glow-primary: 0 0 15px rgba(244, 255, 198, 0.1);
 }
 
 @layer base {
@@ -141,6 +145,15 @@
   html {
     min-height: 100%;
     background-color: var(--color-surface);
+    color-scheme: dark;
+  }
+
+  /* Chromium pinta o popup do <select> com o bg/color do próprio controle,
+     não com o color-scheme. Garante opções legíveis (escuro) em todo o sistema. */
+  option,
+  optgroup {
+    background-color: var(--color-surface-container-highest);
+    color: var(--color-on-surface);
   }
 
   body,

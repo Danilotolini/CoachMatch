@@ -64,7 +64,7 @@ describe('get-student › index (getStudentProfile)', () => {
     findStudentById.mockResolvedValue({
       studentId: STUDENT_ID,
       email: 'aluno@email.com',
-      status: 'ONBOARDING_PROFILE',
+      status: 'PENDING_PROFILE',
       profile: { name: 'Novo' },
     });
 

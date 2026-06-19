@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Gym } from '@/types/api'
-import { buildCoachUpdatePayload, onlyDigits, useOnboardingStore } from './onboardingStore'
+import { onlyDigits } from '@/lib/formatters'
+import { buildCoachUpdatePayload, useOnboardingStore } from './onboardingStore'
 
 const baseGym: Gym = {
   gymId: 'gym-1',
@@ -143,8 +144,7 @@ describe('toggleSpecialty', () => {
 })
 
 describe('addGym / removeGym', () => {
-  it('adiciona uma academia, limpa busca e erros relacionados', () => {
-    useOnboardingStore.setState({ gymSearch: 'Smart' })
+  it('adiciona uma academia e limpa erros relacionados', () => {
     useOnboardingStore.getState().setGymError('Erro qualquer')
 
     useOnboardingStore.getState().addGym(baseGym)
@@ -156,9 +156,7 @@ describe('addGym / removeGym', () => {
       name: 'Smart Fit Boa Viagem',
       city: 'Recife',
     })
-    expect(state.gymSearch).toBe('')
     expect(state.errors.gyms).toBeUndefined()
-    expect(state.errors.workLocation).toBeUndefined()
   })
 
   it('não duplica academia já adicionada', () => {
@@ -181,45 +179,6 @@ describe('addGym / removeGym', () => {
   })
 })
 
-describe('addHomeArea / removeHomeArea', () => {
-  it('adiciona área com id gerado e limpa erro de workLocation', () => {
-    useOnboardingStore.getState().validate() // gera erro de workLocation
-    expect(useOnboardingStore.getState().errors.workLocation).toBeDefined()
-
-    useOnboardingStore.getState().addHomeArea({
-      city: 'Recife',
-      state: 'PE',
-      neighborhoods: ['Boa Viagem', 'Pina'],
-    })
-
-    const state = useOnboardingStore.getState()
-    expect(state.form.homeAreas).toHaveLength(1)
-    expect(state.form.homeAreas[0]?.id).toBeTruthy()
-    expect(state.form.homeAreas[0]).toMatchObject({
-      city: 'Recife',
-      state: 'PE',
-      neighborhoods: ['Boa Viagem', 'Pina'],
-    })
-    expect(state.errors.workLocation).toBeUndefined()
-  })
-
-  it('remove pelo id', () => {
-    useOnboardingStore.getState().addHomeArea({
-      city: 'Recife',
-      state: 'PE',
-      neighborhoods: ['Boa Viagem'],
-    })
-
-    const id = useOnboardingStore.getState().form.homeAreas[0]?.id
-    expect(id).toBeTypeOf('string')
-    if (typeof id !== 'string') throw new Error('Área deveria ter um id.')
-
-    useOnboardingStore.getState().removeHomeArea(id)
-
-    expect(useOnboardingStore.getState().form.homeAreas).toEqual([])
-  })
-})
-
 describe('setVideoKey', () => {
   it('atualiza a chave do vídeo', () => {
     useOnboardingStore.getState().setVideoKey('uploads/abc123.mp4')
@@ -230,14 +189,11 @@ describe('setVideoKey', () => {
   })
 })
 
-describe('setSpecialtySearch / setGymSearch', () => {
-  it('atualiza os campos de busca', () => {
+describe('setSpecialtySearch', () => {
+  it('atualiza o campo de busca de especialidades', () => {
     useOnboardingStore.getState().setSpecialtySearch('cross')
-    useOnboardingStore.getState().setGymSearch('smart')
 
-    const state = useOnboardingStore.getState()
-    expect(state.specialtySearch).toBe('cross')
-    expect(state.gymSearch).toBe('smart')
+    expect(useOnboardingStore.getState().specialtySearch).toBe('cross')
   })
 })
 
@@ -247,10 +203,11 @@ describe('validate', () => {
     const { errors } = useOnboardingStore.getState()
 
     expect(ok).toBe(false)
+    expect(errors.name).toBeDefined()
     expect(errors.phone).toBeDefined()
     expect(errors.cref).toBeDefined()
     expect(errors.specialties).toBeDefined()
-    expect(errors.workLocation).toBeDefined()
+    expect(errors.gyms).toBeDefined()
     // instagram vazio é válido
     expect(errors.instagram).toBeUndefined()
   })
@@ -285,6 +242,7 @@ describe('validate', () => {
 
   it('aceita formulário completo (true) e zera os erros', () => {
     const store = useOnboardingStore.getState()
+    store.updateName('João Silva')
     store.updatePhone('81999991234')
     store.updateCref('123456GSP')
     store.toggleSpecialty('Musculação')
@@ -295,18 +253,14 @@ describe('validate', () => {
     expect(useOnboardingStore.getState().errors).toEqual({})
   })
 
-  it('aceita apenas área de atendimento externo (sem academia)', () => {
+  it('exige pelo menos uma academia parceira', () => {
     const store = useOnboardingStore.getState()
     store.updatePhone('81999991234')
     store.updateCref('123456GSP')
     store.toggleSpecialty('Musculação')
-    store.addHomeArea({
-      city: 'Recife',
-      state: 'PE',
-      neighborhoods: ['Boa Viagem'],
-    })
 
-    expect(useOnboardingStore.getState().validate()).toBe(true)
+    expect(useOnboardingStore.getState().validate()).toBe(false)
+    expect(useOnboardingStore.getState().errors.gyms).toBeDefined()
   })
 
   it('valida instagram quando preenchido com caracteres inválidos', () => {
@@ -342,36 +296,31 @@ describe('reset', () => {
 
     const state = useOnboardingStore.getState()
     expect(state.form).toEqual({
+      name: '',
       phone: '',
       instagram: '',
       cref: '',
       specialties: [],
       gyms: [],
-      homeAreas: [],
       videoKey: null,
     })
     expect(state.errors).toEqual({})
     expect(state.specialtySearch).toBe('')
-    expect(state.gymSearch).toBe('')
   })
 })
 
 describe('buildCoachUpdatePayload', () => {
   it('monta payload com profile e work_location a partir do form', () => {
     const store = useOnboardingStore.getState()
+    store.updateName('João Silva')
     store.updatePhone('81999991234')
     store.updateInstagram('@meuperfil')
     store.update('cref', '123456-G/SP')
     store.toggleSpecialty('Musculação')
     store.addGym(baseGym)
-    store.addHomeArea({
-      city: 'Recife',
-      state: 'PE',
-      neighborhoods: ['Pina'],
-    })
     store.setVideoKey('uploads/v.mp4')
 
-    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form, 'Derik Oliveira')
+    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form)
 
     expect(payload.profile).toEqual({
       phone: '81999991234',
@@ -379,29 +328,24 @@ describe('buildCoachUpdatePayload', () => {
       cref: '123456-G/SP',
       specialties: ['Musculação'],
       profile_video: true,
-      name: 'Derik Oliveira',
+      name: 'João Silva',
     })
-    expect(payload.work_location).toEqual([
-      { type: 'GYM', gymId: 'gym-1' },
-      {
-        type: 'HOME_SERVICE',
-        coverage: { city: 'Recife', state: 'PE', neighborhoods: ['Pina'] },
-      },
-    ])
+    expect(payload.work_location).toEqual([{ type: 'GYM', gymId: 'gym-1' }])
   })
 
-  it('omite name quando authName é null', () => {
-    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form, null)
-    expect(payload.profile?.name).toBeUndefined()
+  it('usa o nome editável do form', () => {
+    useOnboardingStore.getState().updateName('  João Silva  ')
+    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form)
+    expect(payload.profile?.name).toBe('João Silva')
   })
 
   it('deixa instagram vazio quando o form não tem handle', () => {
-    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form, null)
+    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form)
     expect(payload.profile?.instagram).toBe('')
   })
 
   it('marca profile_video=false quando não há videoKey', () => {
-    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form, null)
+    const payload = buildCoachUpdatePayload(useOnboardingStore.getState().form)
     expect(payload.profile?.profile_video).toBe(false)
   })
 })

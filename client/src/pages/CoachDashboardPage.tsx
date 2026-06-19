@@ -1,5 +1,39 @@
+import { useMemo } from 'react'
+import { useQueries, useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router'
+import { getCoachSchedule, getCoachScheduleRequests } from '@/api/schedule'
 import { useCoachMe } from '@/hooks/useCoachMe'
-import { logout } from '@/lib/cognito'
+import { useGyms } from '@/hooks/useGyms'
+import { useSpecialties } from '@/hooks/useSpecialties'
+import { addDaysToYMD, formatScheduleDateTimeRange, getTodayBrazilYMD } from '@/lib/dateTime'
+import { parseApiErrors } from '@/lib/http'
+import { CoachSideNav, CoachBottomNav } from '@/components/layout/CoachNavigation'
+import type { Schedule, ScheduleRequest, ScheduleRequestsResponse } from '@/types/api'
+
+const dashboardRangeDays = 14
+
+function formatDateTimeRange(slot: Schedule): string {
+  return formatScheduleDateTimeRange(slot)
+}
+
+function getRequestedCount(slot: Schedule, details?: ScheduleRequestsResponse): number {
+  return (details?.requests ?? slot.requests ?? []).filter(
+    (request) => request.status === 'REQUESTED',
+  ).length
+}
+
+function getApprovedStudentName(slot: Schedule): string {
+  return slot.requests?.find((request) => request.status === 'APPROVED')?.studentName ?? 'Aluno'
+}
+
+function getFirstPendingRequest(
+  slot: Schedule,
+  details?: ScheduleRequestsResponse,
+): ScheduleRequest | undefined {
+  return (details?.requests ?? slot.requests ?? []).find(
+    (request) => request.status === 'REQUESTED',
+  )
+}
 
 /**
  * Layout breakpoints:
@@ -9,6 +43,24 @@ import { logout } from '@/lib/cognito'
  */
 export default function CoachDashboardPage() {
   const { data } = useCoachMe()
+  const { data: gymsData } = useGyms()
+  const { data: specialtiesData } = useSpecialties()
+
+  const range = useMemo(() => {
+    const start = getTodayBrazilYMD()
+    const end = addDaysToYMD(start, dashboardRangeDays)
+
+    return {
+      startDateTime: `${start}T00:00:00-03:00`,
+      endDateTime: `${end}T23:59:59-03:00`,
+    }
+  }, [])
+
+  const scheduleQuery = useQuery({
+    queryKey: ['coach-dashboard-schedule', range.startDateTime, range.endDateTime],
+    queryFn: () => getCoachSchedule(range),
+    staleTime: 20 * 1000,
+  })
 
   const profile = data?.profile
   const name = profile?.name ?? undefined
@@ -16,72 +68,176 @@ export default function CoachDashboardPage() {
   const profilePhoto: string | undefined = undefined
   const firstName = name?.split(' ')[0] ?? 'treinador'
   const specialtiesCount = profile?.specialties.length ?? 0
-  const homeService = data?.work_location.find((loc) => loc.type === 'HOME_SERVICE')
-  const gymsCount = data?.work_location.filter((loc) => loc.type === 'GYM').length ?? 0
-  const territoryLabel = homeService ? 'Bairros atendidos' : 'Academias'
-  const territoryValue = homeService
-    ? String(homeService.coverage.neighborhoods.length)
-    : String(gymsCount)
+  const gymsCount = data?.work_location.length ?? 0
+  const territoryLabel = 'Academias'
+  const territoryValue = String(gymsCount)
+  const schedules = useMemo(
+    () =>
+      [...(scheduleQuery.data ?? [])].sort((a, b) =>
+        a.startDateTime.localeCompare(b.startDateTime),
+      ),
+    [scheduleQuery.data],
+  )
+  const requestedSchedules = useMemo(
+    () => schedules.filter((schedule) => schedule.status === 'REQUESTED'),
+    [schedules],
+  )
+  const requestQueries = useQueries({
+    queries: requestedSchedules.map((schedule) => ({
+      queryKey: ['coach-schedule-requests', schedule.scheduleId],
+      queryFn: () => getCoachScheduleRequests(schedule.scheduleId),
+      staleTime: 20 * 1000,
+    })),
+  })
+  const requestDetailsByScheduleId = useMemo(() => {
+    const entries = requestedSchedules.map((schedule, index) => {
+      const details = requestQueries[index]?.data
+      return [schedule.scheduleId, details] as const
+    })
 
-  function handleLogout() {
-    logout('coach')
-  }
+    return new Map<string, ScheduleRequestsResponse | undefined>(entries)
+  }, [requestQueries, requestedSchedules])
+  const gyms = useMemo(() => gymsData?.data ?? [], [gymsData?.data])
+  const specialties = useMemo(() => specialtiesData?.data ?? [], [specialtiesData?.data])
+  const gymLabels = useMemo(() => new Map(gyms.map((gym) => [gym.gymId, gym.name])), [gyms])
+  const specialtyLabels = useMemo(
+    () => new Map(specialties.map((specialty) => [specialty.id, specialty.label])),
+    [specialties],
+  )
+  const bookedSessions = useMemo(
+    () => schedules.filter((schedule) => schedule.status === 'BOOKED').slice(0, 3),
+    [schedules],
+  )
+  const pendingRequests = useMemo(
+    () =>
+      requestedSchedules
+        .map((schedule) => ({
+          schedule,
+          request: getFirstPendingRequest(
+            schedule,
+            requestDetailsByScheduleId.get(schedule.scheduleId),
+          ),
+          count: getRequestedCount(schedule, requestDetailsByScheduleId.get(schedule.scheduleId)),
+        }))
+        .filter((item) => item.request !== undefined || item.count > 0)
+        .slice(0, 4),
+    [requestDetailsByScheduleId, requestedSchedules],
+  )
+  const pendingCount = useMemo(
+    () =>
+      requestedSchedules.reduce(
+        (total, schedule) =>
+          total + getRequestedCount(schedule, requestDetailsByScheduleId.get(schedule.scheduleId)),
+        0,
+      ),
+    [requestDetailsByScheduleId, requestedSchedules],
+  )
+  const availableCount = schedules.filter((schedule) => schedule.status === 'AVAILABLE').length
+  const bookedCount = schedules.filter((schedule) => schedule.status === 'BOOKED').length
+  const completedCount = schedules.filter((schedule) => schedule.status === 'COMPLETED').length
+  const isScheduleLoading =
+    scheduleQuery.isLoading || requestQueries.some((query) => query.isLoading)
 
   return (
     <main className="relative flex min-h-[max(884px,100dvh)] w-full bg-surface text-on-surface">
-      <SideNav onLogout={handleLogout} />
+      <CoachSideNav />
 
       <div className="flex min-w-0 flex-1 flex-col pb-24 lg:flex-row lg:pb-0">
         <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar
-            firstName={firstName}
-            profilePhoto={profilePhoto}
-            name={name}
-            onLogout={handleLogout}
-          />
+          <TopBar firstName={firstName} profilePhoto={profilePhoto} name={name} />
 
           <section className="flex flex-col gap-8 px-6 pb-12 md:px-12 lg:mx-auto lg:w-full lg:max-w-3xl lg:px-10">
             <ApprovedBanner className="lg:hidden" />
 
             <div className="grid grid-cols-3 gap-3 md:gap-4">
-              <StatCard icon="visibility" label="Visualizações" value="128" trend="+12%" />
-              <StatCard icon="forum" label="Contatos" value="9" trend="+3" />
-              <StatCard icon="event_available" label="Sessões" value="4" trend="esta semana" />
+              <StatCard
+                icon="event_available"
+                label="Livres"
+                value={isScheduleLoading ? '—' : String(availableCount)}
+                trend="próx. 14 dias"
+              />
+              <StatCard
+                icon="pending_actions"
+                label="Pedidos"
+                value={isScheduleLoading ? '—' : String(pendingCount)}
+                trend={pendingCount === 1 ? 'pendente' : 'pendentes'}
+              />
+              <StatCard
+                icon="task_alt"
+                label="Sessões"
+                value={isScheduleLoading ? '—' : String(bookedCount)}
+                trend={`${String(completedCount)} concluída${completedCount === 1 ? '' : 's'}`}
+              />
             </div>
 
             <Section
               title="Próximas sessões"
-              action={{ label: 'Ver agenda', icon: 'arrow_forward' }}
+              action={{ label: 'Ver agenda', icon: 'arrow_forward', to: '/coach/schedule' }}
             >
               <div className="flex flex-col gap-3">
-                <SessionCard
-                  clientName="Marina Silva"
-                  when="Hoje · 18h00"
-                  location="Smart Fit Paulista"
-                  kind="Musculação"
-                />
-                <SessionCard
-                  clientName="Pedro Lima"
-                  when="Amanhã · 07h30"
-                  location="Atendimento domiciliar"
-                  kind="Funcional"
-                />
+                {scheduleQuery.isLoading ? (
+                  <InlineState icon="hourglass_top" text="Carregando agenda..." />
+                ) : null}
+                {scheduleQuery.isError ? (
+                  <InlineState
+                    icon="error"
+                    text={parseApiErrors(
+                      scheduleQuery.error,
+                      'Não foi possível carregar a agenda.',
+                    )}
+                  />
+                ) : null}
+                {!scheduleQuery.isLoading &&
+                !scheduleQuery.isError &&
+                bookedSessions.length === 0 ? (
+                  <InlineState
+                    icon="event_busy"
+                    text="Nenhuma sessão confirmada nos próximos dias."
+                  />
+                ) : null}
+                {bookedSessions.map((session) => (
+                  <SessionCard
+                    key={session.scheduleId}
+                    clientName={getApprovedStudentName(session)}
+                    when={formatDateTimeRange(session)}
+                    location={gymLabels.get(session.gymId) ?? 'Local a combinar'}
+                    kind={specialtyLabels.get(session.specialtyId) ?? 'Sessão'}
+                  />
+                ))}
               </div>
             </Section>
 
             <Section
               title="Novas solicitações"
-              action={{ label: 'Ver tudo', icon: 'arrow_forward' }}
+              action={{ label: 'Ver tudo', icon: 'arrow_forward', to: '/coach/schedule' }}
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <RequestCard
-                  name="Ana Costa"
-                  message="Procuro treinos de hipertrofia 3x na semana."
-                />
-                <RequestCard
-                  name="Rafael Souza"
-                  message="Acabei de me mudar pra Pinheiros, busco personal."
-                />
+                {isScheduleLoading ? (
+                  <InlineState icon="hourglass_top" text="Buscando solicitações..." />
+                ) : null}
+                {scheduleQuery.isError ? (
+                  <InlineState
+                    icon="error"
+                    text={parseApiErrors(
+                      scheduleQuery.error,
+                      'Não foi possível carregar as solicitações.',
+                    )}
+                  />
+                ) : null}
+                {!isScheduleLoading && !scheduleQuery.isError && pendingRequests.length === 0 ? (
+                  <InlineState icon="inbox" text="Você ainda não tem solicitações pendentes." />
+                ) : null}
+                {pendingRequests.map(({ schedule, request, count }) => (
+                  <RequestCard
+                    key={schedule.scheduleId}
+                    name={request?.studentName ?? 'Aluno'}
+                    message={`${formatDateTimeRange(schedule)} · ${
+                      specialtyLabels.get(schedule.specialtyId) ?? 'Sessão'
+                    }${
+                      count > 1 ? ` · +${String(count - 1)} pedido${count === 2 ? '' : 's'}` : ''
+                    }`}
+                  />
+                ))}
               </div>
             </Section>
 
@@ -114,8 +270,17 @@ export default function CoachDashboardPage() {
         </aside>
       </div>
 
-      <BottomNav />
+      <CoachBottomNav />
     </main>
+  )
+}
+
+function InlineState({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div className="flex min-h-24 items-center gap-3 rounded-xl border border-outline-variant/10 bg-surface-container-low p-4">
+      <span className="material-symbols-outlined text-[22px] text-primary">{icon}</span>
+      <span className="font-label text-sm text-on-surface-variant">{text}</span>
+    </div>
   )
 }
 
@@ -123,10 +288,9 @@ interface TopBarProps {
   firstName: string
   profilePhoto: string | undefined
   name: string | undefined
-  onLogout: () => void
 }
 
-function TopBar({ firstName, profilePhoto, name, onLogout }: TopBarProps) {
+function TopBar({ firstName, profilePhoto, name }: TopBarProps) {
   return (
     <header className="flex items-center justify-between px-6 py-6 md:px-12 lg:px-10 lg:py-8">
       <div className="flex items-center gap-3">
@@ -147,22 +311,6 @@ function TopBar({ firstName, profilePhoto, name, onLogout }: TopBarProps) {
             {firstName}
           </span>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container-high lg:bg-surface-container"
-          aria-label="Notificações"
-        >
-          <span className="material-symbols-outlined text-[22px]">notifications</span>
-        </button>
-        <button
-          type="button"
-          onClick={onLogout}
-          className="font-label text-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface lg:hidden"
-        >
-          SAIR
-        </button>
       </div>
     </header>
   )
@@ -204,7 +352,7 @@ function StatCard({ icon, label, value, trend }: StatCardProps) {
 
 interface SectionProps {
   title: string
-  action?: { label: string; icon: string }
+  action?: { label: string; icon: string; to?: string }
   children: React.ReactNode
   className?: string
 }
@@ -214,7 +362,15 @@ function Section({ title, action, children, className = '' }: SectionProps) {
     <section className={`flex flex-col gap-4 ${className}`}>
       <div className="flex items-center justify-between">
         <h2 className="font-headline text-xl font-semibold tracking-tight">{title}</h2>
-        {action ? (
+        {action?.to ? (
+          <Link
+            to={action.to}
+            className="inline-flex items-center gap-1 font-label text-sm font-medium text-primary transition-colors hover:underline"
+          >
+            {action.label}
+            <span className="material-symbols-outlined text-[16px]">{action.icon}</span>
+          </Link>
+        ) : action ? (
           <button
             type="button"
             className="inline-flex items-center gap-1 font-label text-sm font-medium text-primary transition-colors hover:underline"
@@ -270,19 +426,13 @@ function RequestCard({ name, message }: RequestCardProps) {
         <span className="font-headline text-base font-semibold">{name}</span>
       </div>
       <p className="flex-1 font-label text-sm text-on-surface-variant">"{message}"</p>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          className="flex-1 rounded-lg bg-primary py-2 font-headline text-sm font-bold tracking-wide text-on-primary-fixed uppercase transition-all hover:brightness-105 active:scale-[0.98]"
+      <div className="flex">
+        <Link
+          to="/coach/schedule"
+          className="flex-1 rounded-lg bg-primary py-2 text-center font-headline text-sm font-bold tracking-wide text-on-primary-fixed uppercase transition-all hover:brightness-105 active:scale-[0.98]"
         >
           RESPONDER
-        </button>
-        <button
-          type="button"
-          className="rounded-lg border border-outline-variant/30 px-4 font-label text-sm font-medium text-on-surface-variant transition-colors hover:border-outline"
-        >
-          DEPOIS
-        </button>
+        </Link>
       </div>
     </div>
   )
@@ -318,13 +468,6 @@ function ProfileCard({
         <ProfileStat label="Especialidades" value={String(specialtiesCount)} />
         <ProfileStat label={territoryLabel} value={territoryValue} />
       </div>
-      <button
-        type="button"
-        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-surface-container-high py-3 font-headline text-sm font-bold tracking-wide text-on-surface uppercase transition-all hover:bg-surface-container-highest active:scale-[0.99]"
-      >
-        VER PERFIL PÚBLICO
-        <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-      </button>
     </div>
   )
 }
@@ -335,72 +478,5 @@ function ProfileStat({ label, value }: { label: string; value: string }) {
       <span className="font-label text-xs text-on-surface-variant">{label}</span>
       <span className="font-headline text-lg font-semibold">{value}</span>
     </div>
-  )
-}
-
-const NAV_ITEMS: { label: string; icon: string; active?: boolean }[] = [
-  { label: 'Início', icon: 'home', active: true },
-  { label: 'Agenda', icon: 'event' },
-  { label: 'Alunos', icon: 'group' },
-  { label: 'Perfil', icon: 'person' },
-]
-
-function SideNav({ onLogout }: { onLogout: () => void }) {
-  return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-outline-variant/10 bg-surface-container-low/40 px-5 py-8 lg:flex">
-      <div className="mb-10 px-2 font-headline text-xl font-black tracking-tighter text-primary uppercase">
-        COACHMATCH
-      </div>
-      <ul className="flex flex-1 flex-col gap-1">
-        {NAV_ITEMS.map((item) => (
-          <li key={item.label}>
-            <button
-              type="button"
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
-                item.active
-                  ? 'bg-surface-container-high text-primary'
-                  : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-              <span className="font-label text-sm font-medium">{item.label}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        onClick={onLogout}
-        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
-      >
-        <span className="material-symbols-outlined text-[20px]">logout</span>
-        <span className="font-label text-sm font-medium">SAIR</span>
-      </button>
-    </aside>
-  )
-}
-
-function BottomNav() {
-  return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-outline-variant/10 bg-surface-container-low/95 backdrop-blur lg:hidden">
-      <ul
-        className="flex items-stretch justify-around px-2 pt-2"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
-      >
-        {NAV_ITEMS.map((item) => (
-          <li key={item.label}>
-            <button
-              type="button"
-              className={`flex min-w-16 flex-col items-center gap-1 rounded-lg px-3 py-2 transition-colors ${
-                item.active ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
-              <span className="font-label text-[11px] font-medium">{item.label}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </nav>
   )
 }

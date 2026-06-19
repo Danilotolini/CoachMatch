@@ -2,15 +2,6 @@ import { findCoachById } from './repository.js';
 import { NotFoundException } from '../../shared/exceptions.js';
 
 /**
- * Mapa de status interno (DynamoDB) para os valores que o front-end entende.
- * O front-end usa `Coach.status: 'ONBOARDING_PROFILE' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'`.
- */
-const STATUS_MAP = {
-  PENDING_PROFILE: 'ONBOARDING_PROFILE',
-  // PENDING_REVIEW, APPROVED, REJECTED passam direto
-};
-
-/**
  * Mapeia o registro DynamoDB para o shape `Coach` esperado pelo front-end.
  * Shape: { coachId, email, status, visibility, profile: { name, phone, ... }, work_location, createdAt, updatedAt }
  *
@@ -24,7 +15,7 @@ const mapToCoachMe = (record) => {
   return {
     coachId:   record.coachId,
     email:     record.email,
-    status:    STATUS_MAP[record.status] ?? record.status,
+    status:    record.status,
     visibility: record.visibility ?? 'VISIBLE',
     profile: {
       name:          profile.name          ?? null,

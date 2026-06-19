@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { Icon } from '@/components/ui/Icon'
-import { useSpecialties } from '@/hooks/useSpecialties'
+import { useStudentSpecialties } from '@/hooks/useStudentSpecialties'
 import type { CoachSearchFilters } from '@/types/api'
 
 interface FilterSheetProps {
@@ -15,14 +15,6 @@ interface FilterSheetProps {
 
 function toggleItem(items: string[], item: string): string[] {
   return items.includes(item) ? items.filter((current) => current !== item) : [...items, item]
-}
-
-function todayISO(): string {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${String(year)}-${month}-${day}`
 }
 
 export function FilterSheet({ open, filters, onClose, onApply, onClear }: FilterSheetProps) {
@@ -46,13 +38,13 @@ function FilterSheetContent({
   onClear,
 }: Omit<FilterSheetProps, 'open'>) {
   const [draft, setDraft] = useState(filters)
-  const { data: specialtiesData } = useSpecialties()
+  const { data: specialtiesData } = useStudentSpecialties()
   const specialties = specialtiesData?.data ?? []
 
   const selectedSpecialties = draft.specialties ?? []
 
   function updateDraft(next: Partial<CoachSearchFilters>) {
-    setDraft((current) => ({ ...current, ...next, page: 1 }))
+    setDraft((current) => ({ ...current, ...next }))
   }
 
   return (
@@ -84,23 +76,6 @@ function FilterSheetContent({
         <div className="space-y-7">
           <section className="space-y-3">
             <h3 className="font-label text-xs font-bold uppercase text-on-surface-variant">
-              Localização
-            </h3>
-            <label className="block">
-              <span className="sr-only">Localização</span>
-              <input
-                value={draft.address ?? ''}
-                onChange={(event) => {
-                  updateDraft({ address: event.target.value || undefined })
-                }}
-                placeholder="Localização"
-                className="w-full rounded-xl border-outline-variant/20 bg-surface-container-high px-4 py-3 font-body text-sm text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-primary/30"
-              />
-            </label>
-          </section>
-
-          <section className="space-y-3">
-            <h3 className="font-label text-xs font-bold uppercase text-on-surface-variant">
               Modalidades
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -115,21 +90,6 @@ function FilterSheetContent({
                 />
               ))}
             </div>
-          </section>
-
-          <section className="space-y-3">
-            <h3 className="font-label text-xs font-bold uppercase text-on-surface-variant">
-              Disponibilidade
-            </h3>
-            <input
-              type="date"
-              min={todayISO()}
-              value={draft.availableOn ?? ''}
-              onChange={(event) => {
-                updateDraft({ availableOn: event.target.value || undefined })
-              }}
-              className="w-full rounded-xl border-outline-variant/20 bg-surface-container-high px-4 py-3 font-body text-sm text-on-surface focus:border-primary focus:ring-primary/30"
-            />
           </section>
         </div>
 

@@ -1,8 +1,14 @@
 packages:
   - 'client'
-  - 'server'
-onlyBuiltDependencies:
-  - msw
+  - 'server/coachmatch'
 resolutions:
   sharp: "^0.33.5"
   sharp-ico: "^0.1.5"
+allowBuilds:
+  stream-chat: false
+  '@parcel/watcher': false
+  esbuild: true
+  msw: true
+  serverless: false
+  sharp: true
+  unrs-resolver: true

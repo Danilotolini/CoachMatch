@@ -1,10 +1,14 @@
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ProgressHeader } from '@/components/layout/ProgressHeader'
+import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Chip } from '@/components/ui/Chip'
+import { Icon } from '@/components/ui/Icon'
 import { fetchAddressByCep } from '@/api/viacep'
 import { useSubmitClientProfile } from '@/hooks/useClientMe'
+import { getAuthUser } from '@/lib/auth'
+import { getTodayBrazilYMD } from '@/lib/dateTime'
 
 type Gender = 'F' | 'M' | 'NB' | 'NA'
 type Goal = 'WEIGHT_LOSS' | 'HYPERTROPHY' | 'CONDITIONING' | 'REHAB' | 'PERFORMANCE'
@@ -12,6 +16,7 @@ type Radius = 5 | 10 | 20
 
 interface FormState {
   photoDataUrl: string | null
+  name: string
   phone: string
   birthDate: string
   gender: Gender | null
@@ -42,6 +47,12 @@ const GOALS: { id: Goal; label: string; description: string }[] = [
 ]
 
 const RADII: Radius[] = [5, 10, 20]
+const DATE_INPUT_RE = /^\d{4}-\d{2}-\d{2}$/
+
+function isValidBirthDate(value: string, maxDate: string): boolean {
+  if (!DATE_INPUT_RE.test(value)) return false
+  return value <= maxDate
+}
 
 function formatPhone(raw: string): string {
   const d = raw.replace(/\D/g, '').slice(0, 11)
@@ -59,11 +70,14 @@ function formatCep(raw: string): string {
 
 export default function ClientOnboardingPage() {
   const navigate = useNavigate()
+  const authUser = getAuthUser()
   const submitProfile = useSubmitClientProfile()
   const photoInputRef = useRef<HTMLInputElement>(null)
+  const maxBirthDate = useMemo(() => getTodayBrazilYMD(), [])
 
   const [form, setForm] = useState<FormState>({
     photoDataUrl: null,
+    name: authUser.name ?? '',
     phone: '',
     birthDate: '',
     gender: null,
@@ -77,6 +91,7 @@ export default function ClientOnboardingPage() {
   const [submitted, setSubmitted] = useState(false)
 
   interface FormErrors {
+    name?: string
     phone?: string
     birthDate?: string
     gender?: string
@@ -86,13 +101,17 @@ export default function ClientOnboardingPage() {
   const errors = useMemo<FormErrors>(() => {
     if (!submitted) return {}
     const e: FormErrors = {}
+    if (form.name.trim().length < 2) e.name = 'Informe seu nome completo.'
     if (form.phone.replace(/\D/g, '').length < 10) e.phone = 'Telefone incompleto.'
     if (!form.birthDate) e.birthDate = 'Informe sua data de nascimento.'
+    else if (!isValidBirthDate(form.birthDate, maxBirthDate)) {
+      e.birthDate = 'Informe uma data de nascimento válida.'
+    }
     if (!form.gender) e.gender = 'Selecione uma opção.'
     if (!form.city || !form.state) e.cep = 'Informe um CEP válido.'
     if (!form.goal) e.goal = 'Escolha um objetivo principal.'
     return e
-  }, [submitted, form])
+  }, [submitted, form, maxBirthDate])
 
   const handlePhoto = (file: File) => {
     const reader = new FileReader()
@@ -129,8 +148,10 @@ export default function ClientOnboardingPage() {
   const submit = () => {
     setSubmitted(true)
     const hasErrors =
+      form.name.trim().length < 2 ||
       form.phone.replace(/\D/g, '').length < 10 ||
       !form.birthDate ||
+      !isValidBirthDate(form.birthDate, maxBirthDate) ||
       !form.gender ||
       !form.city ||
       !form.state ||
@@ -139,6 +160,7 @@ export default function ClientOnboardingPage() {
     if (!form.gender || !form.goal) return
     submitProfile.mutate(
       {
+        name: form.name.trim(),
         phone: form.phone,
         birthDate: form.birthDate,
         gender: form.gender,
@@ -192,9 +214,7 @@ export default function ClientOnboardingPage() {
                   {form.photoDataUrl ? (
                     <img src={form.photoDataUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="material-symbols-outlined text-on-surface-variant">
-                      add_a_photo
-                    </span>
+                    <Icon name="add_a_photo" className="text-on-surface-variant" />
                   )}
                 </button>
                 <div className="flex-1">
@@ -218,6 +238,17 @@ export default function ClientOnboardingPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Input
+                  label="Nome completo"
+                  type="text"
+                  icon="person"
+                  placeholder="Seu nome completo"
+                  value={form.name}
+                  error={errors.name}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, name: e.target.value }))
+                  }}
+                />
+                <Input
                   label="Celular"
                   type="tel"
                   icon="phone_iphone"
@@ -232,10 +263,13 @@ export default function ClientOnboardingPage() {
                   label="Data de nascimento"
                   type="date"
                   icon="cake"
+                  max={maxBirthDate}
                   value={form.birthDate}
                   error={errors.birthDate}
                   onChange={(e) => {
-                    setForm((f) => ({ ...f, birthDate: e.target.value }))
+                    const value = e.target.value
+                    if (/^\d{5,}-/.test(value)) return
+                    setForm((f) => ({ ...f, birthDate: value }))
                   }}
                 />
               </div>
@@ -329,11 +363,10 @@ export default function ClientOnboardingPage() {
                         : 'bg-surface-container-low border-transparent hover:bg-surface-container-highest'
                     }`}
                   >
-                    <span
-                      className={`material-symbols-outlined mr-4 mt-0.5 ${active ? 'text-primary' : 'text-on-surface-variant'}`}
-                    >
-                      {active ? 'radio_button_checked' : 'radio_button_unchecked'}
-                    </span>
+                    <Icon
+                      name={active ? 'radio_button_checked' : 'radio_button_unchecked'}
+                      className={`mr-4 mt-0.5 ${active ? 'text-primary' : 'text-on-surface-variant'}`}
+                    />
                     <span>
                       <span
                         className={`block font-headline text-base font-semibold ${active ? 'text-primary' : 'text-on-surface'}`}
@@ -357,14 +390,14 @@ export default function ClientOnboardingPage() {
 
       <div className="fixed bottom-0 left-0 right-0 z-40 glass-header pb-safe">
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 flex justify-end">
-          <button
+          <Button
             type="button"
             onClick={submit}
-            className="w-full lg:w-auto lg:min-w-64 bg-linear-to-r from-primary to-primary-container text-on-primary-fixed font-headline font-bold text-sm uppercase tracking-wide py-4 px-8 rounded-lg shadow-[0_10px_30px_rgba(244,255,198,0.15)] hover:brightness-105 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full lg:w-auto lg:min-w-64"
+            icon="arrow_forward"
           >
-            Continuar
-            <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-          </button>
+            CONTINUAR
+          </Button>
         </div>
       </div>
     </div>

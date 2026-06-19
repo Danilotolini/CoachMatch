@@ -1,6 +1,8 @@
 import Joi from 'joi';
 
 export const studentProfileSchema = Joi.object({
+  name: Joi.string().trim().min(2).required(),
+
   // Aceita tanto o formato do front-end "(11) 99999-9999" quanto "+5511999999999"
   phone: Joi.string()
     .pattern(/^(\(\d{2}\)\s?\d{4,5}-?\d{4}|\+55\d{11})$/)

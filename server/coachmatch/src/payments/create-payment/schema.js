@@ -1,7 +1,10 @@
 import Joi from 'joi';
 
-const sessionId = Joi.string().uuid().required()
-  .messages({ 'string.guid': 'sessionId deve ser um UUID válido.' });
+// sessionId é uma referência opaca ao recurso pago (ex.: scheduleId). O payment
+// é genérico e não conhece o formato de ids de outros contextos — por isso
+// validamos apenas como string limitada, não como UUID.
+const sessionId = Joi.string().min(1).max(128).required()
+  .messages({ 'string.base': 'sessionId deve ser uma referência válida.' });
 
 const coachId = Joi.string().uuid().required()
   .messages({ 'string.guid': 'coachId deve ser um UUID válido.' });

@@ -33,7 +33,12 @@ tags:
   - name: Student — Agenda
     description: Busca de slots e solicitações de agendamento do aluno.
   - name: Pagamentos
-    description: Processamento de pagamentos via cartão de crédito ou PIX (api-pagamentos).
+    description: Processamento de pagamentos via cartão de crédito ou PIX.
+  - name: Chat
+    description: >-
+      Mensageria 1:1 aluno↔coach via Stream Chat. Cada rota existe sob
+      `/coach/chat/*` (CoachAccess) e `/student/chat/*` (StudentAccess); a mesma
+      Lambda atende os dois papéis.
 
 security:
   - bearerAuth: []
@@ -83,7 +88,12 @@ paths:
   /coach/upload-url:
     post:
       tags: [Coach — Uploads]
-      summary: Gera URL pré-assinada (POST policy do S3) para upload de vídeo.
+      summary: Gera URL pré-assinada (POST policy do S3) para upload de arquivos estáticos.
+      description: >-
+        Apesar do uso atual ser o vídeo de apresentação do treinador, não é
+        específica de vídeo: aceita qualquer tipo de arquivo (o `contentType` vem
+        da requisição), limitada apenas pelo tamanho máximo configurado e pelo
+        prefixo `uploads/` na key.
       operationId: createCoachUploadUrl
       requestBody:
         required: true
@@ -159,25 +169,29 @@ paths:
           schema: { type: string }
           description: Cidade exata.
         - in: query
-          name: page
-          schema: { type: integer, minimum: 1, default: 1 }
+          name: cursor
+          description: Token de paginação (nextCursor da página anterior).
+          schema: { type: string }
         - in: query
           name: limit
           schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
       responses:
         "200":
-          description: Lista paginada de academias.
+          description: Lista academias no formato cursor.
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/PaginatedEnvelope"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Gym"
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Gym"
+                  nextCursor:
+                    type: string
+                    nullable: true
+                    example: eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9
 
   /coach/gyms/suggest:
     post:
@@ -208,29 +222,26 @@ paths:
       tags: [Coach — Agenda]
       summary: Lista disponibilidades do treinador autenticado.
       operationId: getCoachSchedule
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                startDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-05-01T08:00:30-03:00"
-                endDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-06-06T08:00:30-03:00"
+      parameters:
+        - name: startDateTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+          example: "2026-05-01T08:00:30-03:00"
+        - name: endDateTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+          example: "2026-06-06T08:00:30-03:00"
       responses:
         "200":
           description: Lista de disponibilidades do treinador.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Schedule"
+                $ref: "#/components/schemas/CoachScheduleResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -263,17 +274,13 @@ paths:
       tags: [Coach — Agenda]
       summary: Lista solicitações de agendamento recebidas pelo treinador.
       operationId: getCoachScheduleRequests
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [scheduleId]
-              properties:
-                scheduleId:
-                  type: string
-                  example: avl_6cb2b644248448c68e63f350119c032d
+      parameters:
+        - name: scheduleId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: avl_6cb2b644248448c68e63f350119c032d
       responses:
         "200":
           description: Solicitações do schedule, enriquecidas com o nome do aluno.
@@ -397,6 +404,37 @@ paths:
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
 
+  /coach/students/{studentId}:
+    get:
+      tags: [Coach — Agenda]
+      summary: Detalha um aluno para o coach (dados de treino, sem contato).
+      description: >
+        Retorna nome, gênero, data de nascimento, objetivo e o questionário PAR-Q
+        (`health`) de um aluno, para uso do treinador na sessão. Não expõe dados de
+        contato/identificação (email, telefone, endereço). Exige que o coach
+        autenticado tenha ao menos uma sessão com o aluno (`403` caso contrário).
+      operationId: getCoachStudentDetail
+      parameters:
+        - in: path
+          name: studentId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Detalhe do aluno.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoachStudentDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   # ─────────────────────────────────────────────
   # Student — Perfil
   # ─────────────────────────────────────────────
@@ -415,7 +453,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /student/profile:
+  /student/me/profile:
     post:
       tags: [Student — Perfil]
       summary: Conclui o cadastro de perfil do aluno.
@@ -438,7 +476,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /student/health:
+  /student/me/health:
     post:
       tags: [Student — Perfil]
       summary: Envia o questionário de saúde e consentimentos do aluno.
@@ -472,6 +510,10 @@ paths:
     post:
       tags: [Student — Uploads]
       summary: Gera URL pré-assinada (POST policy do S3) para upload de arquivos do aluno.
+      description: >-
+        Aceita qualquer tipo de arquivo (o `contentType` vem da requisição),
+        limitada apenas pelo tamanho máximo configurado e pelo prefixo `uploads/`
+        na key.
       operationId: createStudentUploadUrl
       requestBody:
         required: true
@@ -547,25 +589,29 @@ paths:
           schema: { type: string }
           description: Cidade exata.
         - in: query
-          name: page
-          schema: { type: integer, minimum: 1, default: 1 }
+          name: cursor
+          description: Token de paginação (nextCursor da página anterior).
+          schema: { type: string }
         - in: query
           name: limit
           schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
       responses:
         "200":
-          description: Lista paginada de academias.
+          description: Lista academias no formato cursor.
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/PaginatedEnvelope"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Gym"
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Gym"
+                  nextCursor:
+                    type: string
+                    nullable: true
+                    example: eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9
 
   /student/gyms/suggest:
     post:
@@ -596,25 +642,27 @@ paths:
       tags: [Student — Agenda]
       summary: Lista disponibilidades em uma academia específica.
       operationId: getGymScheduleForStudent
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [gymId, startDateTime, endDateTime]
-              properties:
-                gymId:
-                  type: string
-                  example: gym_sp005
-                startDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-05-01T08:00:30-03:00"
-                endDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-06-06T08:00:30-03:00"
+      parameters:
+        - name: gymId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: gym_sp005
+        - name: startDateTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          example: "2026-05-01T08:00:30-03:00"
+        - name: endDateTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          example: "2026-06-06T08:00:30-03:00"
       responses:
         "200":
           description: Disponibilidades na academia (status AVAILABLE ou REQUESTED).
@@ -632,32 +680,36 @@ paths:
       tags: [Student — Agenda]
       summary: Lista disponibilidades de um treinador específico.
       operationId: getCoachSchedulesForStudent
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                coachId:
-                  type: string
-                  example: 83dcfaba-f0c1-705d-b109-2b381fed0971
-                startDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-05-01T08:00:30-03:00"
-                endDateTime:
-                  type: string
-                  format: date-time
-                  example: "2026-06-06T08:00:30-03:00"
+      parameters:
+        - name: coachId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: 83dcfaba-f0c1-705d-b109-2b381fed0971
+        - name: startDateTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          example: "2026-05-01T08:00:30-03:00"
+        - name: endDateTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          example: "2026-06-06T08:00:30-03:00"
       responses:
         "200":
-          description: Lista de disponibilidades do treinador.
+          description: Disponibilidades do treinador (status AVAILABLE ou REQUESTED).
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Schedule"
+                $ref: "#/components/schemas/StudentCoachSchedulesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -746,12 +798,15 @@ paths:
     get:
       tags: [Student — Agenda]
       summary: Busca treinadores publicamente listáveis.
+      description: >
+        Retorna apenas treinadores ativos (status `APPROVED`). Os resultados são
+        ordenados de forma estável por `coachId`.
       operationId: searchCoaches
       parameters:
         - in: query
           name: q
           schema: { type: string }
-          description: Termo livre (nome, cidade, bairro, especialidade).
+          description: Termo livre (nome ou especialidade).
         - in: query
           name: "specialties[]"
           description: Filtra por uma ou mais especialidades. Pode repetir o parâmetro.
@@ -761,37 +816,47 @@ paths:
           style: form
           explode: true
         - in: query
-          name: address
-          schema: { type: string }
-          description: Filtro por bairro/cidade.
-        - in: query
-          name: availableOn
-          schema: { type: string, format: date }
-          description: Data ISO (yyyy-mm-dd) para filtrar disponibilidade.
-        - in: query
-          name: sort
-          schema:
-            $ref: "#/components/schemas/CoachSearchSort"
-        - in: query
-          name: page
-          schema: { type: integer, minimum: 1, default: 1 }
-        - in: query
           name: limit
           schema: { type: integer, minimum: 1, maximum: 100, default: 12 }
+        - in: query
+          name: lastKey
+          description: >
+            Cursor de paginação. JSON serializado devolvido em `meta.lastKey` da
+            página anterior (ex.: {"coachId":"..."}). Ausente na primeira página.
+          schema: { type: string }
       responses:
         "200":
-          description: Resultado paginado da busca.
+          description: Página da listagem de treinadores.
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/PaginatedEnvelope"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/CoachListItem"
+                $ref: "#/components/schemas/CoachSearchResponse"
+
+  /student/coaches/{coachId}:
+    get:
+      tags: [Student — Agenda]
+      summary: Detalha um treinador publicamente listável.
+      description: >
+        Retorna os dados não sensíveis de um treinador `APPROVED`, com as
+        localidades do tipo GYM enriquecidas com os dados da academia. Treinadores
+        inexistentes ou não listáveis respondem 404.
+      operationId: getCoachDetail
+      parameters:
+        - in: path
+          name: coachId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Detalhe do treinador.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoachDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /student/coach/schedules/cancel:
     post:
@@ -998,6 +1063,398 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  # ─────────────────────────────────────────────
+  # Chat — Coach
+  # ─────────────────────────────────────────────
+  /coach/chat/token:
+    post:
+      tags: [Chat]
+      summary: Emite o token de acesso do Stream para o coach autenticado.
+      operationId: createCoachChatToken
+      responses:
+        "200":
+          description: Token emitido (validade de 24h).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatToken"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /coach/chat/conversations:
+    post:
+      tags: [Chat]
+      summary: Cria (ou recupera) a conversa direta com um par.
+      operationId: createCoachChatConversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatConversationCreate"
+      responses:
+        "200":
+          description: Conversa criada ou recuperada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatConversation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    get:
+      tags: [Chat]
+      summary: Lista as conversas do coach.
+      operationId: listCoachChatConversations
+      parameters:
+        - $ref: "#/components/parameters/ChatLimit"
+      responses:
+        "200":
+          description: Conversas do usuário, mais recentes primeiro.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ChatConversation" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /coach/chat/conversations/{id}:
+    patch:
+      tags: [Chat]
+      summary: Edita nome/estado da conversa.
+      operationId: updateCoachChatConversation
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatConversationUpdate"
+      responses:
+        "200":
+          description: Conversa atualizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatConversation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Chat]
+      summary: Oculta a conversa para o usuário.
+      operationId: deleteCoachChatConversation
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      responses:
+        "200":
+          description: Conversa ocultada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatHidden"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /coach/chat/conversations/{id}/messages:
+    post:
+      tags: [Chat]
+      summary: Envia uma mensagem na conversa.
+      operationId: sendCoachChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Mensagem enviada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [Chat]
+      summary: Lista mensagens da conversa (paginação por `before`).
+      operationId: listCoachChatMessages
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+        - $ref: "#/components/parameters/ChatLimit"
+        - $ref: "#/components/parameters/ChatBefore"
+      responses:
+        "200":
+          description: Mensagens da conversa.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ChatMessage" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /coach/chat/messages/{id}:
+    patch:
+      tags: [Chat]
+      summary: Edita uma mensagem do próprio autor.
+      operationId: updateCoachChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatMessageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Mensagem editada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      tags: [Chat]
+      summary: Apaga (soft delete) uma mensagem do próprio autor.
+      operationId: deleteCoachChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatMessageId"
+      responses:
+        "200":
+          description: Mensagem apagada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ─────────────────────────────────────────────
+  # Chat — Student
+  # ─────────────────────────────────────────────
+  /student/chat/token:
+    post:
+      tags: [Chat]
+      summary: Emite o token de acesso do Stream para o aluno autenticado.
+      operationId: createStudentChatToken
+      responses:
+        "200":
+          description: Token emitido (validade de 24h).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatToken"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /student/chat/conversations:
+    post:
+      tags: [Chat]
+      summary: Cria (ou recupera) a conversa direta com um par.
+      operationId: createStudentChatConversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatConversationCreate"
+      responses:
+        "200":
+          description: Conversa criada ou recuperada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatConversation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    get:
+      tags: [Chat]
+      summary: Lista as conversas do aluno.
+      operationId: listStudentChatConversations
+      parameters:
+        - $ref: "#/components/parameters/ChatLimit"
+      responses:
+        "200":
+          description: Conversas do usuário, mais recentes primeiro.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ChatConversation" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /student/chat/conversations/{id}:
+    patch:
+      tags: [Chat]
+      summary: Edita nome/estado da conversa.
+      operationId: updateStudentChatConversation
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatConversationUpdate"
+      responses:
+        "200":
+          description: Conversa atualizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatConversation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Chat]
+      summary: Oculta a conversa para o usuário.
+      operationId: deleteStudentChatConversation
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      responses:
+        "200":
+          description: Conversa ocultada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatHidden"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /student/chat/conversations/{id}/messages:
+    post:
+      tags: [Chat]
+      summary: Envia uma mensagem na conversa.
+      operationId: sendStudentChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Mensagem enviada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [Chat]
+      summary: Lista mensagens da conversa (paginação por `before`).
+      operationId: listStudentChatMessages
+      parameters:
+        - $ref: "#/components/parameters/ChatChannelId"
+        - $ref: "#/components/parameters/ChatLimit"
+        - $ref: "#/components/parameters/ChatBefore"
+      responses:
+        "200":
+          description: Mensagens da conversa.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ChatMessage" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /student/chat/messages/{id}:
+    patch:
+      tags: [Chat]
+      summary: Edita uma mensagem do próprio autor.
+      operationId: updateStudentChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatMessageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Mensagem editada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      tags: [Chat]
+      summary: Apaga (soft delete) uma mensagem do próprio autor.
+      operationId: deleteStudentChatMessage
+      parameters:
+        - $ref: "#/components/parameters/ChatMessageId"
+      responses:
+        "200":
+          description: Mensagem apagada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1040,6 +1497,32 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
 
+  parameters:
+    ChatChannelId:
+      in: path
+      name: id
+      required: true
+      description: Id do canal (conversa), ex. `dm_1a2b3c4d_5e6f7a8b`.
+      schema: { type: string }
+    ChatMessageId:
+      in: path
+      name: id
+      required: true
+      description: Id da mensagem no Stream.
+      schema: { type: string }
+    ChatLimit:
+      in: query
+      name: limit
+      required: false
+      description: Número máximo de itens (padrão 30).
+      schema: { type: integer, default: 30 }
+    ChatBefore:
+      in: query
+      name: before
+      required: false
+      description: Id da mensagem usada como cursor — retorna apenas mensagens anteriores a ela.
+      schema: { type: string }
+
   schemas:
     Error:
       type: object
@@ -1081,7 +1564,7 @@ components:
     # ── Client / Student ──────────────────────
     ClientStatus:
       type: string
-      enum: [ONBOARDING_PROFILE, ONBOARDING_HEALTH, ACTIVE]
+      enum: [PENDING_PROFILE, ONBOARDING_HEALTH, ACTIVE]
 
     ClientGender:
       type: string
@@ -1136,10 +1619,33 @@ components:
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
+    CoachStudentDetail:
+      type: object
+      required: [studentId]
+      description: >
+        Recorte de um aluno visível ao treinador na sessão — sem dados de contato.
+      properties:
+        studentId: { type: string }
+        name: { type: string, nullable: true }
+        birthDate: { type: string, format: date, nullable: true }
+        gender:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ClientGender"
+        goal:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ClientGoal"
+        health:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ClientHealth"
+
     ClientProfilePayload:
       type: object
-      required: [phone, birthDate, gender, cep, city, state, radius, goal]
+      required: [name, phone, birthDate, gender, cep, city, state, radius, goal]
       properties:
+        name: { type: string }
         phone: { type: string, example: "+5511999990000" }
         birthDate: { type: string, format: date }
         gender:
@@ -1175,7 +1681,11 @@ components:
     # ── Coach ─────────────────────────────────
     CoachStatus:
       type: string
-      enum: [ONBOARDING_PROFILE, PENDING_REVIEW, APPROVED, REJECTED]
+      description: >
+        Status público do treinador. Coaches recém-cadastrados ficam em
+        PENDING_PROFILE até completar o perfil; após salvar o perfil, ficam
+        ativos imediatamente como APPROVED.
+      enum: [PENDING_PROFILE, APPROVED]
 
     CoachVisibility:
       type: string
@@ -1192,13 +1702,13 @@ components:
         specialties:
           type: array
           items: { type: string }
-        cref: { type: string, example: "CREF 012345-G/SP" }
+        cref: { type: string, example: "012345-G/SP" }
         instagram: { type: string, example: "@treinador" }
         profile_video:
           type: boolean
           description: Indica se há vídeo de apresentação enviado.
 
-    WorkLocationGym:
+    WorkLocation:
       type: object
       required: [type, gymId]
       properties:
@@ -1206,36 +1716,6 @@ components:
           type: string
           enum: [GYM]
         gymId: { type: string }
-
-    HomeServiceCoverage:
-      type: object
-      required: [city, state, neighborhoods]
-      properties:
-        city: { type: string }
-        state: { type: string, minLength: 2, maxLength: 2 }
-        neighborhoods:
-          type: array
-          items: { type: string }
-
-    WorkLocationHomeService:
-      type: object
-      required: [type, coverage]
-      properties:
-        type:
-          type: string
-          enum: [HOME_SERVICE]
-        coverage:
-          $ref: "#/components/schemas/HomeServiceCoverage"
-
-    WorkLocation:
-      oneOf:
-        - $ref: "#/components/schemas/WorkLocationGym"
-        - $ref: "#/components/schemas/WorkLocationHomeService"
-      discriminator:
-        propertyName: type
-        mapping:
-          GYM: "#/components/schemas/WorkLocationGym"
-          HOME_SERVICE: "#/components/schemas/WorkLocationHomeService"
 
     Coach:
       type: object
@@ -1275,59 +1755,132 @@ components:
           items:
             $ref: "#/components/schemas/WorkLocation"
 
-    CoachSearchSort:
-      type: string
-      enum: [rating, price_asc, price_desc]
-      default: rating
-
-    CoachListItem:
+    CoachSummaryProfile:
       type: object
-      required:
-        [
-          coachId,
-          name,
-          specialties,
-          rating,
-          priceFrom,
-          neighborhood,
-          city,
-          nextAvailability,
-          photo,
-        ]
+      required: [name, phone, specialties, cref, instagram, profile_video]
       properties:
-        coachId: { type: string }
         name: { type: string }
+        phone: { type: string, nullable: true }
         specialties:
           type: array
           items: { type: string }
-        rating:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 5
-        priceFrom:
-          type: number
-          description: Preço a partir de (em BRL).
-        neighborhood: { type: string }
-        city: { type: string }
-        nextAvailability:
+        cref: { type: string, nullable: true, example: "012345-G/SP" }
+        instagram: { type: string, nullable: true, example: "@treinador" }
+        profile_video:
+          type: boolean
+          description: Indica se há vídeo de apresentação enviado.
+
+    CoachSummary:
+      type: object
+      required: [coachId, profile, work_location]
+      properties:
+        coachId: { type: string }
+        profile: { $ref: "#/components/schemas/CoachSummaryProfile" }
+        work_location:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkLocation"
+
+    CoachSearchCursor:
+      type: object
+      required: [coachId]
+      properties:
+        coachId: { type: string }
+
+    CoachSearchResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoachSummary"
+        meta:
+          type: object
+          required: [limit, lastKey]
+          properties:
+            limit: { type: integer }
+            lastKey:
+              nullable: true
+              allOf:
+                - $ref: "#/components/schemas/CoachSearchCursor"
+
+    CoachDetailGym:
+      type: object
+      required: [name, neighborhood, city, state]
+      properties:
+        name: { type: string, nullable: true }
+        neighborhood: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        state: { type: string, nullable: true }
+
+    CoachDetailGymLocation:
+      type: object
+      required: [type, gymId, gym]
+      properties:
+        type:
           type: string
-          description: Texto curto com a próxima janela disponível.
-        photo:
-          type: string
+          enum: [GYM]
+        gymId: { type: string, nullable: true }
+        gym:
           nullable: true
+          allOf:
+            - $ref: "#/components/schemas/CoachDetailGym"
+
+    CoachDetailHomeLocation:
+      type: object
+      required: [type, coverage]
+      properties:
+        type:
+          type: string
+          enum: [HOME_SERVICE]
+        coverage:
+          type: object
+          required: [city, state, neighborhoods]
+          properties:
+            city: { type: string, nullable: true }
+            state: { type: string, nullable: true }
+            neighborhoods:
+              type: array
+              items: { type: string }
+
+    CoachDetailWorkLocation:
+      oneOf:
+        - $ref: "#/components/schemas/CoachDetailGymLocation"
+        - $ref: "#/components/schemas/CoachDetailHomeLocation"
+      discriminator:
+        propertyName: type
+
+    CoachDetail:
+      type: object
+      description: >
+        Detalhe público de um treinador. Traz o máximo de dados não sensíveis
+        (o e-mail e dados de conta ficam de fora). As localidades do tipo GYM
+        vêm enriquecidas com os dados da academia.
+      required: [coachId, status, profile, work_location]
+      properties:
+        coachId: { type: string }
+        status: { $ref: "#/components/schemas/CoachStatus" }
+        profile: { $ref: "#/components/schemas/CoachSummaryProfile" }
+        work_location:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoachDetailWorkLocation"
 
     # ── Gym ───────────────────────────────────
     Gym:
       type: object
-      required: [gymId, name, address, city, state, neighborhood, coordinates]
+      required: [id, name, active, address, city, state, neighborhood, coordinates]
       properties:
-        gymId: { type: string }
+        id: { type: string, example: gym_sp005 }
         name: { type: string }
         address: { type: string }
         city: { type: string }
         state: { type: string, minLength: 2, maxLength: 2 }
         neighborhood: { type: string }
+        active:
+          type: string
+          enum: ["True", "False"]
         coordinates:
           $ref: "#/components/schemas/Coordinates"
 
@@ -1489,6 +2042,49 @@ components:
           items:
             $ref: "#/components/schemas/Schedule"
 
+    # Resposta de GET agenda do treinador autenticado (get-coach-schedule-from-jwt).
+    CoachScheduleResponse:
+      type: object
+      required: [coachId, startDateTime, endDateTime, count, schedules]
+      properties:
+        coachId: { type: string }
+        startDateTime: { type: string, format: date-time }
+        endDateTime: { type: string, format: date-time }
+        count: { type: integer, example: 3 }
+        schedules:
+          type: array
+          items:
+            $ref: "#/components/schemas/Schedule"
+
+    # Item reduzido devolvido ao aluno ao consultar a agenda de um treinador.
+    CoachScheduleSlot:
+      type: object
+      required:
+        [scheduleId, coachId, gymId, specialtyId, startDateTime, endDateTime, price, status]
+      properties:
+        scheduleId: { type: string, example: avl_6cb2b644248448c68e63f350119c032d }
+        coachId: { type: string }
+        gymId: { type: string, example: gym_sp005 }
+        specialtyId: { type: string, example: MUSCULATION }
+        startDateTime: { type: string, format: date-time }
+        endDateTime: { type: string, format: date-time }
+        price: { type: string, example: "120.00" }
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+
+    # Resposta de GET agenda de um treinador para o aluno (get-coach-schedule-from-parm).
+    StudentCoachSchedulesResponse:
+      type: object
+      required: [coachId, startDateTime, endDateTime, count, schedules]
+      properties:
+        coachId: { type: string }
+        startDateTime: { type: string, format: date-time }
+        endDateTime: { type: string, format: date-time }
+        count: { type: integer, example: 3 }
+        schedules:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoachScheduleSlot"
+
     # Resposta de GET solicitações de um schedule (get-schedule-requests).
     ScheduleRequestsResponse:
       type: object
@@ -1563,6 +2159,15 @@ components:
         startDateTime: { type: string, format: date-time }
         endDateTime: { type: string, format: date-time }
         scheduleStatus: { $ref: "#/components/schemas/ScheduleStatus" }
+        paymentStatus:
+          type: string
+          nullable: true
+          description: Status do pagamento. `null` enquanto não pago; `PAID` após confirmação.
+          example: PAID
+        paymentTransactionId:
+          type: string
+          nullable: true
+          description: Id da transação que pagou o schedule (presente quando `paymentStatus = PAID`).
         request:
           nullable: true
           description: Solicitação do aluno autenticado para este schedule.
@@ -1743,3 +2348,104 @@ components:
                 Campos da policy POST do S3 (key, Content-Type, X-Amz-Algorithm,
                 X-Amz-Credential, X-Amz-Date, Policy, X-Amz-Signature,
                 x-amz-security-token). Devem acompanhar o multipart/form-data.
+
+    # ── Chat (Stream) ─────────────────────────
+    ChatToken:
+      type: object
+      required: [apiKey, userId, token, expiresAt]
+      properties:
+        apiKey:
+          type: string
+          description: Chave pública do app no Stream (usada pelo client junto do token).
+        userId:
+          type: string
+          example: 83dcfaba-f0c1-705d-b109-2b381fed0971
+        token:
+          type: string
+          description: JWT do Stream para o usuário, válido por 24h.
+        expiresAt:
+          type: string
+          format: date-time
+          example: "2026-06-19T12:00:00.000Z"
+
+    ChatConversationCreate:
+      type: object
+      required: [peerId]
+      properties:
+        peerId:
+          type: string
+          description: Id do par (o outro membro da conversa). Não pode ser o próprio usuário.
+          example: 83dcfaba-f0c1-705d-b109-2b381fed0971
+
+    ChatConversationUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        frozen:
+          type: boolean
+          description: Quando `true`, congela a conversa (impede novas mensagens).
+
+    ChatConversation:
+      type: object
+      required: [id, members, frozen]
+      properties:
+        id:
+          type: string
+          example: dm_1a2b3c4d_5e6f7a8b
+        name:
+          type: string
+          nullable: true
+        members:
+          type: array
+          items: { type: string }
+        frozen:
+          type: boolean
+        lastMessageAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastMessage:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            text: { type: string }
+            userId: { type: string }
+
+    ChatHidden:
+      type: object
+      required: [id, hidden]
+      properties:
+        id: { type: string, example: dm_1a2b3c4d_5e6f7a8b }
+        hidden: { type: boolean, example: true }
+
+    ChatMessageInput:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          example: Bom treino hoje?
+
+    ChatMessage:
+      type: object
+      required: [id, text, userId]
+      properties:
+        id: { type: string }
+        text: { type: string }
+        userId: { type: string }
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true

@@ -5,7 +5,6 @@ import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNaviga
 import { Card } from '@/components/ui/Card'
 import { useCoachSearch } from '@/hooks/useCoachSearch'
 import { getAuthUser } from '@/lib/auth'
-import { logout } from '@/lib/cognito'
 
 interface RecentCoach {
   id: number
@@ -33,16 +32,12 @@ export default function ClientHomePage() {
   const user = getAuthUser()
   const firstName = useMemo(() => user.name?.split(' ')[0] ?? 'aluno', [user.name])
 
-  function handleLogout() {
-    logout('client', '/')
-  }
-
   return (
     <main className="relative flex min-h-[max(884px,100dvh)] w-full bg-surface text-on-surface">
-      <ClientSideNav onLogout={handleLogout} />
+      <ClientSideNav />
 
       <div className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">
-        <ClientTopBar firstName={firstName} onLogout={handleLogout} />
+        <ClientTopBar firstName={firstName} />
 
         <div className="flex min-w-0 flex-1 flex-col lg:flex-row">
           <section className="flex min-w-0 flex-1 flex-col gap-8 px-4 pb-12 sm:px-6 md:px-10 lg:mx-auto lg:max-w-4xl lg:px-10">
@@ -65,7 +60,7 @@ export default function ClientHomePage() {
   )
 }
 
-function ClientTopBar({ firstName, onLogout }: { firstName: string; onLogout: () => void }) {
+function ClientTopBar({ firstName }: { firstName: string }) {
   return (
     <header className="glass-header sticky top-0 z-20 flex items-center justify-between px-4 py-4 sm:px-6 md:px-10 lg:relative lg:bg-transparent lg:px-10 lg:py-8 lg:backdrop-blur-none">
       <div className="flex min-w-0 flex-col">
@@ -73,23 +68,6 @@ function ClientTopBar({ firstName, onLogout }: { firstName: string; onLogout: ()
         <h1 className="truncate font-headline text-2xl font-bold tracking-tight lg:text-3xl">
           Oi, {firstName}
         </h1>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container-high"
-          aria-label="Notificacoes"
-        >
-          <span className="material-symbols-outlined text-[22px]">notifications</span>
-        </button>
-        <button
-          type="button"
-          onClick={onLogout}
-          className="font-label text-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface lg:hidden"
-        >
-          Sair
-        </button>
       </div>
     </header>
   )
@@ -111,12 +89,11 @@ function SearchPanel() {
           search
         </span>
         <span className="min-w-0 flex-1 truncate font-body text-sm text-on-surface-variant">
-          Buscar personal, modalidade ou local
+          Buscar personal ou bairro
         </span>
         <span className="material-symbols-outlined text-[20px] text-primary">tune</span>
       </button>
-      <div className="grid grid-cols-2 gap-2">
-        <FilterPill icon="pin_drop" label="Pinheiros" to="/client/search?n=Pinheiros" />
+      <div className="flex flex-wrap gap-2">
         <FilterPill
           icon="fitness_center"
           label="Musculação"
@@ -147,7 +124,7 @@ function FilterPill({ icon, label, to }: { icon: string; label: string; to: stri
 function NextSessionCard() {
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader title="Próxima sessão" action="Chat" icon="chat" />
+      <SectionHeader title="Próxima sessão" />
       <Card className="overflow-hidden p-0">
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary-fixed">
@@ -179,8 +156,8 @@ function NextSessionCard() {
 
 function CoachRail() {
   const navigate = useNavigate()
-  const { data, isLoading } = useCoachSearch({ limit: 3, sort: 'rating' })
-  const coaches = data?.data ?? []
+  const { data, isLoading } = useCoachSearch({ limit: 3 })
+  const coaches = data?.pages[0]?.data ?? []
 
   return (
     <section className="flex flex-col gap-4">
@@ -189,7 +166,7 @@ function CoachRail() {
         action="Ver todos"
         icon="arrow_forward"
         onAction={() => {
-          void navigate('/client/search?sort=rating')
+          void navigate('/client/search')
         }}
       />
       <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 md:-mx-10 md:px-10 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0">
@@ -206,13 +183,11 @@ function CoachRail() {
                 className="w-[76vw] max-w-70 shrink-0 snap-start md:w-62.5 lg:w-auto lg:max-w-none"
               >
                 <SharedCoachCard
-                  name={coach.name}
-                  specialties={coach.specialties.join(' · ')}
-                  rating={coach.rating.toFixed(1)}
-                  price={coach.priceFrom}
-                  {...(coach.photo ? { image: coach.photo } : {})}
-                  location={`${coach.neighborhood}, ${coach.city}`}
-                  availability={coach.nextAvailability}
+                  name={coach.profile.name}
+                  specialties={coach.profile.specialties.join(' · ')}
+                  onClick={() => {
+                    void navigate(`/client/coaches/${coach.coachId}`)
+                  }}
                 />
               </div>
             ))}
@@ -224,7 +199,7 @@ function CoachRail() {
 function ContinueExploring() {
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader title="Continuar explorando" action="Favoritos" icon="favorite" />
+      <SectionHeader title="Continuar explorando" />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {RECENT_COACHES.map((coach) => (
           <Card key={coach.id} className="p-4">
@@ -327,7 +302,7 @@ function SectionHeader({
   return (
     <div className="flex items-center justify-between gap-4">
       <h2 className="font-headline text-xl font-semibold tracking-tight">{title}</h2>
-      {action ? (
+      {action && onAction ? (
         <button
           type="button"
           onClick={onAction}

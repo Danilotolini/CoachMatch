@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { maskCref } from '@/lib/cref'
+import { maskInstagram, maskPhone, onlyDigits } from '@/lib/formatters'
 import type { CoachProfile, CoachUpdatePayload, Gym, WorkLocation } from '@/types/api'
 
 export interface SelectedGym {
@@ -7,37 +9,28 @@ export interface SelectedGym {
   city: string
   state: string
   neighborhood: string
-  coordinates: { lat: number; lng: number }
-}
-
-export interface HomeArea {
-  id: string
-  state: string
-  city: string
-  neighborhoods: string[]
 }
 
 export interface OnboardingFormState {
+  name: string
   phone: string
   instagram: string
   cref: string
   specialties: string[]
   gyms: SelectedGym[]
-  homeAreas: HomeArea[]
   videoKey: string | null
 }
 
-type FormErrorKey = keyof OnboardingFormState | 'workLocation'
+type FormErrorKey = keyof OnboardingFormState
 type FormErrors = Partial<Record<FormErrorKey, string>>
 
 interface OnboardingStore {
   form: OnboardingFormState
   errors: FormErrors
   specialtySearch: string
-  gymSearch: string
   setSpecialtySearch: (value: string) => void
-  setGymSearch: (value: string) => void
   update: <K extends keyof OnboardingFormState>(key: K, value: OnboardingFormState[K]) => void
+  updateName: (value: string) => void
   updatePhone: (value: string) => void
   updateInstagram: (value: string) => void
   updateCref: (value: string) => void
@@ -45,81 +38,28 @@ interface OnboardingStore {
   addGym: (gym: Gym) => void
   removeGym: (gymId: string) => void
   setGymError: (message: string) => void
-  addHomeArea: (area: Omit<HomeArea, 'id'>) => void
-  removeHomeArea: (id: string) => void
   setVideoKey: (key: string | null) => void
   validate: () => boolean
   reset: () => void
 }
 
 const initialForm: OnboardingFormState = {
+  name: '',
   phone: '',
   instagram: '',
   cref: '',
   specialties: [],
   gyms: [],
-  homeAreas: [],
   videoKey: null,
-}
-
-export function onlyDigits(value: string): string {
-  return value.replace(/\D/g, '')
-}
-
-function maskPhone(value: string): string {
-  const digits = onlyDigits(value).slice(0, 11)
-  if (digits.length <= 2) return digits
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
-  if (digits.length <= 10) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
-  }
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
-}
-
-function maskInstagram(value: string): string {
-  return value
-    .replace(/^@+/, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9._]/g, '')
-    .slice(0, 30)
-}
-
-function formatCref(normalized: string): string {
-  let digits = ''
-  let category = ''
-  let state = ''
-  for (const ch of normalized) {
-    if (digits.length < 6 && ch >= '0' && ch <= '9') digits += ch
-    else if (!category && (ch === 'G' || ch === 'P')) category = ch
-    else if (category && state.length < 2 && ch >= 'A' && ch <= 'Z') state += ch
-  }
-  let result = digits
-  if (category) result += `-${category}`
-  if (state) result += `/${state}`
-  return result
-}
-
-function maskCref(value: string, previous: string): string {
-  let normalized = value.toUpperCase().replace(/[^0-9A-Z]/g, '')
-  const previousClean = previous.replace(/[^0-9A-Z]/g, '')
-
-  // Se só um separador foi apagado, remove também o caractere de conteúdo anterior
-  // a ele — caso contrário o formatador re-inseriria o separador.
-  if (value.length < previous.length && normalized === previousClean) {
-    let i = 0
-    while (i < value.length && value[i] === previous[i]) i++
-    const cleanIdx = previous.slice(0, i).replace(/[^0-9A-Z]/g, '').length - 1
-    if (cleanIdx >= 0) {
-      normalized = normalized.slice(0, cleanIdx) + normalized.slice(cleanIdx + 1)
-    }
-  }
-
-  return formatCref(normalized)
 }
 
 function validateForm(form: OnboardingFormState): FormErrors {
   const errors: FormErrors = {}
   const phoneDigits = onlyDigits(form.phone)
+
+  if (form.name.trim().length < 2) {
+    errors.name = 'Informe seu nome completo.'
+  }
 
   if (phoneDigits.length < 10 || phoneDigits.length > 11) {
     errors.phone = 'Informe um telefone com DDD.'
@@ -137,9 +77,8 @@ function validateForm(form: OnboardingFormState): FormErrors {
     errors.specialties = 'Selecione pelo menos uma especialidade.'
   }
 
-  if (form.gyms.length === 0 && form.homeAreas.length === 0) {
-    errors.workLocation =
-      'Selecione ao menos uma academia parceira ou adicione uma área de Atendimento Externo.'
+  if (form.gyms.length === 0) {
+    errors.gyms = 'Selecione pelo menos uma academia parceira.'
   }
 
   return errors
@@ -156,33 +95,21 @@ function clearError(errors: FormErrors, key: FormErrorKey): FormErrors {
 }
 
 function buildWorkLocation(form: OnboardingFormState): WorkLocation[] {
-  const gymEntries: WorkLocation[] = form.gyms.map((gym) => ({
+  return form.gyms.map((gym) => ({
     type: 'GYM',
     gymId: gym.id,
   }))
-  const homeEntries: WorkLocation[] = form.homeAreas.map((area) => ({
-    type: 'HOME_SERVICE',
-    coverage: {
-      city: area.city,
-      state: area.state,
-      neighborhoods: area.neighborhoods,
-    },
-  }))
-  return [...gymEntries, ...homeEntries]
 }
 
-export function buildCoachUpdatePayload(
-  form: OnboardingFormState,
-  authName: string | null,
-): CoachUpdatePayload {
+export function buildCoachUpdatePayload(form: OnboardingFormState): CoachUpdatePayload {
   const profile: Partial<CoachProfile> = {
+    name: form.name.trim(),
     phone: onlyDigits(form.phone),
     instagram: form.instagram ? `@${form.instagram}` : '',
     cref: form.cref,
     specialties: form.specialties,
     profile_video: !!form.videoKey,
   }
-  if (authName) profile.name = authName
 
   return {
     profile,
@@ -194,18 +121,17 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   form: initialForm,
   errors: {},
   specialtySearch: '',
-  gymSearch: '',
   setSpecialtySearch: (value) => {
     set({ specialtySearch: value })
-  },
-  setGymSearch: (value) => {
-    set({ gymSearch: value })
   },
   update: (key, value) => {
     set((state) => ({
       form: { ...state.form, [key]: value },
       errors: clearError(state.errors, key),
     }))
+  },
+  updateName: (value) => {
+    get().update('name', value)
   },
   updatePhone: (value) => {
     get().update('phone', maskPhone(value))
@@ -239,12 +165,10 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
         city: gym.city,
         state: gym.state,
         neighborhood: gym.neighborhood,
-        coordinates: gym.coordinates,
       }
       return {
         form: { ...state.form, gyms: [...state.form.gyms, next] },
-        gymSearch: '',
-        errors: clearError(clearError(state.errors, 'gyms'), 'workLocation'),
+        errors: clearError(state.errors, 'gyms'),
       }
     })
   },
@@ -260,27 +184,6 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   setGymError: (message) => {
     set((state) => ({ errors: { ...state.errors, gyms: message } }))
   },
-  addHomeArea: (area) => {
-    set((state) => {
-      const id =
-        typeof crypto !== 'undefined' && 'randomUUID' in crypto
-          ? crypto.randomUUID()
-          : `area-${String(Date.now())}-${String(Math.random()).slice(2, 8)}`
-      const next: HomeArea = { id, ...area }
-      return {
-        form: { ...state.form, homeAreas: [...state.form.homeAreas, next] },
-        errors: clearError(state.errors, 'workLocation'),
-      }
-    })
-  },
-  removeHomeArea: (id) => {
-    set((state) => ({
-      form: {
-        ...state.form,
-        homeAreas: state.form.homeAreas.filter((area) => area.id !== id),
-      },
-    }))
-  },
   setVideoKey: (key) => {
     set((state) => ({
       form: { ...state.form, videoKey: key },
@@ -293,6 +196,6 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
     return Object.keys(errors).length === 0
   },
   reset: () => {
-    set({ form: initialForm, errors: {}, specialtySearch: '', gymSearch: '' })
+    set({ form: initialForm, errors: {}, specialtySearch: '' })
   },
 }))

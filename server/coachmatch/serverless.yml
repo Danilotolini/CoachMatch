@@ -1,3 +1,14 @@
+# API GATEWAY COMPARTILHADO (HTTP API qht6965nv9, sa-east-1)
+# ─────────────────────────────────────────────────────────────────────────────
+# O stack usa uma API EXTERNA (httpApi.id). As rotas Node são gerenciadas por
+# este stack; as rotas Python e os authorizers JWT (bg0uj6 coach / ahu157 student)
+# são criados manualmente, fora do stack.
+#
+# Como a API é externa, o Serverless NÃO pode gerenciar authorizers nela — por isso
+# eles são referenciados por `id` no evento em `dev` (ver custom.coachAuthorizer /
+# custom.studentAuthorizer e custom.httpApiByStage). No `local`, o serverless-offline
+# sobe a própria API e usa os authorizers declarados por nome.
+# ─────────────────────────────────────────────────────────────────────────────
 org: coachmatch
 app: coachmatchapp
 service: coachmatch
@@ -9,6 +20,8 @@ stages:
       stage: ${self:custom.config.dev.stage}
       region: ${self:custom.config.dev.region}
       apiGatewayId: ${self:custom.config.dev.apiGatewayId}
+      apiKey: ${self:custom.config.dev.apiKey}
+      apiSecret: ${self:custom.config.dev.apiSecret}
   # Stage local — serverless-offline + DynamoDB Local (nunca faz deploy na AWS)
   local:
     params:
@@ -17,6 +30,8 @@ stages:
       endpoint: ${self:custom.config.local.endpoint}
       access_key_id: ${self:custom.config.local.accessKeyId}
       secret_access: ${self:custom.config.local.secretAccessKey}
+      apiKey: ${self:custom.config.dev.apiKey}
+      apiSecret: ${self:custom.config.dev.apiSecret}
 
 plugins:
   - serverless-dynamodb
@@ -28,28 +43,37 @@ package:
     - '!node_modules/aws-sdk/**'
 
 build:
-  esbuild: false
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: false
+    #
+    # Projeto é "type": "module" e o SF v4 deploya o package.json junto, então
+    # o bundle .js roda como ESM no Lambda. Deps CommonJS (joi → @hapi/address)
+    # usam require() dinâmico, que o shim ESM do esbuild não provê — o banner
+    # recria require() via createRequire. É o padrão para ESM + esbuild no SF v4.
+    format: esm
+    banner:
+      js: "import { createRequire as topLevelCreateRequire } from 'module'; const require = topLevelCreateRequire(import.meta.url);"
 
 provider:
-  runtime: nodejs18.x
-  # Perfil AWS nomeado — só usado em deploys manuais locais.
-  # CI/CD (GitHub Actions) usa AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
-  # como variáveis de ambiente; profile vazio é ignorado pelo Serverless.
-  profile: ${self:custom.awsProfile.${sls:stage}, ''}
-  timeout: 30
+  # Credenciais AWS vêm do ambiente: AWS_PROFILE (SSO local) ou AWS_ACCESS_KEY_ID/SECRET (CI/CD).
+  # HTTP API limita a integração a 30s; mantemos a Lambda 1s abaixo para que ela
+  # termine antes do gateway cortar a conexão (evita "timeout" em invocação que deu certo).
+  timeout: 29
   name: aws
+  runtime: nodejs22.x
   stage: ${param:stage}
   region: ${param:region}
 
-  httpApi:
-    id: ${param:apiGatewayId, ""}  # vazio no local = serverless-offline cuida
-    authorizers:
-      cognitoAuthorizer:
-        type: jwt
-        identitySource: $request.header.Authorization
-        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
-        audience:
-          - 76hul7797npfkmpoju0mbghti7
+  # httpApi por stage (ver custom.httpApiByStage):
+  #   • dev   → API externa (id = qht6965nv9). O Serverless NÃO pode gerenciar
+  #             authorizers numa API externa, então NÃO declaramos o bloco
+  #             `authorizers` aqui; cada rota referencia o authorizer já existente
+  #             por id (custom.coachAuthorizer / custom.studentAuthorizer).
+  #   • local → id vazio (serverless-offline sobe a própria API) + authorizers
+  #             declarados por nome para o offline validar o JWT.
+  httpApi: ${self:custom.httpApiByStage.${sls:stage}}
 
   iam:
     role:
@@ -58,19 +82,36 @@ provider:
           Action:
             - dynamodb:PutItem
             - dynamodb:GetItem
+            - dynamodb:BatchGetItem
             - dynamodb:UpdateItem
             - dynamodb:Query
             - dynamodb:Scan
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches/index/*
             - arn:aws:dynamodb:sa-east-1:138413505977:table/student
             - arn:aws:dynamodb:sa-east-1:138413505977:table/gyms
             - arn:aws:dynamodb:sa-east-1:138413505977:table/payments
             - arn:aws:dynamodb:sa-east-1:138413505977:table/payments/index/*
+        # onPaymentSucceeded grava paymentStatus no schedule
+        - Effect: Allow
+          Action:
+            - dynamodb:UpdateItem
+            - dynamodb:GetItem
+            - dynamodb:Query
+          Resource:
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule/index/*
+        # paymentCreate emite o evento payment.succeeded
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+          Resource:
+            - !GetAtt PaymentSucceededQueue.Arn
 
 functions:
 
-  gymList:
+  gymGet:
     handler: src/gyms/list-gyms/handler.handler
     environment:
       STAGE: ${param:stage}
@@ -80,10 +121,13 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /gyms
+          path: /coach/gyms
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/gyms
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   gymSuggest:
     handler: src/gyms/suggest-gym/handler.handler
@@ -95,10 +139,13 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /gyms/suggest
+          path: /coach/gyms/suggest
           method: POST
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/gyms/suggest
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   coachGetMe:
     handler: src/coaches/get-coach/handler.handler
@@ -110,10 +157,9 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /coaches/me
+          path: /coach/me
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
 
   coachUpdateMe:
     handler: src/coaches/update-coach/handler.handler
@@ -125,10 +171,9 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /coaches/me
+          path: /coach/me
           method: PUT
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
 
   coachCreate:
     handler: src/coaches/create-coach/handler.handler
@@ -144,20 +189,22 @@ functions:
           trigger: PostConfirmation
           existing: true
 
-  coachSubmitForReview:
-    handler: src/coaches/submit-coach-for-review/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
-    events:
-      - httpApi:
-          path: /coaches/me/submit-for-review
-          method: POST
-          authorizer:
-            name: cognitoAuthorizer
+  # DESATIVADA TEMPORARIAMENTE
+  # coachSubmitForReview:
+  #   handler: src/coaches/submit-coach-for-review/handler.handler
+  #   environment:
+  #     STAGE: ${param:stage}
+  #     REGION: ${param:region}
+  #     ENDPOINT: ${param:endpoint, ""}
+  #     ACCESS_KEY_ID: ${param:access_key_id, ""}
+  #     SECRET_ACCESS_KEY: ${param:secret_access, ""}
+  #   events:
+  #     # NOTA: esta rota NÃO existe no API Gateway (qht6965nv9), o coach é cadastrado como ativo.
+  #     - httpApi:
+  #         path: /coach/me/submit-for-review
+  #         method: POST
+  #         authorizer:
+  #           name: cognitoAuthorizer
 
   studentCreate:
     handler: src/students/create-student/handler.handler
@@ -183,10 +230,9 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /clients/me
+          path: /student/me
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   studentUpdateProfile:
     handler: src/students/update-student-profile/handler.handler
@@ -198,10 +244,9 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /clients/me/profile
+          path: /student/me/profile
           method: POST
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   studentUpdateHealth:
     handler: src/students/update-student-health/handler.handler
@@ -213,10 +258,51 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
-          path: /clients/me/health
+          path: /student/me/health
           method: POST
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  studentGetCoaches:
+    handler: src/students/get-coaches/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /student/coaches
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  studentGetCoachDetail:
+    handler: src/students/get-coach-detail/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /student/coaches/{coachId}
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  coachGetStudentDetail:
+    handler: src/coaches/get-student-detail/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - httpApi:
+          path: /coach/students/{studentId}
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
 
   # ─── Pagamentos ────────────────────────────────────────────────────────────
 
@@ -228,12 +314,12 @@ functions:
       ENDPOINT: ${param:endpoint, ""}
       ACCESS_KEY_ID: ${param:access_key_id, ""}
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      PAYMENT_SUCCEEDED_QUEUE_URL: !Ref PaymentSucceededQueue
     events:
       - httpApi:
           path: /payments
           method: POST
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   paymentGet:
     handler: src/payments/get-payment/handler.handler
@@ -247,8 +333,7 @@ functions:
       - httpApi:
           path: /payments/{transactionId}
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   paymentGetByCoach:
     handler: src/payments/get-coach-payments/handler.handler
@@ -262,8 +347,7 @@ functions:
       - httpApi:
           path: /payments/coach/{coachId}
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   paymentGetByStudent:
     handler: src/payments/get-student-payments/handler.handler
@@ -277,8 +361,7 @@ functions:
       - httpApi:
           path: /payments/student/{studentId}
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   paymentGetBySession:
     handler: src/payments/get-session-payments/handler.handler
@@ -292,8 +375,7 @@ functions:
       - httpApi:
           path: /payments/session/{sessionId}
           method: GET
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
   paymentRefund:
     handler: src/payments/refund-payment/handler.handler
@@ -307,8 +389,205 @@ functions:
       - httpApi:
           path: /payments/{transactionId}/refund
           method: POST
-          authorizer:
-            name: cognitoAuthorizer
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+  # --- Chat (Stream) -------------------------------------------------------
+  chatToken:
+    handler: src/api-chat/token.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/token
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/token
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatConversationCreate:
+    handler: src/api-chat/conversations.create
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatConversationList:
+    handler: src/api-chat/conversations.list
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatConversationUpdate:
+    handler: src/api-chat/conversations.update
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations/{id}
+          method: PATCH
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations/{id}
+          method: PATCH
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatConversationDelete:
+    handler: src/api-chat/conversations.remove
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations/{id}
+          method: DELETE
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations/{id}
+          method: DELETE
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatMessageSend:
+    handler: src/api-chat/messages.send
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations/{id}/messages
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations/{id}/messages
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatMessageList:
+    handler: src/api-chat/messages.list
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/conversations/{id}/messages
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/conversations/{id}/messages
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatMessageUpdate:
+    handler: src/api-chat/messages.update
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    events:
+      - httpApi:
+          path: /coach/chat/messages/{id}
+          method: PATCH
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/messages/{id}
+          method: PATCH
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  chatMessageDelete:
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+      STREAM_API_KEY: ${param:apiKey, ""}
+      STREAM_API_SECRET: ${param:apiSecret, ""}
+    handler: src/api-chat/messages.remove
+    events:
+      - httpApi:
+          path: /coach/chat/messages/{id}
+          method: DELETE
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/chat/messages/{id}
+          method: DELETE
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+
+  # ─── Integração Pagamento → Agendamento ─────────────────────────────────────
+  # Consome `payment.succeeded` e marca o schedule como PAID. Ver PLAN.md.
+
+  onPaymentSucceeded:
+    handler: src/schedule/on-payment-succeeded/handler.handler
+    environment:
+      STAGE: ${param:stage}
+      REGION: ${param:region}
+      ENDPOINT: ${param:endpoint, ""}
+      ACCESS_KEY_ID: ${param:access_key_id, ""}
+      SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    events:
+      - sqs:
+          arn: !GetAtt PaymentSucceededQueue.Arn
+          batchSize: 10
+          functionResponseType: ReportBatchItemFailures
 
 resources:
   Conditions:
@@ -336,9 +615,23 @@ resources:
         AttributeDefinitions:
           - AttributeName: coachId
             AttributeType: S
+          - AttributeName: status
+            AttributeType: S
         KeySchema:
           - AttributeName: coachId
             KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: status-coachId-index
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+              - AttributeName: coachId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
@@ -422,13 +715,59 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
 
+    # Fila do evento payment.succeeded (gerenciada pelo stack, todos os stages)
+    PaymentSucceededQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: payment-succeeded-${param:stage}
+        VisibilityTimeout: 60
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt PaymentSucceededDLQ.Arn
+          maxReceiveCount: 3
+    PaymentSucceededDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: payment-succeeded-dlq-${param:stage}
+        MessageRetentionPeriod: 1209600
+
 custom:
   config: ${file(./config.yml)}
 
-  # Perfil AWS por stage — só 'local' usa perfil nomeado.
-  # Em CI/CD os outros stages usam variáveis de ambiente da AWS.
-  awsProfile:
-    local: JoaoAdm
+  # httpApi por stage — ver comentário no provider.httpApi.
+  httpApiByStage:
+    local:
+      id: ""
+      authorizers:
+        # Pool CoachAccess (sa-east-1_2DDuPPtc0) — rotas /coach/*
+        cognitoAuthorizer:
+          type: jwt
+          identitySource: $request.header.Authorization
+          issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
+          audience:
+            - 76hul7797npfkmpoju0mbghti7
+        # Pool StudentAccess (sa-east-1_2DSfT6kmB) — rotas /student/*
+        cognitoStudentAuthorizer:
+          type: jwt
+          identitySource: $request.header.Authorization
+          issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DSfT6kmB
+          audience:
+            - 3rjn45koljliioocd5usijdv9s
+    dev:
+      id: ${self:custom.config.dev.apiGatewayId}
+
+  # Referência do authorizer por stage:
+  #   • local → por nome (authorizer gerenciado pelo offline)
+  #   • dev   → por id do authorizer já existente no API GATEWAY
+  coachAuthorizer:
+    local:
+      name: cognitoAuthorizer
+    dev:
+      id: bg0uj6
+  studentAuthorizer:
+    local:
+      name: cognitoStudentAuthorizer
+    dev:
+      id: ahu157
 
   dynamodb:
     stages:

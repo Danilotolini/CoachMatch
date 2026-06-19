@@ -1,8 +1,8 @@
-export type CoachStatus = 'PENDING_PROFILE' | 'ONBOARDING_PROFILE' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+export type CoachStatus = 'PENDING_PROFILE' | 'APPROVED'
 
 export type CoachVisibility = 'VISIBLE' | 'INVISIBLE'
 
-export type ClientStatus = 'ONBOARDING_PROFILE' | 'ONBOARDING_HEALTH' | 'ACTIVE'
+export type ClientStatus = 'PENDING_PROFILE' | 'ONBOARDING_HEALTH' | 'ACTIVE'
 
 export interface Coordinates {
   lat: number
@@ -23,18 +23,7 @@ export interface WorkLocationGym {
   gymId: string
 }
 
-export interface HomeServiceCoverage {
-  city: string
-  state: string
-  neighborhoods: string[]
-}
-
-export interface WorkLocationHomeService {
-  type: 'HOME_SERVICE'
-  coverage: HomeServiceCoverage
-}
-
-export type WorkLocation = WorkLocationGym | WorkLocationHomeService
+export type WorkLocation = WorkLocationGym
 
 export interface Coach {
   coachId: string
@@ -52,8 +41,6 @@ export interface CoachUpdatePayload {
   work_location?: WorkLocation[]
 }
 
-export type CoachSearchSort = 'rating' | 'price_asc' | 'price_desc'
-
 export interface CoachListItem {
   coachId: string
   name: string
@@ -66,28 +53,83 @@ export interface CoachListItem {
   photo: string | null
 }
 
+export interface CoachDetailGym {
+  name: string | null
+  neighborhood: string | null
+  city: string | null
+  state: string | null
+}
+
+export interface CoachDetailGymLocation {
+  type: 'GYM'
+  gymId: string | null
+  gym: CoachDetailGym | null
+}
+
+export type CoachDetailWorkLocation = CoachDetailGymLocation | CoachSummaryHomeLocation
+
+export interface CoachDetail {
+  coachId: string
+  status: CoachStatus
+  profile: CoachSummaryProfile
+  work_location: CoachDetailWorkLocation[]
+}
+
+export interface CoachSummaryProfile {
+  name: string
+  phone: string | null
+  specialties: string[]
+  cref: string | null
+  instagram: string | null
+  profile_video: boolean
+}
+
+export interface CoachSummaryGymLocation {
+  type: 'GYM'
+  gymId: string | null
+}
+
+export interface CoachSummaryHomeLocation {
+  type: 'HOME_SERVICE'
+  coverage: {
+    city: string | null
+    state: string | null
+    neighborhoods: string[]
+  }
+}
+
+export type CoachSummaryWorkLocation = CoachSummaryGymLocation | CoachSummaryHomeLocation
+
+export interface CoachSummary {
+  coachId: string
+  profile: CoachSummaryProfile
+  work_location: CoachSummaryWorkLocation[]
+}
+
+export interface CoachSearchCursor {
+  coachId: string
+}
+
 export interface CoachSearchFilters {
   q?: string | undefined
   specialties?: string[] | undefined
-  address?: string | undefined
-  priceMin?: number | undefined
-  priceMax?: number | undefined
-  availableOn?: string | undefined
-  sort?: CoachSearchSort | undefined
-  page?: number | undefined
   limit?: number | undefined
+  lastKey?: CoachSearchCursor | null | undefined
 }
 
-export type CoachSearchResponse = PaginatedResponse<CoachListItem>
+export interface CoachSearchMeta {
+  limit: number
+  lastKey: CoachSearchCursor | null
+}
+
+export interface CoachSearchResponse {
+  data: CoachSummary[]
+  meta: CoachSearchMeta
+}
 
 export type ClientGender = 'F' | 'M' | 'NB' | 'NA'
 
-export type ClientGoal =
-  | 'WEIGHT_LOSS'
-  | 'HYPERTROPHY'
-  | 'CONDITIONING'
-  | 'REHAB'
-  | 'PERFORMANCE'
+export type ClientGoal = 'WEIGHT_LOSS' | 'HYPERTROPHY' | 'CONDITIONING' | 'REHAB' | 'PERFORMANCE'
 
 /** Respostas PAR-Q armazenadas após a etapa de saúde */
 export interface ClientHealth {
@@ -97,7 +139,7 @@ export interface ClientHealth {
   medicalDisclaimer: boolean
 }
 
-/** Perfil completo do aluno retornado por GET/POST /clients/me */
+/** Perfil completo do aluno retornado por GET /student/me */
 export interface Client {
   clientId: string
   email: string
@@ -116,7 +158,18 @@ export interface Client {
   updatedAt: string
 }
 
+/** Recorte de um aluno visível ao treinador */
+export interface CoachStudentDetail {
+  studentId: string
+  name: string | null
+  birthDate: string | null
+  gender: ClientGender | null
+  goal: ClientGoal | null
+  health: ClientHealth | null
+}
+
 export interface ClientProfilePayload {
+  name: string
   phone: string
   birthDate: string
   gender: ClientGender
@@ -146,7 +199,7 @@ export interface Gym {
   city: string
   state: string
   neighborhood: string
-  coordinates: Coordinates
+  coordinates: Coordinates | null
 }
 
 export interface GymSuggestPayload {
@@ -155,11 +208,11 @@ export interface GymSuggestPayload {
   city: string
   state: string
   neighborhood: string
-  coordinates: Coordinates
+  coordinates: null
 }
 
 export interface GymSuggestResponse {
-  data: Gym
+  data?: Gym | undefined
   message: string
 }
 
@@ -186,24 +239,189 @@ export interface UploadUrlResponse {
   }
 }
 
-export type PaymentStatus = 'approved' | 'refused' | 'pending'
-export type PaymentMethod = 'credit_card' | 'pix'
+// ── Schedule ──────────────────────────────────────────────────────────────────
 
-export interface CardInfo {
-  number: string
-  holder: string
-  expiryMonth: string
-  expiryYear: string
-  cvv: string
+export type ScheduleStatus =
+  | 'AVAILABLE'
+  | 'REQUESTED'
+  | 'BOOKED'
+  | 'CANCELLED'
+  | 'COMPLETED'
+  | 'NOSHOW'
+
+export type RequestStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED'
+export type ClassStatus = 'COMPLETED' | 'NOSHOW'
+
+export interface ScheduleRequest {
+  studentId: string
+  status: RequestStatus
+  requestedAt: string
+  alteredAt?: string | null
+  studentName?: string | null
 }
 
-export interface PaymentPayload {
+export interface Schedule {
+  scheduleId: string
+  coachId: string
+  gymId: string
+  specialtyId: string
+  startDateTime: string
+  endDateTime: string
+  price: string
+  status: ScheduleStatus
+  studentId: string | null
+  paymentStatus: string | null
+  rating: number | null
+  studentComment: string | null
+  requests: ScheduleRequest[] | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ScheduleCreatePayload {
+  gymId: string
+  specialtyId: string
+  startDateTime: string
+  endDateTime: string
+  price: string
+}
+
+export interface CoachScheduleResponse {
+  coachId: string
+  startDateTime: string
+  endDateTime: string
+  count: number
+  schedules: Schedule[]
+}
+
+export interface CoachScheduleSlot {
+  scheduleId: string
+  coachId: string
+  gymId: string
+  specialtyId: string
+  startDateTime: string
+  endDateTime: string
+  price: string
+  status: ScheduleStatus
+}
+
+export interface StudentCoachSchedulesResponse {
+  coachId: string
+  startDateTime: string
+  endDateTime: string
+  count: number
+  schedules: CoachScheduleSlot[]
+}
+
+export interface ScheduleRequestsResponse {
+  scheduleId: string
+  startDateTime: string
+  endDateTime: string
+  status: ScheduleStatus
+  count: number
+  requests: ScheduleRequest[]
+}
+
+export interface ScheduleRequestResult {
+  message: string
+  scheduleId: string
+  studentId: string
+  status: RequestStatus
+  requestedAt: string
+}
+
+export interface StudentScheduleItem {
+  scheduleId: string
+  coachId: string
+  gymId: string
+  specialtyId: string
+  price: string
+  startDateTime: string
+  endDateTime: string
+  scheduleStatus: ScheduleStatus
+  paymentStatus?: string | null
+  request: ScheduleRequest | null
+}
+
+export interface StudentSchedulesResponse {
+  studentId: string
+  count: number
+  schedules: StudentScheduleItem[]
+}
+
+export interface ScheduleApproveResult {
+  message: string
+  scheduleId: string
+  studentId: string
+  status: 'BOOKED'
+  updatedAt: string
+}
+
+export interface ScheduleCancelResult {
+  message: string
+  scheduleId: string
+  status: 'CANCELLED'
+  notifiedStudents?: number
+  cancelledAt: string
+}
+
+export interface CancelRequestResult {
+  message: string
+  scheduleId: string
+  studentId: string
+  scheduleStatus: ScheduleStatus
+  cancelledAt: string
+}
+
+export interface GymScheduleResponse {
+  gymId: string
+  startDateTime: string
+  endDateTime: string
+  count: number
+  schedules: Schedule[]
+}
+
+export interface ClassStatusResult {
+  message: string
+  scheduleId: string
+  status: ClassStatus
+  paymentStatus: 'PENDING'
+  updatedAt: string
+}
+
+// ── Pagamentos ────────────────────────────────────────────────────────────────
+
+export type TransactionStatus = 'approved' | 'refused' | 'refunded'
+export type PaymentMethod = 'credit_card' | 'pix'
+
+export interface CardPaymentPayload {
   sessionId: string
-  method: PaymentMethod
-  card?: CardInfo
-  amount: number
   coachId: string
   studentId: string
+  amount: number
+  method: 'credit_card'
+  card: {
+    number: string
+    holder: string
+    expiryMonth: string
+    expiryYear: string
+    cvv: string
+  }
+}
+
+export interface PixPaymentPayload {
+  sessionId: string
+  coachId: string
+  studentId: string
+  amount: number
+  method: 'pix'
+}
+
+export type PaymentPayload = CardPaymentPayload | PixPaymentPayload
+
+export interface PaymentSplit {
+  platform: number
+  coach: number
 }
 
 export interface Transaction {
@@ -213,11 +431,51 @@ export interface Transaction {
   studentId: string
   method: PaymentMethod
   amount: number
-  status: PaymentStatus
-  cardLastFour?: string
-  split?: {
-    platformFee: number
-    coachAmount: number
-  }
+  status: TransactionStatus
+  split?: PaymentSplit | null
+  cardLastFour?: string | null
+  refusalReason?: string | null
+  requires3ds?: boolean | null
+  pixCode?: string | null
+  expiresAt?: string | null
+  refundId?: string | null
+  refundedAt?: string | null
   createdAt: string
+}
+
+// ── Chat (mensageria 1:1 aluno↔coach) ───────────────────────────────
+export interface ChatConversationLastMessage {
+  id: string
+  text: string
+  userId: string
+}
+
+export interface ChatConversation {
+  id: string
+  name: string | null
+  members: string[]
+  frozen: boolean
+  lastMessageAt?: string | null
+  lastMessage?: ChatConversationLastMessage | null
+}
+
+export interface ChatMessage {
+  id: string
+  text: string
+  userId: string
+  createdAt?: string
+  updatedAt?: string
+  deletedAt?: string | null
+}
+
+export interface ChatHidden {
+  id: string
+  hidden: boolean
+}
+
+export interface ChatToken {
+  apiKey: string
+  userId: string
+  token: string
+  expiresAt: string | null
 }

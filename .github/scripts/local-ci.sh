@@ -25,7 +25,7 @@ if [ -d "client" ]; then
     echo "🔍 Linting client..."
     cd client
     
-    if npm run lint 2>/dev/null; then
+    if pnpm run lint 2>/dev/null; then
         echo -e "${GREEN}✅ Client lint passed${NC}"
     else
         echo -e "${YELLOW}⚠️  Lint warnings (non-blocking)${NC}"
@@ -33,7 +33,7 @@ if [ -d "client" ]; then
     
     # Type check
     echo "🔍 Type checking..."
-    if npm run type-check 2>/dev/null; then
+    if pnpm run type-check 2>/dev/null; then
         echo -e "${GREEN}✅ Type check passed${NC}"
     else
         echo -e "${RED}❌ Type check failed${NC}"
@@ -52,11 +52,11 @@ fi
 echo -e "\n${YELLOW}📍 STAGE 2: BACKEND TESTS${NC}"
 echo "───────────────────────────────────────────────────────────"
 
-if [ -d "server/api-pagamentos" ]; then
+if [ -d "server/coachmatch" ]; then
     echo "🧪 Running backend tests..."
-    cd server/api-pagamentos
-    
-    if npm test -- --coverage 2>/dev/null; then
+    cd server/coachmatch
+
+    if pnpm run test:coverage 2>/dev/null; then
         echo -e "${GREEN}✅ Backend tests passed${NC}"
     else
         echo -e "${RED}❌ Backend tests failed${NC}"
@@ -79,7 +79,7 @@ if [ -d "client" ]; then
     echo "🧪 Running frontend tests..."
     cd client
     
-    if npm test -- --coverage 2>/dev/null; then
+    if pnpm run test:coverage 2>/dev/null; then
         echo -e "${GREEN}✅ Frontend tests passed${NC}"
     else
         echo -e "${YELLOW}⚠️  Frontend tests skipped or failed (non-blocking)${NC}"
@@ -101,7 +101,7 @@ if [ -d "client" ]; then
     echo "🏗️  Building client..."
     cd client
     
-    if npm run build 2>/dev/null; then
+    if pnpm run build 2>/dev/null; then
         echo -e "${GREEN}✅ Build successful${NC}"
         
         # Check bundle size

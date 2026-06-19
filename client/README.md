@@ -1,36 +1,30 @@
 # CoachMatch — Client
 
-Stack: React 19 + Vite 7 + TypeScript (strict) + Tailwind CSS v4 + PWA.
+Frontend PWA do CoachMatch. Versões, dependências, engines, package manager e scripts vivem em [`package.json`](package.json).
 
 ## Pré-requisitos
 
-- **Node.js** `^20.19.0` ou `>=22.12.0`
-- **pnpm** `>=10.0.0` (use sempre `pnpm`, nunca `npm`/`yarn`)
+- Consulte `engines` e `packageManager` em [`package.json`](package.json).
+- Use sempre `pnpm`, nunca `npm`/`yarn`.
 - **AWS CLI** configurado (apenas para deploy)
 
 ## Como rodar
 
 ```bash
-# instalar dependências
 pnpm install
-
-# dev server (http://localhost:5173)
 pnpm dev
-
-# build de produção (gera ./dist)
-pnpm build
-
-# preview do build de produção
-pnpm preview
 ```
 
 ## Qualidade de código
 
 ```bash
 pnpm lint          # eslint .
+pnpm test          # vitest run
 pnpm format        # prettier --write src
 pnpm format:check  # prettier --check src
 ```
+
+Para a lista completa de scripts, consulte [`package.json`](package.json).
 
 ## Autenticação e sessão
 

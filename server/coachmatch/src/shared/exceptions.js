@@ -46,3 +46,15 @@ export class ConflictException extends Error {
     this.name = 'ConflictException';
   }
 }
+
+/**
+ * Exceção lançada quando o autenticado não tem permissão sobre o recurso.
+ * Mapeada para HTTP 403 Forbidden.
+ * @param {string} message - Descrição da restrição.
+ */
+export class ForbiddenException extends Error {
+  constructor(message = 'Acesso negado a este recurso') {
+    super(message);
+    this.name = 'ForbiddenException';
+  }
+}

@@ -5,9 +5,8 @@ import { ValidationException, NotFoundException } from '../../shared/exceptions.
 /**
  * Atualiza o perfil do coach com os dados enviados pelo front-end.
  *
- * Importante: esta operação NÃO muda o status do coach.
- * A transição de status (ONBOARDING_PROFILE → PENDING_REVIEW) é feita
- * exclusivamente pelo endpoint POST /coaches/me/submit-for-review.
+ * Importante: ao preencher o perfil o coach é ativado imediatamente
+ * (status APPROVED), sem passar pela etapa de revisão manual.
  *
  * @param {string} coachId - ID do coach extraído do JWT.
  * @param {object} body    - Payload aninhado: { profile: {...}, work_location: [...] }

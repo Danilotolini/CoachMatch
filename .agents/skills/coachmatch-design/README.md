@@ -7,13 +7,13 @@ Servir de **guia de tradução marca → código** quando você (ou a IA) for cr
 O que o skill entrega bem:
 
 - Lembrar a voz, o glossário e as regras visuais que **não vivem no código** (são decisões de marca).
-- Apontar para os primitives e telas-âncora certas em [`client/src/`](../../client/src/) em vez de reinventar.
+- Apontar para os primitives e telas-âncora certas em [`client/src/`](../../../client/src/) em vez de reinventar.
 - Evitar drift (greys do Tailwind, hex inline, emoji, copy fora do tom).
 
 O que **não** é responsabilidade deste skill:
 
-- Declarar valores de token (cor, raio, tipografia, sombras). Vivem em [`client/src/index.css`](../../client/src/index.css) `@theme`.
-- Replicar regras de stack/código. Vivem em [`client/CLAUDE.md`](../../client/CLAUDE.md) e [`SKILL.md`](SKILL.md).
+- Declarar valores de token (cor, raio, tipografia, sombras). Vivem em [`client/src/index.css`](../../../client/src/index.css) `@theme`.
+- Replicar regras de stack/código. Vivem em [`client/CLAUDE.md`](../../../client/CLAUDE.md) e [`SKILL.md`](SKILL.md).
 
 Detalhes operacionais (como acionar, hard rules de código, workflow): [`SKILL.md`](SKILL.md).
 
@@ -23,9 +23,9 @@ Detalhes operacionais (como acionar, hard rules de código, workflow): [`SKILL.m
 
 | O que | Onde |
 | --- | --- |
-| Tokens (cor, tipografia, raio, sombras assinatura) | `@theme` em [`client/src/index.css`](../../client/src/index.css) |
-| Convenções de stack, comandos, padrões de código | [`client/CLAUDE.md`](../../client/CLAUDE.md) |
-| Implementações de referência (primitives, pages) | [`client/src/`](../../client/src/) |
+| Tokens (cor, tipografia, raio, sombras assinatura) | `@theme` em [`client/src/index.css`](../../../client/src/index.css) |
+| Convenções de stack, comandos, padrões de código | [`client/CLAUDE.md`](../../../client/CLAUDE.md) |
+| Implementações de referência (primitives, pages) | [`client/src/`](../../../client/src/) |
 | Voz, glossário, princípios visuais qualitativos | este `README.md` |
 
 Regra prática: **se for um valor concreto (hex, número de px, classe Tailwind exata), provavelmente não pertence aqui**. Se um token não existe e você precisa, peça antes de criar.
@@ -66,7 +66,7 @@ Regra prática: **se for um valor concreto (hex, número de px, classe Tailwind 
 | CREF | Certificação |
 | Personal | Coach |
 
-**Emoji.** **Não usar em UI de produto.** Use Material Symbols via [`Icon`](../../client/src/components/ui/Icon.tsx).
+**Emoji.** **Não usar em UI de produto.** Use Material Symbols via [`Icon`](../../../client/src/components/ui/Icon.tsx).
 
 **Números & dados.** Sem stat-soup. Callouts de número único (raio, nota, preço) renderizados em lime quando carregam significado.
 
@@ -74,7 +74,7 @@ Regra prática: **se for um valor concreto (hex, número de px, classe Tailwind 
 
 ## Princípios visuais
 
-> Princípios qualitativos. Os valores concretos vivem em [`client/src/index.css`](../../client/src/index.css) e nos componentes-exemplo.
+> Princípios qualitativos. Os valores concretos vivem em [`client/src/index.css`](../../../client/src/index.css) e nos componentes-exemplo.
 
 ### Cor
 
@@ -94,7 +94,7 @@ Regra prática: **se for um valor concreto (hex, número de px, classe Tailwind 
 
 ### Iconografia
 
-- **Material Symbols Outlined** apenas, sempre via [`Icon`](../../client/src/components/ui/Icon.tsx). Item ativo do bottom nav vira preenchido.
+- **Material Symbols Outlined** apenas, sempre via [`Icon`](../../../client/src/components/ui/Icon.tsx). Item ativo do bottom nav vira preenchido.
 - Ícones canônicos já usados no produto: `explore`, `fitness_center`, `calendar_today`, `person`, `verified`, `star`, `payments`, `chat`, `notifications`, `location_on`.
 
 ### Backgrounds
@@ -124,17 +124,17 @@ Tabela de tradução quando alguém descrever campos:
 
 | Spec | Primitive |
 | --- | --- |
-| texto, e-mail, senha, número, telefone | [`Input`](../../client/src/components/ui/Input.tsx) |
-| escolha única (lista curta) | [`RadioOption`](../../client/src/components/ui/RadioOption.tsx) |
-| escolha única/múltipla por tag | [`Chip`](../../client/src/components/ui/Chip.tsx) |
-| CTA primário / secundário | [`Button`](../../client/src/components/ui/Button.tsx) |
-| container de seção / card de conteúdo | [`Card`](../../client/src/components/ui/Card.tsx) |
-| ícone | [`Icon`](../../client/src/components/ui/Icon.tsx) |
-| header de fluxo multi-step | [`ProgressHeader`](../../client/src/components/layout/ProgressHeader.tsx) |
-| header padrão (top bar) | [`GlassHeader`](../../client/src/components/layout/GlassHeader.tsx) |
-| nav inferior | [`BottomNav`](../../client/src/components/layout/BottomNav.tsx) |
-| eyebrow / micro-label | [`Eyebrow`](../../client/src/components/brand/Eyebrow.tsx), [`LabelMicro`](../../client/src/components/brand/LabelMicro.tsx) |
-| wordmark da marca | [`Wordmark`](../../client/src/components/brand/Wordmark.tsx) |
+| texto, e-mail, senha, número, telefone | [`Input`](../../../client/src/components/ui/Input.tsx) |
+| escolha única (lista curta) | [`RadioOption`](../../../client/src/components/ui/RadioOption.tsx) |
+| escolha única/múltipla por tag | [`Chip`](../../../client/src/components/ui/Chip.tsx) |
+| CTA primário / secundário | [`Button`](../../../client/src/components/ui/Button.tsx) |
+| container de seção / card de conteúdo | [`Card`](../../../client/src/components/ui/Card.tsx) |
+| ícone | [`Icon`](../../../client/src/components/ui/Icon.tsx) |
+| header de fluxo multi-step | [`ProgressHeader`](../../../client/src/components/layout/ProgressHeader.tsx) |
+| header padrão (top bar) | [`GlassHeader`](../../../client/src/components/layout/GlassHeader.tsx) |
+| nav inferior | [`BottomNav`](../../../client/src/components/layout/BottomNav.tsx) |
+| eyebrow / micro-label | [`Eyebrow`](../../../client/src/components/brand/Eyebrow.tsx), [`LabelMicro`](../../../client/src/components/brand/LabelMicro.tsx) |
+| wordmark da marca | [`Wordmark`](../../../client/src/components/brand/Wordmark.tsx) |
 
 Se o spec não casar com nenhum: **estenda** o primitive mais próximo antes de criar um novo. Crie primitive novo só com caso de reuso real.
 

@@ -6,31 +6,19 @@ import { type Role, useSessionStore } from '@/stores/sessionStore'
 import { fetchClientMe } from '@/api/clients'
 import { fetchCoachMe } from '@/api/coaches'
 import { ApiError } from '@/lib/http'
-import type { ClientStatus, CoachStatus } from '@/types/api'
-
-function statusRoute(status: CoachStatus): string {
-  switch (status) {
-    case 'PENDING_PROFILE':
-      return '/coach/onboarding'
-    case 'ONBOARDING_PROFILE':
-      return '/coach/onboarding'
-    case 'PENDING_REVIEW':
-      return '/coach/pending-review'
-    case 'APPROVED':
-      return '/coach'
-    case 'REJECTED':
-      return '/coach/rejected'
-  }
-}
+import { coachStatusRoute } from '@/lib/coachStatus'
+import type { ClientStatus } from '@/types/api'
 
 function clientStatusRoute(status: ClientStatus): string {
   switch (status) {
-    case 'ONBOARDING_PROFILE':
+    case 'PENDING_PROFILE':
       return '/client/onboarding'
     case 'ONBOARDING_HEALTH':
       return '/client/health'
     case 'ACTIVE':
       return '/client'
+    default:
+      throw new Error(`Status de aluno inesperado na resposta do servidor: ${String(status)}`)
   }
 }
 
@@ -89,7 +77,7 @@ export default function CognitoCallbackPage({ audience }: CognitoCallbackPagePro
         try {
           const coach = await fetchCoachMe()
           queryClient.setQueryData(['coachMe'], coach)
-          void navigate(statusRoute(coach.status), { replace: true })
+          void navigate(coachStatusRoute(coach.status), { replace: true })
         } catch (err) {
           const is404 = err instanceof ApiError && err.status === 404
           const isNetwork = err instanceof TypeError

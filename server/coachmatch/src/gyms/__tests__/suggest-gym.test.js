@@ -17,7 +17,7 @@ const validGym = {
   city:         'São Paulo',
   state:        'SP',
   neighborhood: 'Centro',
-  coordinates:  { lat: -23.5505, lng: -46.6333 },
+  coordinates:  null,
 };
 
 const buildEvent = (body = validGym) => ({
@@ -46,19 +46,15 @@ describe('suggest-gym › schema', () => {
     expect(value.state).toBe('SP');
   });
 
-  it('rejeita lat fora do range (-90 a 90)', () => {
-    expect(gymSchema.validate({ ...validGym, coordinates: { lat: -91, lng: 0 } }).error).toBeDefined();
-    expect(gymSchema.validate({ ...validGym, coordinates: { lat: 91, lng: 0 } }).error).toBeDefined();
+  it('preenche coordinates como null quando ausente', () => {
+    const { coordinates: _, ...semCoordinates } = validGym;
+    const { value, error } = gymSchema.validate(semCoordinates);
+    expect(error).toBeUndefined();
+    expect(value.coordinates).toBeNull();
   });
 
-  it('rejeita lng fora do range (-180 a 180)', () => {
-    expect(gymSchema.validate({ ...validGym, coordinates: { lat: 0, lng: -181 } }).error).toBeDefined();
-    expect(gymSchema.validate({ ...validGym, coordinates: { lat: 0, lng: 181 } }).error).toBeDefined();
-  });
-
-  it('rejeita coordinates sem lat ou lng', () => {
-    expect(gymSchema.validate({ ...validGym, coordinates: { lat: -23 } }).error).toBeDefined();
-    expect(gymSchema.validate({ ...validGym, coordinates: { lng: -46 } }).error).toBeDefined();
+  it('rejeita coordinates com latitude e longitude', () => {
+    expect(gymSchema.validate({ ...validGym, coordinates: { lat: -23, lng: -46 } }).error).toBeDefined();
   });
 });
 
@@ -75,6 +71,7 @@ describe('suggest-gym › index (suggestGym)', () => {
     expect(insertGym).toHaveBeenCalledWith(expect.objectContaining({
       name: validGym.name,
       city: validGym.city,
+      coordinates: null,
     }));
   });
 

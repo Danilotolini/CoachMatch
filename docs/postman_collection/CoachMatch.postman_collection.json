@@ -1,423 +1,2503 @@
 {
   "info": {
-    "_postman_id": "10b700e3-86d6-4180-8d1c-a12270f3af05",
+    "_postman_id": "fe6b52e8-1ccd-406a-af12-7c55933515a8",
     "name": "CoachMatch",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "10812251",
-    "_collection_link": "https://go.postman.co/collection/10812251-10b700e3-86d6-4180-8d1c-a12270f3af05?source=collection_link"
+    "_exporter_id": "54299837",
+    "_collection_link": "https://go.postman.co/collection/54299837-fe6b52e8-1ccd-406a-af12-7c55933515a8?source=collection_link"
   },
   "item": [
     {
-      "name": "1 - Obter o IdToken do Cognito",
-      "event": [
+      "name": "Coach",
+      "item": [
         {
-          "listen": "prerequest",
-          "script": {
-            "exec": [
-              "const CryptoJS = require(\"crypto-js\");",
-              "",
-              "const username = \"joao@exemplo.com\";",
-              "const clientId = \"76hul7797npfkmpoju0mbghti7\";",
-              "const clientSecret = \"8jn87ckmp7cdime8ah1b0iqe501md0ivv9m9ndrtofs4kol9s3t\";",
-              "",
-              "const message = username + clientId;",
-              "const hash = CryptoJS.HmacSHA256(message, clientSecret);",
-              "const secretHash = CryptoJS.enc.Base64.stringify(hash);",
-              "",
-              "pm.environment.set(\"secretHash\", secretHash);"
+          "name": "C01 - Obter o IdToken do Cognito Coach",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const CryptoJS = require(\"crypto-js\");",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "const username = body.AuthParameters.USERNAME;",
+                  "const clientId = body.ClientId;",
+                  "const message = username + clientId;",
+                  "const clientSecret = \"8jn87ckmp7cdime8ah1b0iqe501md0ivv9m9ndrtofs4kol9s3t\";",
+                  "const hash = CryptoJS.HmacSHA256(message, clientSecret);",
+                  "const secretHash = CryptoJS.enc.Base64.stringify(hash);",
+                  "pm.environment.set(\"secretHash\", secretHash);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "if (json.AuthenticationResult && json.AuthenticationResult.IdToken) {",
+                  "  const token = json.AuthenticationResult.IdToken;",
+                  "",
+                  "  // Tenta salvar no environment ativo; se não houver, usa globals",
+                  "  if (pm.environment.name) {",
+                  "    pm.environment.set(\"idTokenCoach\", token);",
+                  "    console.log(`IdTokenCoach salvo no environment: ${pm.environment.name}`);",
+                  "  } else {",
+                  "    pm.globals.set(\"idTokenCoach\", token);",
+                  "    console.log(\"Nenhum environment ativo — ddTokenCoach salvo em globals\");",
+                  "  }",
+                  "} else {",
+                  "  console.log(\"Resposta inesperada:\", json);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1",
+                "type": "text"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "AWSCognitoIdentityProviderService.InitiateAuth",
+                "type": "text"
+              },
+              {
+                "key": "",
+                "value": "",
+                "type": "text",
+                "disabled": true
+              }
             ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        },
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "const json = pm.response.json();",
-              "",
-              "if (json.AuthenticationResult && json.AuthenticationResult.IdToken) {",
-              "  const token = json.AuthenticationResult.IdToken;",
-              "",
-              "  // Tenta salvar no environment ativo; se não houver, usa globals",
-              "  if (pm.environment.name) {",
-              "    pm.environment.set(\"idToken\", token);",
-              "    console.log(`IdToken salvo no environment: ${pm.environment.name}`);",
-              "  } else {",
-              "    pm.globals.set(\"idToken\", token);",
-              "    console.log(\"Nenhum environment ativo — IdToken salvo em globals\");",
-              "  }",
-              "} else {",
-              "  console.log(\"Resposta inesperada:\", json);",
-              "}"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/x-amz-json-1.1",
-            "type": "text"
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"AuthFlow\": \"USER_PASSWORD_AUTH\",\n  \"ClientId\": \"76hul7797npfkmpoju0mbghti7\",\n  \"AuthParameters\": {\n    \"USERNAME\": \"joao@exemplo.com\",\n    \"PASSWORD\": \"SenhaForte123!\",\n    \"SECRET_HASH\": \"{{secretHash}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://cognito-idp.sa-east-1.amazonaws.com/",
+              "protocol": "https",
+              "host": [
+                "cognito-idp",
+                "sa-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                ""
+              ]
+            }
           },
-          {
-            "key": "X-Amz-Target",
-            "value": "AWSCognitoIdentityProviderService.InitiateAuth",
-            "type": "text"
-          },
-          {
-            "key": "",
-            "value": "",
-            "type": "text",
-            "disabled": true
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"AuthFlow\": \"USER_PASSWORD_AUTH\",\n  \"ClientId\": \"76hul7797npfkmpoju0mbghti7\",\n  \"AuthParameters\": {\n    \"USERNAME\": \"joao@exemplo.com\",\n    \"PASSWORD\": \"SenhaForte123!\",\n    \"SECRET_HASH\": \"{{secretHash}}\"\n  }\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
+          "response": []
         },
-        "url": {
-          "raw": "https://cognito-idp.sa-east-1.amazonaws.com/",
-          "protocol": "https",
-          "host": [
-            "cognito-idp",
-            "sa-east-1",
-            "amazonaws",
-            "com"
-          ],
-          "path": [
-            ""
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "3 - Fazer o upload real no S3",
-      "request": {
-        "auth": {
-          "type": "noauth"
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            {
-              "key": "key",
-              "value": "{{uploadKey}}",
-              "type": "text",
-              "uuid": "748ec089-4308-442e-adad-db4188406dc0"
-            },
-            {
-              "key": "Content-Type",
-              "value": "video/mp4",
-              "type": "text",
-              "uuid": "1de1199a-db8a-4d2a-ae8c-7bd6afe09e6d"
-            },
-            {
-              "key": "X-Amz-Algorithm",
-              "value": "{{upload_x-amz-algorithm}}",
-              "type": "text",
-              "uuid": "c49f3c45-1a30-4b19-94bd-a18a32299e9f"
-            },
-            {
-              "key": "X-Amz-Credential",
-              "value": "{{upload_x-amz-credential}}",
-              "type": "text",
-              "uuid": "ad44cd82-1efa-4e47-9136-7c732796573d"
-            },
-            {
-              "key": "X-Amz-Date",
-              "value": "{{upload_x-amz-date}}",
-              "type": "text",
-              "uuid": "0f5070bd-559a-4dbf-b629-340e9912bd94"
-            },
-            {
-              "key": "Policy",
-              "value": "{{upload_policy}}",
-              "type": "text",
-              "uuid": "d4ff541d-893f-43e9-acd1-732998e232f5"
-            },
-            {
-              "key": "X-Amz-Signature",
-              "value": "{{upload_x-amz-signature}}",
-              "type": "text",
-              "uuid": "0733ef04-5d37-4a32-a4a7-178e15a1b2c8"
-            },
-            {
-              "key": "x-amz-security-token",
-              "value": "{{upload_x-amz-security-token}}",
-              "type": "text",
-              "uuid": "aedab0aa-1f76-49f5-a575-44bf5fe7cdfc"
-            },
-            {
-              "key": "file",
-              "type": "file",
-              "uuid": "94e8df47-39ab-4cea-8d88-7659593ccfb9",
-              "src": "/Users/kruger/Downloads/perfil-joao.mp4"
-            }
-          ]
-        },
-        "url": {
-          "raw": "{{uploadUrl}}",
-          "host": [
-            "{{uploadUrl}}"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "2 - Obter URL para envio do Video para o S3",
-      "event": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "// const json = pm.response.json();",
-              "",
-              "// // Validação básica da estrutura da resposta",
-              "// if (!json.upload || !json.upload.url || !json.upload.fields) {",
-              "//   console.log(\"Resposta inesperada:\", json);",
-              "//   throw new Error(\"Campos 'upload.url' ou 'upload.fields' não encontrados na resposta\");",
-              "// }",
-              "",
-              "// pm.globals.set(\"uploadUrl\", json.upload.url);",
-              "// pm.globals.set(\"uploadKey\", json.key);",
-              "",
-              "// // salva cada field individualmente",
-              "// Object.entries(json.upload.fields).forEach(([k, v]) => {",
-              "//   pm.globals.set(`upload_${k}`, v);",
-              "// });",
-              "",
-              "// console.log(\"Upload URL salva em globals:\", json.upload.url);",
-              "// console.log(\"Key:\", json.key);",
-              "// console.log(\"Campos disponíveis:\", Object.keys(json.upload.fields));",
-              "",
-              "const json = pm.response.json();",
-              "",
-              "console.log(\"=== RESPOSTA COMPLETA ===\");",
-              "console.log(JSON.stringify(json, null, 2));",
-              "",
-              "console.log(\"=== ESTRUTURA ===\");",
-              "console.log(\"Tem 'upload'?\", !!json.upload);",
-              "console.log(\"Tem 'upload.url'?\", !!(json.upload && json.upload.url));",
-              "console.log(\"Tem 'upload.fields'?\", !!(json.upload && json.upload.fields));",
-              "console.log(\"Tem 'key'?\", !!json.key);",
-              "",
-              "if (!json.upload || !json.upload.url || !json.upload.fields) {",
-              "  console.error(\"ERRO: Estrutura inesperada na resposta\");",
-              "  throw new Error(\"Resposta não tem 'upload.url' ou 'upload.fields'\");",
-              "}",
-              "",
-              "pm.globals.set(\"uploadUrl\", json.upload.url);",
-              "pm.globals.set(\"uploadKey\", json.key);",
-              "",
-              "console.log(\"=== SALVANDO FIELDS EM GLOBALS ===\");",
-              "Object.entries(json.upload.fields).forEach(([k, v]) => {",
-              "  const varName = `upload_${k}`;",
-              "  pm.globals.set(varName, v);",
-              "  console.log(`  ${varName} = ${v.substring(0, 40)}${v.length > 40 ? \"...\" : \"\"}`);",
-              "});",
-              "",
-              "console.log(\"=== CONCLUÍDO ===\");",
-              "console.log(\"Total de globals salvas:\", Object.keys(json.upload.fields).length + 2);"
+          "name": "C02 - Obter URL para envio do Video para o S3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// const json = pm.response.json();",
+                  "",
+                  "// // Validação básica da estrutura da resposta",
+                  "// if (!json.upload || !json.upload.url || !json.upload.fields) {",
+                  "//   console.log(\"Resposta inesperada:\", json);",
+                  "//   throw new Error(\"Campos 'upload.url' ou 'upload.fields' não encontrados na resposta\");",
+                  "// }",
+                  "",
+                  "// pm.globals.set(\"uploadUrl\", json.upload.url);",
+                  "// pm.globals.set(\"uploadKey\", json.key);",
+                  "",
+                  "// // salva cada field individualmente",
+                  "// Object.entries(json.upload.fields).forEach(([k, v]) => {",
+                  "//   pm.globals.set(`upload_${k}`, v);",
+                  "// });",
+                  "",
+                  "// console.log(\"Upload URL salva em globals:\", json.upload.url);",
+                  "// console.log(\"Key:\", json.key);",
+                  "// console.log(\"Campos disponíveis:\", Object.keys(json.upload.fields));",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "console.log(\"=== RESPOSTA COMPLETA ===\");",
+                  "console.log(JSON.stringify(json, null, 2));",
+                  "",
+                  "console.log(\"=== ESTRUTURA ===\");",
+                  "console.log(\"Tem 'upload'?\", !!json.upload);",
+                  "console.log(\"Tem 'upload.url'?\", !!(json.upload && json.upload.url));",
+                  "console.log(\"Tem 'upload.fields'?\", !!(json.upload && json.upload.fields));",
+                  "console.log(\"Tem 'key'?\", !!json.key);",
+                  "",
+                  "if (!json.upload || !json.upload.url || !json.upload.fields) {",
+                  "  console.error(\"ERRO: Estrutura inesperada na resposta\");",
+                  "  throw new Error(\"Resposta não tem 'upload.url' ou 'upload.fields'\");",
+                  "}",
+                  "",
+                  "pm.globals.set(\"uploadUrl\", json.upload.url);",
+                  "pm.globals.set(\"uploadKey\", json.key);",
+                  "",
+                  "console.log(\"=== SALVANDO FIELDS EM GLOBALS ===\");",
+                  "Object.entries(json.upload.fields).forEach(([k, v]) => {",
+                  "  const varName = `upload_${k}`;",
+                  "  pm.globals.set(varName, v);",
+                  "  console.log(`  ${varName} = ${v.substring(0, 40)}${v.length > 40 ? \"...\" : \"\"}`);",
+                  "});",
+                  "",
+                  "console.log(\"=== CONCLUÍDO ===\");",
+                  "console.log(\"Total de globals salvas:\", Object.keys(json.upload.fields).length + 2);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "packages": {},
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filename\": \"perfil-joao.mp4\",\n  \"contentType\": \"video/mp4\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/upload-url",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "upload-url"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C03 - Fazer o upload real no S3",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "key",
+                  "value": "{{uploadKey}}",
+                  "type": "text",
+                  "uuid": "748ec089-4308-442e-adad-db4188406dc0"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "video/mp4",
+                  "type": "text",
+                  "uuid": "1de1199a-db8a-4d2a-ae8c-7bd6afe09e6d"
+                },
+                {
+                  "key": "X-Amz-Algorithm",
+                  "value": "{{upload_x-amz-algorithm}}",
+                  "type": "text",
+                  "uuid": "c49f3c45-1a30-4b19-94bd-a18a32299e9f"
+                },
+                {
+                  "key": "X-Amz-Credential",
+                  "value": "{{upload_x-amz-credential}}",
+                  "type": "text",
+                  "uuid": "ad44cd82-1efa-4e47-9136-7c732796573d"
+                },
+                {
+                  "key": "X-Amz-Date",
+                  "value": "{{upload_x-amz-date}}",
+                  "type": "text",
+                  "uuid": "0f5070bd-559a-4dbf-b629-340e9912bd94"
+                },
+                {
+                  "key": "Policy",
+                  "value": "{{upload_policy}}",
+                  "type": "text",
+                  "uuid": "d4ff541d-893f-43e9-acd1-732998e232f5"
+                },
+                {
+                  "key": "X-Amz-Signature",
+                  "value": "{{upload_x-amz-signature}}",
+                  "type": "text",
+                  "uuid": "0733ef04-5d37-4a32-a4a7-178e15a1b2c8"
+                },
+                {
+                  "key": "x-amz-security-token",
+                  "value": "{{upload_x-amz-security-token}}",
+                  "type": "text",
+                  "uuid": "aedab0aa-1f76-49f5-a575-44bf5fe7cdfc"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "uuid": "94e8df47-39ab-4cea-8d88-7659593ccfb9",
+                  "src": "/Users/kruger/Downloads/perfil-joao.mp4"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{uploadUrl}}",
+              "host": [
+                "{{uploadUrl}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C04 - Obter especialidades dos Coaches",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/specialties?search=Cross",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "specialties"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Cross"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C05 - Lista Academias",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/gyms?limit=5&cursor=eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9&search=Fit",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "gyms"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "cursor",
+                  "value": "eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9"
+                },
+                {
+                  "key": "search",
+                  "value": "Fit"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C06 - Posta uma sugestão de academia (Active = False sempre)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Academia Teste\",\n  \"address\": \"R. Teste, 180\",\n  \"city\": \"São Paulo\",\n  \"state\": \"SP\",\n  \"neighborhood\": \"Centro\",\n  \"coordinates\": {\"lat\": -27.5966, \"lng\": -48.5495}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/gyms/suggest",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "gyms",
+                "suggest"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C07 - Get Schedules do Coach, pelo JWT",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/schedule?startDateTime=2026-05-01T08:00:30-03:00&endDateTime=2026-06-06T08:00:30-03:00",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "schedule"
+              ],
+              "query": [
+                {
+                  "key": "startDateTime",
+                  "value": "2026-05-01T08:00:30-03:00"
+                },
+                {
+                  "key": "endDateTime",
+                  "value": "2026-06-06T08:00:30-03:00"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C08 - Posta Disponibilidade de agenda do coach",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gymId\": \"gym_sp005\",\n  \"specialtyId\": \"MUSCULATION\",\n  \"startDateTime\": \"2026-06-04T07:30:00-03:00\",\n  \"endDateTime\": \"2026-06-04T08:00:30-03:00\",\n  \"price\": \"120.00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/schedule",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "schedule"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C09 - Get Schedules requests",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/schedule/requests?scheduleId=avl_6cb2b644248448c68e63f350119c032d",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "schedule",
+                "requests"
+              ],
+              "query": [
+                {
+                  "key": "scheduleId",
+                  "value": "avl_6cb2b644248448c68e63f350119c032d"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C10 - Aprovar Schedule Request",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"scheduleId\": \"avl_6cb2b644248448c68e63f350119c032d\",\n \"studentId\":\"037c4a8a-6031-705c-e02f-8e45f93bd387\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/schedule/approve",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "schedule",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C11 - Cancel Schedule",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"scheduleId\": \"avl_6cb2b644248448c68e63f350119c032d\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/schedule/cancel",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "schedule",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C12 - Coach finaliza atendimento",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduleId\": \"avl_6cb2b644248448c68e63f350119c032d\",\n  \"status\": \"COMPLETED\"\n}\n\n// {\n//   \"scheduleId\": \"avl_4fc6b7ba146347e096c75b60446d479a\",\n//   \"status\": \"NOSHOW\"\n// }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/schedule/class/status",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "schedule",
+                "class",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C13 - Obter perfil do coach (GET /coach/me)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/me",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "me"
+              ]
+            },
+            "description": "Retorna o perfil do coach autenticado (resolvido pelo JWT CoachAccess)."
+          },
+          "response": []
+        },
+        {
+          "name": "C14 - Atualizar perfil do coach (PUT /coach/me)",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{idToken}}",
-              "type": "string"
-            }
-          ]
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/me",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profile\": {\n    \"name\": \"João Silva\",\n    \"phone\": \"11999999999\",\n    \"instagram\": \"@joao.treina\",\n    \"cref\": \"012345-G/SP\",\n    \"specialties\": [\n      \"Musculação\",\n      \"Crossfit\"\n    ],\n    \"profile_video\": false\n  },\n  \"work_location\": [\n    {\n      \"type\": \"GYM\",\n      \"gymId\": \"gym_b1cac932\"\n    },\n    {\n      \"type\": \"HOME_SERVICE\",\n      \"coverage\": {\n        \"city\": \"São Paulo\",\n        \"state\": \"SP\",\n        \"neighborhoods\": [\n          \"Pinheiros\",\n          \"Vila Madalena\"\n        ]\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Salva o perfil do coach. Não altera o status (ver fluxo no README)."
+          },
+          "response": []
         },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"filename\": \"perfil-joao.mp4\",\n  \"contentType\": \"video/mp4\"\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
+        {
+          "name": "C15 - Chat: emite token do Stream",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/token",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "token"
+              ]
+            },
+            "description": "Emite o token de acesso do Stream (apiKey + token, válido 24h)."
+          },
+          "response": []
         },
-        "url": {
-          "raw": "https://qht6965nv9.execute-api.sa-east-1.amazonaws.com/upload-url",
-          "protocol": "https",
-          "host": [
-            "qht6965nv9",
-            "execute-api",
-            "sa-east-1",
-            "amazonaws",
-            "com"
-          ],
-          "path": [
-            "upload-url"
-          ]
+        {
+          "name": "C16 - Chat: cria/recupera conversa com par",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"peerId\": \"<STUDENT_USER_ID>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations"
+              ]
+            },
+            "description": "Cria (ou recupera) a conversa direta com o par informado em peerId."
+          },
+          "response": []
+        },
+        {
+          "name": "C17 - Chat: lista conversas",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations?limit=30",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "30"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C18 - Chat: edita conversa (nome/frozen)",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Plano de treino\",\n  \"frozen\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b"
+              ]
+            },
+            "description": "Troque o id do canal no path pelo retornado em 'cria conversa'."
+          },
+          "response": []
+        },
+        {
+          "name": "C19 - Chat: oculta conversa",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C20 - Chat: envia mensagem",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Bom treino hoje?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C21 - Chat: lista mensagens",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages?limit=30&before=",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "30"
+                },
+                {
+                  "key": "before",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "'before' é o id de uma mensagem usada como cursor (anteriores a ela)."
+          },
+          "response": []
+        },
+        {
+          "name": "C22 - Chat: edita mensagem",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Bom treino hoje? (editado)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/messages/<MESSAGE_ID>",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "messages",
+                "<MESSAGE_ID>"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C23 - Chat: apaga mensagem",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/chat/messages/<MESSAGE_ID>",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "chat",
+                "messages",
+                "<MESSAGE_ID>"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "C24 - Detalhe do aluno na sessão (GET /coach/students/{studentId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenCoach}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/coach/students/037c4a8a-6031-705c-e02f-8e45f93bd387",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "coach",
+                "students",
+                "037c4a8a-6031-705c-e02f-8e45f93bd387"
+              ]
+            },
+            "description": "Detalhe de treino do aluno (nome, gênero, nascimento, objetivo e PAR-Q), sem dados de contato. Exige vínculo de sessão entre coach e aluno (403 caso contrário)."
+          },
+          "response": []
         }
-      },
-      "response": []
+      ]
     },
     {
-      "name": "4 - Obter especialidades dos Coaches",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
+      "name": "Aluno",
+      "item": [
+        {
+          "name": "S01 - Obter o IdToken do Cognito Aluno",
+          "event": [
             {
-              "key": "token",
-              "value": "{{idToken}}",
-              "type": "string"
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "if (json.AuthenticationResult && json.AuthenticationResult.IdToken) {",
+                  "  const token = json.AuthenticationResult.IdToken;",
+                  "",
+                  "  // Tenta salvar no environment ativo; se não houver, usa globals",
+                  "  if (pm.environment.name) {",
+                  "    pm.environment.set(\"idTokenStudent\", token);",
+                  "    console.log(`idTokenStudent salvo no environment: ${pm.environment.name}`);",
+                  "  } else {",
+                  "    pm.globals.set(\"idTokenStudent\", token);",
+                  "    console.log(\"Nenhum environment ativo — idTokenStudent salvo em globals\");",
+                  "  }",
+                  "} else {",
+                  "  console.log(\"Resposta inesperada:\", json);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
             }
-          ]
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1",
+                "type": "text"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "AWSCognitoIdentityProviderService.InitiateAuth",
+                "type": "text"
+              },
+              {
+                "key": "",
+                "value": "",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"AuthFlow\": \"USER_PASSWORD_AUTH\",\n  \"ClientId\": \"3rjn45koljliioocd5usijdv9s\",\n  \"AuthParameters\": {\n    \"USERNAME\": \"joao@exemplo.com\",\n    \"PASSWORD\": \"SenhaForte123!\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://cognito-idp.sa-east-1.amazonaws.com/",
+              "protocol": "https",
+              "host": [
+                "cognito-idp",
+                "sa-east-1",
+                "amazonaws",
+                "com"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
         },
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "https://qht6965nv9.execute-api.sa-east-1.amazonaws.com/specialties?limit=10&page=1",
-          "protocol": "https",
-          "host": [
-            "qht6965nv9",
-            "execute-api",
-            "sa-east-1",
-            "amazonaws",
-            "com"
-          ],
-          "path": [
-            "specialties"
-          ],
-          "query": [
-            {
-              "key": "search",
-              "value": "Cross",
-              "type": "text",
-              "disabled": true
+        {
+          "name": "S02 - Obter especialidades dos Coaches (Aluno)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
             },
-            {
-              "key": "limit",
-              "value": "10",
-              "type": "text"
-            },
-            {
-              "key": "page",
-              "value": "1",
-              "type": "text"
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/specialties?search=Cross",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "specialties"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Cross"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                }
+              ]
             }
-          ]
+          },
+          "response": []
+        },
+        {
+          "name": "S03 - Lista Academias (Aluno)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/gyms?limit=5&cursor=eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9&search=Fit",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "gyms"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "cursor",
+                  "value": "eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9"
+                },
+                {
+                  "key": "search",
+                  "value": "Fit"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S04 - Posta uma sugestão de academia (Active = False sempre) Copy",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Academia Teste\",\n  \"address\": \"R. Teste, 180\",\n  \"city\": \"São Paulo\",\n  \"state\": \"SP\",\n  \"neighborhood\": \"Centro\",\n  \"coordinates\": {\"lat\": -27.5966, \"lng\": -48.5495}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/gyms/suggest",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "gyms",
+                "suggest"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S05 - Lista schedule pelo coachID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/coach/schedules?coachId=83dcfaba-f0c1-705d-b109-2b381fed0971&startDateTime=2026-05-01T08:00:30-03:00&endDateTime=2026-06-06T08:00:30-03:00",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "coach",
+                "schedules"
+              ],
+              "query": [
+                {
+                  "key": "coachId",
+                  "value": "83dcfaba-f0c1-705d-b109-2b381fed0971"
+                },
+                {
+                  "key": "startDateTime",
+                  "value": "2026-05-01T08:00:30-03:00"
+                },
+                {
+                  "key": "endDateTime",
+                  "value": "2026-06-06T08:00:30-03:00"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S06 - Lista schedule pelo gymId",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/gyms/schedule?gymId=gym_sp005&startDateTime=2026-05-01T08:00:30-03:00&endDateTime=2026-06-06T08:00:30-03:00",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "gyms",
+                "schedule"
+              ],
+              "query": [
+                {
+                  "key": "gymId",
+                  "value": "gym_sp005"
+                },
+                {
+                  "key": "startDateTime",
+                  "value": "2026-05-01T08:00:30-03:00"
+                },
+                {
+                  "key": "endDateTime",
+                  "value": "2026-06-06T08:00:30-03:00"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S07 - Solicita schedule",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"scheduleId\": \"avl_6cb2b644248448c68e63f350119c032d\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/coach/schedules/request",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "coach",
+                "schedules",
+                "request"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S08 - Lista schedule solicitados",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/coach/schedules/request",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "coach",
+                "schedules",
+                "request"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S09 - Cancel Schedule",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"scheduleId\": \"avl_6cb2b644248448c68e63f350119c032d\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/coach/schedules/cancel",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "coach",
+                "schedules",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S10 - Cancel Schedule Request",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"scheduleId\": \"avl_6cb2b644248448c68e63f350119c032d\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/coach/schedules/request",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "coach",
+                "schedules",
+                "request"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S11 - Obter perfil do aluno (GET /student/me)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/me",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "me"
+              ]
+            },
+            "description": "Retorna o perfil do aluno autenticado (JWT StudentAccess)."
+          },
+          "response": []
+        },
+        {
+          "name": "S12 - Atualizar perfil do aluno (POST /student/me/profile)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/me/profile",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "me",
+                "profile"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Maria Souza\",\n  \"phone\": \"(11) 99999-9999\",\n  \"birthDate\": \"1995-04-23\",\n  \"gender\": \"F\",\n  \"cep\": \"01310-100\",\n  \"city\": \"São Paulo\",\n  \"state\": \"SP\",\n  \"radius\": 10,\n  \"goal\": \"HYPERTROPHY\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "gender: M|F|NB|NA. goal: WEIGHT_LOSS|HYPERTROPHY|CONDITIONING|REHAB|PERFORMANCE. radius em km (1–100)."
+          },
+          "response": []
+        },
+        {
+          "name": "S13 - Enviar questionário de saúde PAR-Q (POST /student/me/health)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/me/health",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "me",
+                "health"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"heart\": \"NO\",\n    \"chest_pain\": \"NO\",\n    \"dizziness\": \"NO\",\n    \"bone_joint\": \"NO\",\n    \"medication\": \"NO\"\n  },\n  \"notes\": \"Sem restrições conhecidas.\",\n  \"lgpdConsent\": true,\n  \"medicalDisclaimer\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "As 5 respostas PAR-Q são YES|NO. lgpdConsent e medicalDisclaimer devem ser true."
+          },
+          "response": []
+        },
+        {
+          "name": "S14 - Buscar coaches (GET /student/coaches)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/coaches?q=Cross&specialties[]=Musculação&limit=12",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "coaches"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Cross"
+                },
+                {
+                  "key": "specialties[]",
+                  "value": "Musculação"
+                },
+                {
+                  "key": "limit",
+                  "value": "12"
+                },
+                {
+                  "key": "lastKey",
+                  "value": "{\"coachId\":\"...\"}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "q: busca textual livre. specialties[]: repetível para múltiplas. limit (default 12). lastKey: JSON do meta.lastKey da página anterior p/ paginação por cursor."
+          },
+          "response": []
+        },
+        {
+          "name": "S14b - Detalhe do coach (GET /student/coaches/{coachId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/coaches/83dcfaba-f0c1-705d-b109-2b381fed0971",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "coaches",
+                "83dcfaba-f0c1-705d-b109-2b381fed0971"
+              ]
+            },
+            "description": "Detalhe público de um treinador APPROVED. Retorna dados não sensíveis (sem e-mail/conta) e enriquece as localidades GYM com os dados da academia. 404 para coach inexistente ou não listável."
+          },
+          "response": []
+        },
+        {
+          "name": "S15 - Criar pagamento via cartão (POST /payments)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"credit_card\",\n  \"sessionId\": \"3f9c1d2e-7a4b-4c8d-9e10-2b6f5a1c8d34\",\n  \"coachId\": \"83dcfaba-f0c1-705d-b109-2b381fed0971\",\n  \"amount\": 15000,\n  \"card\": {\n    \"number\": \"4111 1111 1111 1111\",\n    \"holder\": \"JOAO SILVA\",\n    \"expiryMonth\": \"12\",\n    \"expiryYear\": \"2030\",\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "amount em centavos (15000 = R$ 150,00). Cenário do cartão é resolvido pelo número (ver shared/helpers.js)."
+          },
+          "response": []
+        },
+        {
+          "name": "S16 - Criar pagamento via PIX (POST /payments)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"pix\",\n  \"sessionId\": \"3f9c1d2e-7a4b-4c8d-9e10-2b6f5a1c8d34\",\n  \"coachId\": \"83dcfaba-f0c1-705d-b109-2b381fed0971\",\n  \"amount\": 15000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Pagamento PIX: retorna um pixCode mock. amount em centavos."
+          },
+          "response": []
+        },
+        {
+          "name": "S17 - Obter pagamento por transação (GET /payments/{transactionId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments/txn_9f2a1b7c4e8d4a6f",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments",
+                "txn_9f2a1b7c4e8d4a6f"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S18 - Listar pagamentos do coach (GET /payments/coach/{coachId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments/coach/83dcfaba-f0c1-705d-b109-2b381fed0971",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments",
+                "coach",
+                "83dcfaba-f0c1-705d-b109-2b381fed0971"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S19 - Listar pagamentos do aluno (GET /payments/student/{studentId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments/student/83dcfaba-f0c1-705d-b109-2b381fed0971",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments",
+                "student",
+                "83dcfaba-f0c1-705d-b109-2b381fed0971"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S20 - Listar pagamentos da sessão (GET /payments/session/{sessionId})",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments/session/3f9c1d2e-7a4b-4c8d-9e10-2b6f5a1c8d34",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments",
+                "session",
+                "3f9c1d2e-7a4b-4c8d-9e10-2b6f5a1c8d34"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S21 - Estornar pagamento (POST /payments/{transactionId}/refund)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/payments/txn_9f2a1b7c4e8d4a6f/refund",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "payments",
+                "txn_9f2a1b7c4e8d4a6f",
+                "refund"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 15000,\n  \"reason\": \"Cancelamento solicitado pelo aluno\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "amount em centavos; reason é opcional (máx. 255 caracteres)."
+          },
+          "response": []
+        },
+        {
+          "name": "S22 - Chat: emite token do Stream",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/token",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "token"
+              ]
+            },
+            "description": "Emite o token de acesso do Stream (apiKey + token, válido 24h)."
+          },
+          "response": []
+        },
+        {
+          "name": "S23 - Chat: cria/recupera conversa com par",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"peerId\": \"83dcfaba-f0c1-705d-b109-2b381fed0971\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations"
+              ]
+            },
+            "description": "Cria (ou recupera) a conversa direta com o par informado em peerId."
+          },
+          "response": []
+        },
+        {
+          "name": "S24 - Chat: lista conversas",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations?limit=30",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "30"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S25 - Chat: edita conversa (nome/frozen)",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Plano de treino\",\n  \"frozen\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b"
+              ]
+            },
+            "description": "Troque o id do canal no path pelo retornado em 'cria conversa'."
+          },
+          "response": []
+        },
+        {
+          "name": "S26 - Chat: oculta conversa",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S27 - Chat: envia mensagem",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Bom treino hoje?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S28 - Chat: lista mensagens",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages?limit=30&before=",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "conversations",
+                "dm_1a2b3c4d_5e6f7a8b",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "30"
+                },
+                {
+                  "key": "before",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "'before' é o id de uma mensagem usada como cursor (anteriores a ela)."
+          },
+          "response": []
+        },
+        {
+          "name": "S29 - Chat: edita mensagem",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Bom treino hoje? (editado)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/messages/<MESSAGE_ID>",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "messages",
+                "<MESSAGE_ID>"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "S30 - Chat: apaga mensagem",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{idTokenStudent}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "https://api.coachmatch.com.br/student/chat/messages/<MESSAGE_ID>",
+              "protocol": "https",
+              "host": [
+                "api",
+                "coachmatch",
+                "com",
+                "br"
+              ],
+              "path": [
+                "student",
+                "chat",
+                "messages",
+                "<MESSAGE_ID>"
+              ]
+            }
+          },
+          "response": []
         }
-      },
-      "response": []
-    },
-    {
-      "name": "5 - Lista Academias",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{idToken}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "https://qht6965nv9.execute-api.sa-east-1.amazonaws.com/gyms?limit=5&page=2&search=Fit",
-          "protocol": "https",
-          "host": [
-            "qht6965nv9",
-            "execute-api",
-            "sa-east-1",
-            "amazonaws",
-            "com"
-          ],
-          "path": [
-            "gyms"
-          ],
-          "query": [
-            {
-              "key": "limit",
-              "value": "5"
-            },
-            {
-              "key": "page",
-              "value": "2"
-            },
-            {
-              "key": "search",
-              "value": "Fit",
-              "type": "text"
-            }
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "6 - Posta uma sugestão de academia (Active = False sempre)",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{idToken}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Academia Teste\",\n  \"address\": \"R. Teste, 180\",\n  \"city\": \"São Paulo\",\n  \"state\": \"SP\",\n  \"neighborhood\": \"Centro\",\n  \"coordinates\": {\"lat\": -27.5966, \"lng\": -48.5495}\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "https://qht6965nv9.execute-api.sa-east-1.amazonaws.com/gyms/suggest",
-          "protocol": "https",
-          "host": [
-            "qht6965nv9",
-            "execute-api",
-            "sa-east-1",
-            "amazonaws",
-            "com"
-          ],
-          "path": [
-            "gyms",
-            "suggest"
-          ]
-        }
-      },
-      "response": []
+      ]
     }
   ]
 }

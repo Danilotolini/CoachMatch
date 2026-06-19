@@ -15,7 +15,7 @@ export const createStudent = async (cognitoAttributes) => {
   await insertStudent({
     studentId: cognitoAttributes.sub,
     email: cognitoAttributes.email,
-    status: 'ONBOARDING_PROFILE',
+    status: 'PENDING_PROFILE',
     profile: { name: cognitoAttributes.name },
   });
 };

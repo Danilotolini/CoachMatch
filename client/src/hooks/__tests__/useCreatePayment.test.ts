@@ -3,6 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { useCreatePayment } from '../useCreatePayment'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
+import { makeCardPayment, makeTransaction } from '@/test/fixtures'
 
 // Mock da API
 vi.mock('@/api/payments', () => ({
@@ -12,7 +13,7 @@ vi.mock('@/api/payments', () => ({
 describe('useCreatePayment', () => {
   it('chama a mutation corretamente com payload de cartão', async () => {
     const { createPayment } = await import('@/api/payments')
-    vi.mocked(createPayment).mockResolvedValue({ success: true })
+    vi.mocked(createPayment).mockResolvedValue(makeTransaction())
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -25,14 +26,7 @@ describe('useCreatePayment', () => {
 
     const { result } = renderHook(() => useCreatePayment(), { wrapper })
 
-    const cardPayload = {
-      method: 'card' as const,
-      cardNumber: '4111111111111111',
-      holder: 'JOHN DOE',
-      expiryMonth: '12',
-      expiryYear: '2025',
-      cvv: '123',
-    }
+    const cardPayload = makeCardPayment()
 
     result.current.mutate(cardPayload)
 
@@ -43,11 +37,7 @@ describe('useCreatePayment', () => {
 
   it('retorna dados da transação em caso de sucesso', async () => {
     const { createPayment } = await import('@/api/payments')
-    const transactionData = {
-      success: true,
-      transactionId: 'txn_123',
-      status: 'approved',
-    }
+    const transactionData = makeTransaction({ transactionId: 'txn_123' })
     vi.mocked(createPayment).mockResolvedValue(transactionData)
 
     const queryClient = new QueryClient({
@@ -61,14 +51,7 @@ describe('useCreatePayment', () => {
 
     const { result } = renderHook(() => useCreatePayment(), { wrapper })
 
-    result.current.mutate({
-      method: 'card' as const,
-      cardNumber: '4111111111111111',
-      holder: 'JOHN DOE',
-      expiryMonth: '12',
-      expiryYear: '2025',
-      cvv: '123',
-    })
+    result.current.mutate(makeCardPayment())
 
     await waitFor(() => {
       expect(result.current.data).toEqual(transactionData)
@@ -91,14 +74,7 @@ describe('useCreatePayment', () => {
 
     const { result } = renderHook(() => useCreatePayment(), { wrapper })
 
-    result.current.mutate({
-      method: 'card' as const,
-      cardNumber: '4111111111111111',
-      holder: 'JOHN DOE',
-      expiryMonth: '12',
-      expiryYear: '2025',
-      cvv: '123',
-    })
+    result.current.mutate(makeCardPayment())
 
     await waitFor(() => {
       expect(result.current.error).toBeTruthy()

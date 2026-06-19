@@ -68,7 +68,7 @@ O pipeline completo que executa em todos os pushes e PRs.
 |-------|-----------|--------|
 | **Lint** | ESLint + TypeScript type check | Todos os pushes |
 | **Security** | npm audit + Snyk | Todos os pushes |
-| **Backend Tests** | Jest + DynamoDB Local | Todos os pushes |
+| **Backend Tests** | Vitest + DynamoDB Local | Todos os pushes |
 | **Frontend Tests** | Vitest + React Testing Library | Todos os pushes |
 | **Build** | Build verification | Após testes |
 | **E2E Tests** | Playwright | PR + main |
@@ -207,15 +207,15 @@ Certifique-se de ter estes scripts nos seus `package.json`:
 }
 ```
 
-### Server
+### Server (`server/coachmatch`)
+
 ```json
 {
   "scripts": {
-    "test": "jest",
-    "test:backend": "jest --coverage",
-    "test:coverage": "jest --coverage",
-    "build": "tsc",
-    "build:backend": "serverless package"
+    "dev": "serverless offline start --stage local",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   }
 }
 ```

@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
@@ -5,6 +6,7 @@ import { http, HttpResponse } from 'msw'
 import LoginPage from './LoginPage'
 import * as cognito from '@/lib/cognito'
 import { loginAs } from '@/test/session'
+import { makeClient } from '@/test/fixtures'
 import { useSessionStore } from '@/stores/sessionStore'
 import { server } from '@/mocks/server'
 import type { Client } from '@/types/api'
@@ -131,25 +133,203 @@ describe('LoginPage', () => {
     expect(getLoginUrlSpy).not.toHaveBeenCalled()
   })
 
+  it('não volta para /coach quando login recebe sessão encerrada com token antigo', async () => {
+    const url = 'https://cognito.test/oauth2/authorize?x=1'
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+    loginAs('coach', 'stale-token')
+
+    render(
+      <MemoryRouter
+        initialEntries={[{ pathname: '/coach/login', state: { reason: 'unauthorized' } }]}
+      >
+        <Routes>
+          <Route path="/coach/login" element={<LoginPage audience="coach" />} />
+          <Route path="/coach" element={<div>coach dashboard</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
+    expect(screen.queryByText('coach dashboard')).not.toBeInTheDocument()
+    expect(useSessionStore.getState().sessions.coach).toBeUndefined()
+    expect(window.location.href).toBe(url)
+    expect(getLoginUrlSpy).toHaveBeenCalledTimes(1)
+  })
+
   it('reativa sessão de aluno e redireciona conforme backend', async () => {
     vi.spyOn(cognito, 'getLoginUrl')
     loginAs('client')
     useSessionStore.setState((state) => ({ ...state, activeRole: null }))
     server.use(
-      http.get('*/clients/me', () =>
-        HttpResponse.json<Client>({
-          clientId: 'client_demo',
-          email: 'aluno@coachmatch.app',
-          status: 'ACTIVE',
-          createdAt: '2026-01-01T00:00:00.000Z',
-          updatedAt: '2026-01-01T00:00:00.000Z',
-        }),
-      ),
+      http.get('*/student/me', () => HttpResponse.json<Client>(makeClient({ status: 'ACTIVE' }))),
     )
 
     renderPage('client')
 
     expect(await screen.findByText('client home')).toBeInTheDocument()
     expect(useSessionStore.getState().activeRole).toBe('client')
+  })
+
+  it('redireciona aluno para health quando o backend pede a ficha', async () => {
+    loginAs('client')
+    useSessionStore.setState((state) => ({ ...state, activeRole: null }))
+    server.use(
+      http.get('*/student/me', () =>
+        HttpResponse.json<Client>(makeClient({ status: 'ONBOARDING_HEALTH' })),
+      ),
+    )
+
+    renderPage('client')
+
+    expect(await screen.findByText('client health')).toBeInTheDocument()
+  })
+
+  it('manda aluno para onboarding quando /student/me falha fora de 401/403', async () => {
+    loginAs('client')
+    useSessionStore.setState((state) => ({ ...state, activeRole: null }))
+    server.use(
+      http.get('*/student/me', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+    )
+
+    renderPage('client')
+
+    expect(await screen.findByText('client onboarding')).toBeInTheDocument()
+  })
+
+  it('não redireciona para onboarding quando /student/me recusa a sessão', async () => {
+    const url = 'https://student-cognito.test/oauth2/authorize?x=1'
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+    loginAs('client', 'invalid-token')
+    server.use(
+      http.get('*/student/me', () => HttpResponse.json({ error: 'unauthorized' }, { status: 401 })),
+    )
+
+    renderPage('client')
+
+    expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
+    expect(screen.queryByText('client onboarding')).not.toBeInTheDocument()
+    expect(useSessionStore.getState().sessions.client).toBeUndefined()
+    expect(window.location.href).toBe(url)
+    expect(getLoginUrlSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('em mock, pede novo login quando chega por sessão expirada', async () => {
+    vi.stubEnv('VITE_API_MOCKING', 'enabled')
+
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/client/login', state: { reason: 'expired' } }]}>
+        <Routes>
+          <Route path="/client/login" element={<LoginPage audience="client" />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Sessão encerrada pelo servidor.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ENTRAR NOVAMENTE' })).toBeInTheDocument()
+    expect(useSessionStore.getState().sessions.client).toBeUndefined()
+  })
+
+  it('reconhece o formato legado de sessão encerrada', async () => {
+    vi.stubEnv('VITE_API_MOCKING', 'enabled')
+
+    render(
+      <MemoryRouter
+        initialEntries={[{ pathname: '/client/login', state: { sessionExpired: 'unauthorized' } }]}
+      >
+        <Routes>
+          <Route path="/client/login" element={<LoginPage audience="client" />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Sessão encerrada pelo servidor.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ENTRAR NOVAMENTE' })).toBeInTheDocument()
+  })
+
+  it('usa mensagem fallback quando getLoginUrl falha com valor não Error', async () => {
+    vi.spyOn(cognito, 'getLoginUrl').mockRejectedValue('falha desconhecida')
+
+    renderPage('coach')
+
+    expect(await screen.findByText('Erro ao iniciar login.')).toBeInTheDocument()
+  })
+
+  // Regressão: ao cair no login sem sessão, getLoginUrl roda já no mount. O
+  // double-invoke de efeitos do StrictMode (dev) chamaria getLoginUrl duas
+  // vezes; como cada chamada grava state/PKCE concorrentes no sessionStorage e
+  // pode resolver fora de ordem, o redirect sairia com um state que a outra
+  // chamada já sobrescreveu — e o callback cairia em "Estado inválido".
+  it('inicia o login do Cognito uma única vez sob StrictMode (coach)', async () => {
+    const url = 'https://cognito.test/oauth2/authorize?x=1'
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={['/coach/login']}>
+          <Routes>
+            <Route path="/coach/login" element={<LoginPage audience="coach" />} />
+          </Routes>
+        </MemoryRouter>
+      </StrictMode>,
+    )
+
+    expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
+    expect(getLoginUrlSpy).toHaveBeenCalledTimes(1)
+    expect(getLoginUrlSpy).toHaveBeenCalledWith('coach')
+    expect(window.location.href).toBe(url)
+  })
+
+  it('inicia o login do Cognito uma única vez sob StrictMode (aluno)', async () => {
+    const url = 'https://student-cognito.test/oauth2/authorize?x=1'
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={['/client/login']}>
+          <Routes>
+            <Route path="/client/login" element={<LoginPage audience="client" />} />
+          </Routes>
+        </MemoryRouter>
+      </StrictMode>,
+    )
+
+    expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
+    expect(getLoginUrlSpy).toHaveBeenCalledTimes(1)
+    expect(getLoginUrlSpy).toHaveBeenCalledWith('client')
+    expect(window.location.href).toBe(url)
+  })
+
+  // Regressão: no caminho timeout → relogin, a navegação concorrente para o
+  // login pode remontar o LoginPage. Um useRef nasceria zerado e dispararia um
+  // segundo getLoginUrl, sobrescrevendo o state/PKCE do redirect já em voo. O
+  // guard de módulo dedupa entre montagens da mesma carga de página.
+  it('não reinicia o /authorize ao remontar o LoginPage', async () => {
+    const url = 'https://student-cognito.test/oauth2/authorize?x=1'
+    const getLoginUrlSpy = vi.spyOn(cognito, 'getLoginUrl').mockResolvedValue(url)
+
+    const { unmount } = renderPage('client')
+    expect(await screen.findByText(/Clique aqui se não for redirecionado/i)).toBeInTheDocument()
+    unmount()
+
+    renderPage('client')
+    await waitFor(() => {
+      expect(getLoginUrlSpy).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('libera novo /authorize após falha do getLoginUrl', async () => {
+    const getLoginUrlSpy = vi
+      .spyOn(cognito, 'getLoginUrl')
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce('https://cognito.test/oauth2/authorize?x=1')
+
+    const { unmount } = renderPage('coach')
+    expect(await screen.findByText('boom')).toBeInTheDocument()
+    unmount()
+
+    renderPage('coach')
+    await waitFor(() => {
+      expect(getLoginUrlSpy).toHaveBeenCalledTimes(2)
+    })
   })
 })

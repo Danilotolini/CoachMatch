@@ -111,7 +111,7 @@ def main():
     ]
     
     for script in server_scripts:
-        if not check_script_exists("server/api-pagamentos/package.json", script):
+        if not check_script_exists("server/coachmatch/package.json", script):
             all_passed = False
     
     # ────────────────────────────────────────────────────────────
@@ -120,7 +120,7 @@ def main():
     
     required_packages = {
         "client": ["eslint", "typescript", "vitest"],
-        "server/api-pagamentos": ["jest", "@types/jest"],
+        "server/coachmatch": ["vitest", "@vitest/coverage-v8"],
     }
     
     for path, packages in required_packages.items():

@@ -1,3 +1,4 @@
+import { markBooted } from '@/boot/bootErrorOverlay'
 import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
@@ -15,18 +16,30 @@ async function enableMocking() {
 import WelcomePage from '@/pages/WelcomePage'
 import LoginPage from '@/pages/LoginPage'
 import CognitoCallbackPage from '@/pages/CognitoCallbackPage'
-import CoachOnboardingPage from '@/pages/CoachOnboardingPage'
-import ClientOnboardingPage from '@/pages/ClientOnboardingPage'
-import ClientHealthFormPage from '@/pages/ClientHealthFormPage'
-import CoachPendingReviewPage from '@/pages/CoachPendingReviewPage'
-import CoachRejectedPage from '@/pages/CoachRejectedPage'
 import CoachDashboardPage from '@/pages/CoachDashboardPage'
+import CoachProfilePage from '@/pages/CoachProfilePage'
 import ClientHomePage from '@/pages/ClientHomePage'
+import ClientProfilePage from '@/pages/ClientProfilePage'
 import PaymentPage from '@/pages/PaymentPage'
 import { CoachRouteGuard } from '@/components/CoachRouteGuard'
+import { COACH_ONBOARDING_STATUSES } from '@/lib/coachStatus'
 import { ClientRouteGuard } from '@/components/ClientRouteGuard'
 import { AppShell } from '@/components/AppShell'
+import { RouteErrorBoundary } from '@/components/RouteErrorBoundary'
 import ClientSearchPage from '@/pages/ClientSearchPage'
+import ClientCoachDetailPage from '@/pages/ClientCoachDetailPage'
+import NotFoundPage from '@/pages/NotFoundPage'
+import {
+  ClientChatPage,
+  ClientHealthFormPage,
+  ClientOnboardingPage,
+  ClientSchedulePage,
+  ClientSessionDetailPage,
+  CoachChatPage,
+  CoachOnboardingPage,
+  CoachSchedulePage,
+  CoachSessionDetailPage,
+} from '@/pages/lazy'
 
 function getDevRoutes() {
   if (!import.meta.env.DEV) return []
@@ -46,6 +59,7 @@ function getDevRoutes() {
 const router = createBrowserRouter([
   {
     element: <AppShell />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { path: '/', element: <WelcomePage /> },
       ...getDevRoutes(),
@@ -60,7 +74,9 @@ const router = createBrowserRouter([
         path: '/client/onboarding',
         element: (
           <ClientRouteGuard>
-            <ClientOnboardingPage />
+            <Suspense fallback={null}>
+              <ClientOnboardingPage />
+            </Suspense>
           </ClientRouteGuard>
         ),
       },
@@ -68,7 +84,9 @@ const router = createBrowserRouter([
         path: '/client/health',
         element: (
           <ClientRouteGuard>
-            <ClientHealthFormPage />
+            <Suspense fallback={null}>
+              <ClientHealthFormPage />
+            </Suspense>
           </ClientRouteGuard>
         ),
       },
@@ -89,26 +107,58 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/client/schedule',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <Suspense fallback={null}>
+              <ClientSchedulePage />
+            </Suspense>
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/client/schedule/:scheduleId',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <Suspense fallback={null}>
+              <ClientSessionDetailPage />
+            </Suspense>
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/client/chat',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <Suspense fallback={null}>
+              <ClientChatPage />
+            </Suspense>
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/client/profile',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <ClientProfilePage />
+          </ClientRouteGuard>
+        ),
+      },
+      {
+        path: '/client/coaches/:coachId',
+        element: (
+          <ClientRouteGuard requireOnboarded>
+            <ClientCoachDetailPage />
+          </ClientRouteGuard>
+        ),
+      },
+      {
         path: '/coach/onboarding',
         element: (
-          <CoachRouteGuard allow={['ONBOARDING_PROFILE']}>
-            <CoachOnboardingPage />
-          </CoachRouteGuard>
-        ),
-      },
-      {
-        path: '/coach/pending-review',
-        element: (
-          <CoachRouteGuard allow={['PENDING_REVIEW']}>
-            <CoachPendingReviewPage />
-          </CoachRouteGuard>
-        ),
-      },
-      {
-        path: '/coach/rejected',
-        element: (
-          <CoachRouteGuard allow={['REJECTED']}>
-            <CoachRejectedPage />
+          <CoachRouteGuard allow={COACH_ONBOARDING_STATUSES}>
+            <Suspense fallback={null}>
+              <CoachOnboardingPage />
+            </Suspense>
           </CoachRouteGuard>
         ),
       },
@@ -121,6 +171,44 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/coach/schedule',
+        element: (
+          <CoachRouteGuard allow={['APPROVED']}>
+            <Suspense fallback={null}>
+              <CoachSchedulePage />
+            </Suspense>
+          </CoachRouteGuard>
+        ),
+      },
+      {
+        path: '/coach/schedule/:scheduleId',
+        element: (
+          <CoachRouteGuard allow={['APPROVED']}>
+            <Suspense fallback={null}>
+              <CoachSessionDetailPage />
+            </Suspense>
+          </CoachRouteGuard>
+        ),
+      },
+      {
+        path: '/coach/chat',
+        element: (
+          <CoachRouteGuard allow={['APPROVED']}>
+            <Suspense fallback={null}>
+              <CoachChatPage />
+            </Suspense>
+          </CoachRouteGuard>
+        ),
+      },
+      {
+        path: '/coach/profile',
+        element: (
+          <CoachRouteGuard allow={['APPROVED']}>
+            <CoachProfilePage />
+          </CoachRouteGuard>
+        ),
+      },
+      {
         path: '/pagamento/:sessionId',
         element: (
           <ClientRouteGuard requireOnboarded>
@@ -128,6 +216,7 @@ const router = createBrowserRouter([
           </ClientRouteGuard>
         ),
       },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])
@@ -144,4 +233,5 @@ void enableMocking().then(() => {
       </QueryClientProvider>
     </StrictMode>,
   )
+  markBooted()
 })

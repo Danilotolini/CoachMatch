@@ -1,26 +1,34 @@
+import { Icon } from '@/components/ui/Icon'
+
 interface RadioOptionProps {
   label: string
   description?: string
   checked: boolean
   onChange: () => void
+  className?: string
 }
 
-export function RadioOption({ label, description, checked, onChange }: RadioOptionProps) {
+export function RadioOption({
+  label,
+  description,
+  checked,
+  onChange,
+  className = '',
+}: RadioOptionProps) {
   return (
     <label
       className={`flex items-start p-5 rounded-xl cursor-pointer transition-all border ${
         checked
           ? 'bg-surface-container-high border-primary'
           : 'bg-surface-container-low border-transparent hover:bg-surface-container-highest'
-      }`}
+      } ${className}`}
     >
       <input type="radio" checked={checked} onChange={onChange} className="sr-only" />
       <div className="shrink-0 mt-0.5 mr-4">
-        <span
-          className={`material-symbols-outlined ${checked ? 'text-primary' : 'text-on-surface-variant'}`}
-        >
-          {checked ? 'radio_button_checked' : 'radio_button_unchecked'}
-        </span>
+        <Icon
+          name={checked ? 'radio_button_checked' : 'radio_button_unchecked'}
+          className={checked ? 'text-primary' : 'text-on-surface-variant'}
+        />
       </div>
       <div>
         <h4

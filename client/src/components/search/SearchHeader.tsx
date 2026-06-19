@@ -17,8 +17,8 @@ export function SearchHeader({ type, value, onChange, onOpenFilters }: SearchHea
         onChange={(event) => {
           onChange(event.target.value)
         }}
-        placeholder="Nome, modalidade ou bairro"
-        aria-label="Nome, modalidade ou bairro"
+        placeholder="Nome ou bairro"
+        aria-label="Nome ou bairro"
         className="min-w-0 flex-1 border-0 bg-transparent p-0 font-body text-sm text-on-surface placeholder:text-on-surface-variant focus:ring-0"
       />
       <button

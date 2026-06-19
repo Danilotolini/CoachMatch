@@ -6,6 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import DevToolsPage from './DevToolsPage'
 import { loginAs } from '@/test/session'
 import { useSessionStore } from '@/stores/sessionStore'
+import { logout } from '@/lib/cognito'
+
+vi.mock('@/lib/cognito', () => ({ logout: vi.fn() }))
 
 function renderPage() {
   const queryClient = new QueryClient({
@@ -33,24 +36,37 @@ describe('DevToolsPage', () => {
     vi.unstubAllEnvs()
   })
 
-  it('limpa sessoes, cache e storage local', async () => {
+  // A 'ACTIVE' so existe no card do aluno e 'APPROVED' so no do treinador.
+  function cardFor(statusLabel: string) {
+    const card = screen.getByRole('button', { name: statusLabel }).closest<HTMLElement>('div.p-5')
+    if (!card) throw new Error(`Card de ${statusLabel} nao encontrado`)
+    return card
+  }
+
+  it('desloga pelo logout do sistema com o papel escolhido', async () => {
     const user = userEvent.setup()
     loginAs('client')
+
+    renderPage()
+
+    await user.click(within(cardFor('ACTIVE')).getByRole('button', { name: /deslogar/i }))
+
+    expect(logout).toHaveBeenCalledWith('client')
+  })
+
+  it('limpa o estado local do papel escolhido', async () => {
+    const user = userEvent.setup()
     loginAs('coach')
     localStorage.setItem('coachmatch:mock:coach', '{"id":"coach_demo"}')
 
     renderPage()
 
-    await user.click(screen.getByRole('button', { name: /limpar local/i }))
+    await user.click(within(cardFor('APPROVED')).getByRole('button', { name: /limpar local/i }))
 
-    expect(useSessionStore.getState()).toMatchObject({
-      activeRole: null,
-      sessions: {},
-    })
-    expect(localStorage.getItem('coachmatch:session')).toBeNull()
+    expect(useSessionStore.getState().sessions.coach).toBeUndefined()
     expect(localStorage.getItem('coachmatch:mock:coach')).toBeNull()
     await waitFor(() => {
-      expect(screen.getByText(/formulario local limpos/i)).toBeInTheDocument()
+      expect(screen.getByText(/Estado local do treinador limpo/i)).toBeInTheDocument()
     })
   })
 
@@ -66,49 +82,23 @@ describe('DevToolsPage', () => {
     })
   })
 
-  it('prepara aluno base sem onboarding', async () => {
-    const user = userEvent.setup()
+  it('lista apenas home e criacao de perfil para aluno e treinador', () => {
     renderPage()
 
-    const clientCard = screen
-      .getByRole('heading', { name: 'Aluno', level: 2 })
-      .closest<HTMLElement>('div.p-5')
-    if (!clientCard) throw new Error('Card do aluno nao encontrado')
-    await user.click(within(clientCard).getByRole('button', { name: /reset/i }))
-
-    await waitFor(() => {
-      expect(screen.getByText(/Aluno base logado, sem onboarding/i)).toBeInTheDocument()
-    })
-    expect(useSessionStore.getState().activeRole).toBe('client')
-    expect(useSessionStore.getState().sessions.client?.token).toBeTruthy()
-    expect(useSessionStore.getState().sessions.coach).toBeUndefined()
-  })
-
-  it('prepara treinador base nao aprovado', async () => {
-    const user = userEvent.setup()
-    renderPage()
-
-    const coachCard = screen
-      .getByRole('heading', { name: 'Treinador', level: 2 })
-      .closest<HTMLElement>('div.p-5')
-    if (!coachCard) throw new Error('Card do treinador nao encontrado')
-    await user.click(within(coachCard).getByRole('button', { name: /reset/i }))
-
-    await waitFor(() => {
-      expect(screen.getByText(/Treinador base logado, ainda nao aprovado/i)).toBeInTheDocument()
-    })
-    expect(useSessionStore.getState().activeRole).toBe('coach')
-    expect(useSessionStore.getState().sessions.coach?.token).toBeTruthy()
-    expect(useSessionStore.getState().sessions.client).toBeUndefined()
-  })
-
-  it('lista rotas sem abrir nova aba', () => {
-    renderPage()
-
-    expect(screen.getByRole('link', { name: /callback treinador/i })).not.toHaveAttribute('target')
-    expect(screen.getByRole('link', { name: /treinador rejeitado/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /home aluno/i })).toHaveAttribute('href', '/client')
+    expect(screen.getByRole('link', { name: /criacao perfil aluno/i })).toHaveAttribute(
       'href',
-      '/coach/rejected',
+      '/client/onboarding',
     )
+    expect(screen.getByRole('link', { name: /home treinador/i })).toHaveAttribute('href', '/coach')
+    expect(screen.getByRole('link', { name: /criacao perfil treinador/i })).toHaveAttribute(
+      'href',
+      '/coach/onboarding',
+    )
+
+    expect(screen.queryByText('Geral')).not.toBeInTheDocument()
+    expect(screen.queryByText('Auth')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /login aluno/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /agenda treinador/i })).not.toBeInTheDocument()
   })
 })

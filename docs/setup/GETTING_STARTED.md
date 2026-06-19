@@ -78,28 +78,16 @@ cd CoachMatch
 
 ## 3. Instalar dependências
 
-O projeto é um monorepo com duas workspaces independentes. É preciso rodar `pnpm install` em dois lugares.
-
-### 3.1 — Raiz + frontend
+O projeto é um monorepo pnpm. Um único `pnpm install` na raiz instala as duas
+workspaces — `client/` (frontend) e `server/coachmatch/` (backend Lambdas):
 
 ```bash
 # Da raiz do projeto
 pnpm install
 ```
 
-Isso instala as dependências do `client/` (frontend) e do `server/` (legado).
-
-### 3.2 — Backend Lambdas (workspace separado)
-
-O `server/coachmatch/` é uma workspace pnpm aninhada e **não é coberta** pelo `pnpm install` da raiz. Instale separadamente:
-
-```bash
-cd server/coachmatch
-pnpm install
-cd ../..
-```
-
-> **Por que separado?** O `server/coachmatch` usa Vitest + ESM enquanto o `server/` legado usa Jest/CommonJS. Manter workspaces isoladas evita conflitos de dependências.
+> As workspaces são declaradas no `pnpm-workspace.yaml` da raiz. O backend
+> (`server/coachmatch`) usa Vitest + ESM e roda com Node 22.
 
 ---
 

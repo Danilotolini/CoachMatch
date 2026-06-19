@@ -12,7 +12,7 @@ const payload = {
   city: 'São Paulo',
   state: 'sp',
   neighborhood: 'Bela Vista',
-  coordinates: { lat: -23.56, lng: -46.65 },
+  coordinates: null,
 }
 
 beforeEach(() => {
@@ -29,9 +29,10 @@ describe('useSuggestGym', () => {
       response = await result.current.mutateAsync(payload)
     })
 
-    expect(response?.data.name).toBe('Studio Z')
-    expect(response?.data.state).toBe('SP') // handler faz uppercase
-    expect(response?.data.gymId).toMatch(/^gym_/)
+    expect(response?.data?.name).toBe('Studio Z')
+    expect(response?.data?.state).toBe('SP') // handler faz uppercase
+    expect(response?.data?.gymId).toMatch(/^gym_/)
+    expect(response?.data?.coordinates).toBeNull()
   })
 
   it('invalida a query de gyms ao concluir com sucesso', async () => {
@@ -49,7 +50,9 @@ describe('useSuggestGym', () => {
 
   it('propaga erro quando o servidor falha', async () => {
     server.use(
-      http.post('*/gyms/suggest', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+      http.post('*/coach/gyms/suggest', () =>
+        HttpResponse.json({ error: 'boom' }, { status: 500 }),
+      ),
     )
 
     const { wrapper } = createWrapper()
