@@ -1,4 +1,5 @@
 import { useChatConversations } from '@/hooks/useChat'
+import { ChatAvatar } from '@/components/chat/ChatAvatar'
 import { Icon } from '@/components/ui/Icon'
 import { formatBrazilTime } from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
@@ -65,9 +66,11 @@ export function ConversationList({ role, selectedId, onSelect }: ConversationLis
                 isActive ? 'bg-surface-container-high' : 'hover:bg-surface-container-low'
               }`}
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-primary">
-                <Icon name="person" size={22} />
-              </span>
+              <ChatAvatar
+                image={conversation.image}
+                name={conversationTitle(conversation)}
+                className="h-11 w-11"
+              />
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="flex items-baseline justify-between gap-2">
                   <span className="truncate font-label text-sm font-semibold text-on-surface">
