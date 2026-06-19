@@ -1,5 +1,20 @@
 import { listCoaches } from "./index.js";
 
+// No payload 2.0 do HTTP API não existe multiValueQueryStringParameters: valores
+// repetidos da mesma chave chegam unidos por vírgula em queryStringParameters.
+// Mantemos o fallback para multiValue (payload 1.0 / serverless-offline).
+function parseSpecialties(qs, multiQs) {
+  if (Array.isArray(multiQs["specialties[]"])) return multiQs["specialties[]"];
+
+  const raw = qs["specialties[]"] ?? qs.specialties;
+  if (!raw) return [];
+
+  return raw
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 export const handler = async (event) => {
   const qs      = event.queryStringParameters || {};
   const multiQs = event.multiValueQueryStringParameters || {};
@@ -8,7 +23,7 @@ export const handler = async (event) => {
 
   const params = {
     q:           qs.q ?? null,
-    specialties: multiQs["specialties[]"] ?? [],
+    specialties: parseSpecialties(qs, multiQs),
     limit:       parseInt(qs.limit ?? "12"),
     lastKey,
   };
