@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
-import { useSearchParams } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { ConversationList } from '@/components/chat/ConversationList'
 import { MessageThread } from '@/components/chat/MessageThread'
 import { Icon } from '@/components/ui/Icon'
 import { useChatConversations } from '@/hooks/useChat'
+import { getUserId } from '@/lib/auth'
 import { disconnectChat } from '@/lib/streamChat'
 import type { Role } from '@/stores/sessionStore'
 
@@ -11,6 +12,7 @@ const SELECTED_PARAM = 'c'
 
 export function ChatView({ role }: { role: Role }) {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const selectedId = searchParams.get(SELECTED_PARAM)
   const { data } = useChatConversations(role)
 
@@ -23,6 +25,12 @@ export function ChatView({ role }: { role: Role }) {
 
   const selected = data?.find((conversation) => conversation.id === selectedId) ?? null
   const selectedTitle = selected?.name?.trim() ?? 'Conversa'
+  const selectedImage = selected?.image ?? null
+
+  // Na conversa 1:1, o par do aluno é o coach; seu id de membro é o coachId.
+  const selfId = getUserId(role)
+  const coachId =
+    role === 'client' && selected ? (selected.members.find((id) => id !== selfId) ?? null) : null
 
   function selectConversation(id: string) {
     setSearchParams(
@@ -60,7 +68,15 @@ export function ChatView({ role }: { role: Role }) {
             role={role}
             conversationId={selectedId}
             title={selectedTitle}
+            image={selectedImage}
             onBack={clearSelection}
+            onHeaderClick={
+              coachId
+                ? () => {
+                    void navigate(`/client/coaches/${coachId}`)
+                  }
+                : undefined
+            }
           />
         ) : (
           <div className="hidden flex-1 flex-col items-center justify-center gap-3 p-8 text-center lg:flex">
