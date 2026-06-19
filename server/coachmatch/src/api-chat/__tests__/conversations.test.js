@@ -13,6 +13,14 @@ vi.mock("../../shared/streamClient.js", () => ({
   __resetStreamClientForTests: () => {},
 }));
 
+const { mockResolveMemberImages } = vi.hoisted(() => ({
+  mockResolveMemberImages: vi.fn().mockResolvedValue(new Map()),
+}));
+
+vi.mock("../lib/profiles.js", () => ({
+  resolveMemberImages: mockResolveMemberImages,
+}));
+
 import {
   createConversation,
   listConversations,
@@ -95,6 +103,16 @@ describe("chat / conversations (service)", () => {
       expect.objectContaining({ state: true })
     );
     expect(res).toHaveLength(1);
+  });
+
+  it("enriquece a conversa com a foto do par", async () => {
+    mockResolveMemberImages.mockResolvedValueOnce(new Map([["u2", "https://signed/u2.jpg"]]));
+    mockStream.queryChannels.mockResolvedValue([makeChannel("c1", ["u1", "u2"])]);
+
+    const res = await listConversations({ userId: "u1" });
+
+    expect(mockResolveMemberImages).toHaveBeenCalledWith(["u2"]);
+    expect(res[0].image).toBe("https://signed/u2.jpg");
   });
 
   it("atualiza conversa quando membro", async () => {
