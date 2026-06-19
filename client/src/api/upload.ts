@@ -1,12 +1,16 @@
 import { apiPost } from '@/lib/http'
 import type { UploadUrlResponse } from '@/types/api'
 
-export function fetchUploadUrl(filename: string, contentType: string) {
-  return apiPost<UploadUrlResponse>(
-    '/coach/upload-url',
-    { filename, contentType },
-    { role: 'coach' },
-  )
+export type UploadRole = 'coach' | 'client'
+
+// O papel local `client` mapeia para o prefixo de rota `/student/*` (mesma audience Cognito).
+const UPLOAD_PATH: Record<UploadRole, string> = {
+  coach: '/coach/upload-url',
+  client: '/student/upload-url',
+}
+
+export function fetchUploadUrl(filename: string, contentType: string, role: UploadRole = 'coach') {
+  return apiPost<UploadUrlResponse>(UPLOAD_PATH[role], { filename, contentType }, { role })
 }
 
 export function uploadToS3(
