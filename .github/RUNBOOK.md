@@ -1,5 +1,33 @@
 # 🛠️ CI/CD Runbook & Troubleshooting
 
+## Ambientes & Infraestrutura real
+
+Conta AWS `138413505977`, região `sa-east-1`. Hoje existe **um único ambiente**
+(produção). O frontend é servido a partir do prefixo `coachmatch_site/` dentro do
+bucket — por isso o `s3 sync` aponta para `s3://<bucket>/coachmatch_site`.
+
+| Recurso | Valor |
+| --- | --- |
+| Bucket do site | `coachmatch` |
+| Prefixo do site | `coachmatch_site/` |
+| Distribuição CloudFront | `E2FXMRNR2KASRR` (`OriginPath: /coachmatch_site`) |
+| Domínio | `coachmatch.com.br` |
+
+Secrets de deploy: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
+`SERVERLESS_ACCESS_KEY` (exigido pelo Serverless Framework v4),
+`S3_BUCKET_PRODUCTION` (= `coachmatch`), `CLOUDFRONT_PRODUCTION_ID` (= `E2FXMRNR2KASRR`).
+`apiKey`/`apiSecret`/`apiGatewayId`/região vêm de `server/coachmatch/config.yml`
+(commitado) — não são secrets.
+
+## ⚠️ Pendências
+
+- [ ] **Criar o ambiente de `develop` na AWS antes de habilitar a esteira de develop.**
+  Não existem bucket S3 nem distribuição CloudFront próprios de develop — só o de
+  produção. Por isso o deploy de develop está **comentado** em
+  `workflows/ci-cd-pipeline.yml` (job `deploy` e opção `develop` do
+  `workflow_dispatch`). Ao criar a infra, reativar os blocos comentados e cadastrar
+  os secrets `S3_BUCKET_DEVELOP` e `CLOUDFRONT_DEVELOP_ID`.
+
 ## Quick Commands
 
 ```bash
