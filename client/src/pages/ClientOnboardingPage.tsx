@@ -7,6 +7,8 @@ import { Chip } from '@/components/ui/Chip'
 import { Icon } from '@/components/ui/Icon'
 import { fetchAddressByCep } from '@/api/viacep'
 import { useSubmitClientProfile } from '@/hooks/useClientMe'
+import { usePhotoUpload } from '@/hooks/useMediaUpload'
+import { usePhotoCrop } from '@/hooks/usePhotoCrop'
 import { getAuthUser } from '@/lib/auth'
 import { getTodayBrazilYMD } from '@/lib/dateTime'
 
@@ -16,6 +18,7 @@ type Radius = 5 | 10 | 20
 
 interface FormState {
   photoDataUrl: string | null
+  photoKey: string | null
   name: string
   phone: string
   birthDate: string
@@ -72,11 +75,13 @@ export default function ClientOnboardingPage() {
   const navigate = useNavigate()
   const authUser = getAuthUser()
   const submitProfile = useSubmitClientProfile()
+  const photoUpload = usePhotoUpload('client')
   const photoInputRef = useRef<HTMLInputElement>(null)
   const maxBirthDate = useMemo(() => getTodayBrazilYMD(), [])
 
   const [form, setForm] = useState<FormState>({
     photoDataUrl: null,
+    photoKey: null,
     name: authUser.name ?? '',
     phone: '',
     birthDate: '',
@@ -122,7 +127,16 @@ export default function ClientOnboardingPage() {
       }))
     }
     reader.readAsDataURL(file)
+
+    // Sobe a foto ao S3 e guarda a key para enviar junto do perfil.
+    photoUpload.mutate(file, {
+      onSuccess: (key) => {
+        setForm((f) => ({ ...f, photoKey: key }))
+      },
+    })
   }
+
+  const photoCrop = usePhotoCrop(handlePhoto)
 
   const handleCepChange = async (raw: string) => {
     const cep = formatCep(raw)
@@ -169,6 +183,7 @@ export default function ClientOnboardingPage() {
         state: form.state,
         radius: form.radius,
         goal: form.goal,
+        ...(form.photoKey ? { photo_key: form.photoKey } : {}),
       },
       {
         onSuccess: () => {
@@ -230,7 +245,7 @@ export default function ClientOnboardingPage() {
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0]
-                    if (file) handlePhoto(file)
+                    if (file) photoCrop.requestCrop(file)
                     e.target.value = ''
                   }}
                 />
@@ -400,6 +415,7 @@ export default function ClientOnboardingPage() {
           </Button>
         </div>
       </div>
+      {photoCrop.cropModal}
     </div>
   )
 }
