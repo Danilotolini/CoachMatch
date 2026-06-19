@@ -28,7 +28,7 @@ export function CoachCard({
       className="group block w-full text-left overflow-hidden rounded-xl bg-surface-container-low border border-outline-variant/20 transition-all hover:border-outline-variant/40 active:scale-95"
     >
       <div
-        className="relative h-40 bg-surface-container"
+        className="relative aspect-4/3 bg-surface-container"
         style={
           image
             ? {
@@ -50,8 +50,8 @@ export function CoachCard({
         )}
       </div>
       <div className="p-4">
-        <div className="font-headline font-semibold text-lg text-on-surface">{name}</div>
-        <div className="mt-1 font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
+        <div className="truncate font-headline font-semibold text-lg text-on-surface">{name}</div>
+        <div className="mt-1 min-h-3.5 line-clamp-1 font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
           {specialties}
         </div>
         {location ? (

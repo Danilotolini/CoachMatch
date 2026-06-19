@@ -174,7 +174,7 @@ function CoachRail() {
           ? Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={index}
-                className="h-72 w-[76vw] max-w-70 shrink-0 animate-pulse rounded-xl bg-surface-container-low md:w-62.5 lg:w-auto lg:max-w-none"
+                className="aspect-3/4 w-[76vw] max-w-70 shrink-0 animate-pulse rounded-xl bg-surface-container-low md:w-62.5 lg:w-auto lg:max-w-none"
               />
             ))
           : coaches.map((coach) => (
