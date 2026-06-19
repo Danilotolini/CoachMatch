@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
 import { http, HttpResponse } from 'msw'
 import ClientSchedulePage from './ClientSchedulePage'
@@ -23,7 +23,8 @@ const coach: CoachDetail = {
     specialties: ['Musculação'],
     cref: '123456-G/SP',
     instagram: null,
-    profile_video: false,
+    photo_url: null,
+    video_url: null,
   },
   work_location: [
     {
@@ -80,6 +81,12 @@ function renderPage() {
 describe('ClientSchedulePage', () => {
   beforeEach(() => {
     createPaymentMock.mockReset()
+    // Fixa o "agora" antes das sessões dos fixtures (16/06) para que contem como futuras.
+    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-15T12:00:00Z').getTime())
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('mostra o dia do mes no fuso do Brasil em horarios na borda de timezone', async () => {
@@ -139,6 +146,50 @@ describe('ClientSchedulePage', () => {
     expect(
       await screen.findByText('Seu histórico aparece depois das primeiras sessões.'),
     ).toBeInTheDocument()
+  })
+
+  it('não mostra em Próximas sessões cujo horário já passou', async () => {
+    mockSchedulesResponse([
+      makeSchedule({
+        scheduleId: 'schedule_past',
+        startDateTime: '2026-06-14T12:00:00Z',
+        endDateTime: '2026-06-14T13:00:00Z',
+      }),
+      makeSchedule({ scheduleId: 'schedule_future' }),
+    ])
+
+    renderPage()
+
+    expect(await screen.findByText('Marcos Vieira')).toBeInTheDocument()
+    // Só a sessão futura (16/06) aparece; a passada (15/06 10:00Z) é omitida.
+    expect(screen.getByText('15', { selector: 'span.font-black' })).toBeInTheDocument()
+    expect(screen.queryByText('14', { selector: 'span.font-black' })).not.toBeInTheDocument()
+  })
+
+  it('ordena o histórico do mais recente para o mais antigo', async () => {
+    mockSchedulesResponse([
+      makeSchedule({
+        scheduleId: 'schedule_old',
+        scheduleStatus: 'COMPLETED',
+        paymentStatus: 'PAID',
+        startDateTime: '2026-06-10T12:00:00Z',
+        endDateTime: '2026-06-10T13:00:00Z',
+      }),
+      makeSchedule({
+        scheduleId: 'schedule_recent',
+        scheduleStatus: 'COMPLETED',
+        paymentStatus: 'PAID',
+        startDateTime: '2026-06-14T12:00:00Z',
+        endDateTime: '2026-06-14T13:00:00Z',
+      }),
+    ])
+
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Histórico' }))
+
+    const days = await screen.findAllByText(/^\d+$/, { selector: 'span.font-black' })
+    expect(days.map((el) => el.textContent)).toEqual(['14', '10'])
   })
 
   it('paga a aula confirmada (BOOKED) na aba Próximas e renderiza pedidos/histórico', async () => {

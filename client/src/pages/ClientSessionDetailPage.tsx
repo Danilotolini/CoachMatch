@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
 import { getStudentScheduleRequests } from '@/api/schedule'
 import { StartChatButton } from '@/components/chat/StartChatButton'
+import { InstagramLink } from '@/components/coach/InstagramLink'
 import { StudentPaymentSimulator } from '@/components/client/StudentPaymentSimulator'
 import { ClientBottomNav, ClientSideNav } from '@/components/layout/ClientNavigation'
 import { SessionSummaryCard } from '@/components/schedule/SessionSummaryCard'
@@ -125,9 +126,10 @@ function CoachDetailView({
           {profile.instagram && (
             <div className="flex items-baseline justify-between gap-4">
               <span className="font-label text-xs text-on-surface-variant">Instagram</span>
-              <span className="font-label text-sm font-medium text-on-surface">
-                {profile.instagram}
-              </span>
+              <InstagramLink
+                handle={profile.instagram}
+                className="font-label text-sm font-medium text-on-surface transition-colors hover:text-primary"
+              />
             </div>
           )}
           {profile.phone && (
