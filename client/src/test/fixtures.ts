@@ -16,6 +16,7 @@ export function makeClient(overrides: Partial<Client> = {}): Client {
     radius: 10,
     goal: 'CONDITIONING',
     health: null,
+    photo_url: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,

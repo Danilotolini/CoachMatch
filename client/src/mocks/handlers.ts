@@ -202,7 +202,8 @@ function coachToDetail(coach: CoachListItem): CoachDetail {
       specialties: coach.specialties,
       cref: `CREF ${slug.toUpperCase()}-G/SP`,
       instagram: `@${normalizeText(coach.name).replace(/\s+/g, '.')}`,
-      profile_video: false,
+      photo_url: coach.photo,
+      video_url: null,
     },
     work_location: [
       {
@@ -246,6 +247,7 @@ function buildInitialClient(): Client {
     radius: null,
     goal: null,
     health: null,
+    photo_url: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   }
@@ -488,6 +490,41 @@ function paginateByLastKey<T, K extends Record<string, string>>(
   }
 }
 
+// Simula a URL assinada que o back-end devolveria para uma key do S3.
+function mockSignedUrl(key: string | null | undefined): string | null {
+  return key ? `https://mock-s3.local/signed/${key}` : null
+}
+
+async function handleUploadUrl({ request }: { request: Request }): Promise<Response> {
+  await wait(150)
+  const body = (await request.json()) as { filename: string; contentType: string }
+  const key = `uploads/${String(Date.now())}-${body.filename}`
+  return HttpResponse.json<UploadUrlResponse>({
+    key,
+    expiresIn: 300,
+    upload: {
+      url: MOCK_S3_URL,
+      fields: { key, 'Content-Type': body.contentType },
+    },
+  })
+}
+
+// Espelha o back-end: a escrita manda photo_key/video_key; o perfil guarda as URLs
+// assinadas (photo_url/video_url). Omitir a key preserva a mídia atual.
+function applyCoachProfileUpdate(
+  current: Coach['profile'],
+  update: CoachUpdatePayload['profile'],
+): Coach['profile'] {
+  if (!update) return current
+  const { photo_key, video_key, ...rest } = update
+  return {
+    ...current,
+    ...rest,
+    ...(photo_key !== undefined ? { photo_url: mockSignedUrl(photo_key) } : {}),
+    ...(video_key !== undefined ? { video_url: mockSignedUrl(video_key) } : {}),
+  }
+}
+
 function coachToSummary(coach: CoachListItem): CoachSummary {
   return {
     coachId: coach.coachId,
@@ -497,7 +534,8 @@ function coachToSummary(coach: CoachListItem): CoachSummary {
       specialties: coach.specialties,
       cref: `CREF ${coach.coachId.replace('coach_', '').toUpperCase()}-G/SP`,
       instagram: `@${coach.coachId.replace('coach_', '')}`,
-      profile_video: false,
+      photo_url: coach.photo,
+      video_url: null,
     },
     work_location: [],
   }
@@ -543,6 +581,7 @@ async function handleCreateChatConversation(request: Request): Promise<Response>
     members: [self, peerId],
     frozen: false,
     lastMessageAt: null,
+    image: null,
     lastMessage: null,
   }
   state.chatConversations.set(id, conversation)
@@ -637,7 +676,9 @@ export const handlers = [
       state: payload.state,
       radius: payload.radius,
       goal: payload.goal,
-      status: 'ONBOARDING_HEALTH',
+      ...(payload.photo_key !== undefined ? { photo_url: mockSignedUrl(payload.photo_key) } : {}),
+      // Espelha o back-end: só avança a partir de PENDING_PROFILE; editar não regride o status.
+      status: state.client.status === 'PENDING_PROFILE' ? 'ONBOARDING_HEALTH' : state.client.status,
       updatedAt: nowIso(),
     })
     return HttpResponse.json<Client>(client)
@@ -689,7 +730,7 @@ export const handlers = [
       ...state.coach,
       // O coach já nasce ativo na plataforma; completar o perfil mantém o status APPROVED.
       status: 'APPROVED',
-      profile: { ...state.coach.profile, ...(payload.profile ?? {}) },
+      profile: applyCoachProfileUpdate(state.coach.profile, payload.profile),
       work_location: payload.work_location ?? state.coach.work_location,
       updatedAt: nowIso(),
     })
@@ -798,22 +839,10 @@ export const handlers = [
     )
   }),
 
-  http.post('*/coach/upload-url', async ({ request }) => {
-    await wait(150)
-    const body = (await request.json()) as { filename: string; contentType: string }
-    const key = `uploads/${String(Date.now())}-${body.filename}`
-    return HttpResponse.json<UploadUrlResponse>({
-      key,
-      expiresIn: 300,
-      upload: {
-        url: MOCK_S3_URL,
-        fields: {
-          key,
-          'Content-Type': body.contentType,
-        },
-      },
-    })
-  }),
+  http.post('*/coach/upload-url', handleUploadUrl),
+
+  // Mesmo endpoint de upload serve foto e vídeo, para coach e aluno.
+  http.post('*/student/upload-url', handleUploadUrl),
 
   http.post(MOCK_S3_URL, async () => {
     await wait(400)
@@ -916,7 +945,7 @@ export const handlers = [
     const payload = (await request.json()) as CoachUpdatePayload
     const coach = setCoach({
       ...state.coach,
-      profile: { ...state.coach.profile, ...(payload.profile ?? {}) },
+      profile: applyCoachProfileUpdate(state.coach.profile, payload.profile),
       work_location: payload.work_location ?? state.coach.work_location,
       updatedAt: nowIso(),
     })

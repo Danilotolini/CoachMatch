@@ -59,7 +59,13 @@ describe('useUpdateCoachMe', () => {
 
     await act(async () => {
       await result.current.mutateAsync({
-        profile: { phone: '81999991234', cref: '123456-G/SP' },
+        profile: {
+          name: 'João Silva',
+          phone: '81999991234',
+          cref: '123456-G/SP',
+          instagram: '@joao',
+          specialties: ['Musculação'],
+        },
       })
     })
 
