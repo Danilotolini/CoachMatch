@@ -192,12 +192,13 @@ jobs:
       - name: Build frontend
         run: cd client && pnpm run build
         env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'https://api.coachmatch.com.br' }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://api.coachmatch.com.br' }}
           VITE_API_MOCKING: disabled
-          VITE_COGNITO_CLIENT_ID: ${{ secrets.VITE_COGNITO_CLIENT_ID || 'ci-coach-client-id' }}
-          VITE_COGNITO_DOMAIN: ${{ secrets.VITE_COGNITO_DOMAIN || 'https://login.coachmatch.com.br' }}
-          VITE_COGNITO_STUDENT_CLIENT_ID: ${{ secrets.VITE_COGNITO_STUDENT_CLIENT_ID || 'ci-student-client-id' }}
-          VITE_COGNITO_STUDENT_DOMAIN: ${{ secrets.VITE_COGNITO_STUDENT_DOMAIN || 'https://student.coachmatch.com.br' }}
+          VITE_COGNITO_CLIENT_ID: ${{ vars.VITE_COGNITO_CLIENT_ID || 'ci-coach-client-id' }}
+          VITE_COGNITO_CLIENT_SECRET: ${{ secrets.VITE_COGNITO_CLIENT_SECRET || 'ci-coach-client-secret' }}
+          VITE_COGNITO_DOMAIN: ${{ vars.VITE_COGNITO_DOMAIN || 'https://login.coachmatch.com.br' }}
+          VITE_COGNITO_STUDENT_CLIENT_ID: ${{ vars.VITE_COGNITO_STUDENT_CLIENT_ID || 'ci-student-client-id' }}
+          VITE_COGNITO_STUDENT_DOMAIN: ${{ vars.VITE_COGNITO_STUDENT_DOMAIN || 'https://student.coachmatch.com.br' }}
 
       - uses: actions/upload-artifact@v4
         if: success()
