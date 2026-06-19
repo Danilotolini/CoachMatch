@@ -1,5 +1,6 @@
 import { QueryCommand, BatchGetCommand } from "@aws-sdk/lib-dynamodb";
 import { createClient } from "../../shared/config.js";
+import { signGetUrl } from "../../shared/s3.js";
 
 const dynamo = createClient();
 
@@ -8,8 +9,12 @@ const GYMS_TABLE = process.env.GYMS_TABLE ?? "gyms";
 const STATUS_INDEX = process.env.COACHES_STATUS_INDEX ?? "status-coachId-index";
 const SEARCHABLE_STATUS = "APPROVED";
 
-export async function queryCoaches({ q, specialties, limit, lastKey }) {
-  const result = await dynamo.send(
+// q e specialties são aplicados em memória, então uma página varrida precisa de
+// um teto de itens para não estourar latência/leitura quando o filtro é seletivo.
+const MAX_FILTER_PAGES = 8;
+
+function runQuery({ limit, lastKey }) {
+  return dynamo.send(
     new QueryCommand({
       TableName: TABLE_NAME,
       IndexName: STATUS_INDEX,
@@ -20,14 +25,41 @@ export async function queryCoaches({ q, specialties, limit, lastKey }) {
       ...(lastKey && { ExclusiveStartKey: lastKey }),
     })
   );
+}
 
-  const items = result.Items ?? [];
-  const gymsById = q ? await loadGyms(collectGymIds(items)) : new Map();
-  const filtered = filterCoaches(items, { q, specialties, gymsById });
+export async function queryCoaches({ q, specialties, limit, lastKey }) {
+  const hasFilter = Boolean(q) || (specialties?.length ?? 0) > 0;
+
+  // Sem filtro, a Query já entrega exatamente a página pedida.
+  if (!hasFilter) {
+    const result = await runQuery({ limit, lastKey });
+    return {
+      items:   await mapItems(result.Items ?? []),
+      lastKey: result.LastEvaluatedKey ?? null,
+    };
+  }
+
+  // Com filtro em memória, o Limit do DynamoDB conta itens lidos — não itens que
+  // passam no filtro. Varremos páginas inteiras até juntar `limit` matches, sem
+  // descartar excedentes, para que o cursor caia numa borda de página (sem pular
+  // nem duplicar coaches na próxima requisição).
+  const matches = [];
+  let cursor = lastKey;
+  let pages  = 0;
+
+  do {
+    const result   = await runQuery({ limit, lastKey: cursor });
+    const items    = result.Items ?? [];
+    const gymsById = q ? await loadGyms(collectGymIds(items)) : new Map();
+
+    matches.push(...filterCoaches(items, { q, specialties, gymsById }));
+    cursor = result.LastEvaluatedKey ?? null;
+    pages += 1;
+  } while (cursor && matches.length < limit && pages < MAX_FILTER_PAGES);
 
   return {
-    items:   mapItems(filtered),
-    lastKey: result.LastEvaluatedKey ?? null,
+    items:   await mapItems(matches),
+    lastKey: cursor,
   };
 }
 
@@ -100,18 +132,28 @@ function filterCoaches(items, { q, specialties, gymsById }) {
 }
 
 function mapItems(items) {
-  return items.map((item) => ({
-    coachId: item.coachId ?? null,
-    profile: {
-      name:          item.profile?.name          ?? null,
-      phone:         item.profile?.phone         ?? null,
-      specialties:   item.profile?.specialties   ?? [],
-      cref:          item.profile?.cref          ?? null,
-      instagram:     item.profile?.instagram     ?? null,
-      profile_video: item.profile?.profile_video ?? false,
-    },
-    work_location: mapWorkLocations(item.work_location ?? []),
-  }));
+  return Promise.all(
+    items.map(async (item) => {
+      const [photo_url, video_url] = await Promise.all([
+        signGetUrl(item.profile?.photo_key),
+        signGetUrl(item.profile?.video_key),
+      ]);
+
+      return {
+        coachId: item.coachId ?? null,
+        profile: {
+          name:        item.profile?.name        ?? null,
+          phone:       item.profile?.phone        ?? null,
+          specialties: item.profile?.specialties  ?? [],
+          cref:        item.profile?.cref         ?? null,
+          instagram:   item.profile?.instagram    ?? null,
+          photo_url,
+          video_url,
+        },
+        work_location: mapWorkLocations(item.work_location ?? []),
+      };
+    })
+  );
 }
 
 function mapWorkLocations(locations) {
