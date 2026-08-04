@@ -72,7 +72,8 @@ O pipeline completo que executa em todos os pushes e PRs.
 | **Frontend Tests** | Vitest + React Testing Library | Todos os pushes |
 | **Build** | Build verification | Após testes |
 | **E2E Tests** | Playwright | PR + main |
-| **Quality Gate** | Verifica todos os checks | Sempre |
+| **SonarCloud** | Análise estática + cobertura | Todos os pushes |
+| **Quality Gate** | Verifica todos os checks (inclui Sonar) | Sempre |
 | **Deploy** | Backend (`serverless deploy --stage dev`) + Frontend (S3 + CloudFront) | **Manual** via `workflow_dispatch` (digitar `CONFIRMAR`) |
 
 > ⚠️ **Estado atual:** o deploy é **manual**, não automático. Existe **um único
@@ -124,6 +125,7 @@ VITE_COGNITO_STUDENT_DOMAIN    # Ex: https://student.coachmatch.com.br
 
 # ── Observabilidade / Qualidade ───────────────────────────────────────
 CODECOV_TOKEN                  # Token do projeto em codecov.io (opcional — fail_ci_if_error: false)
+SONAR_TOKEN                    # Token do projeto no SonarCloud (obrigatório — ver setup abaixo)
 ```
 
 > **Nota:** `apiKey`, `apiSecret`, `apiGatewayId`, região e account ID do backend
@@ -135,7 +137,22 @@ CODECOV_TOKEN                  # Token do projeto em codecov.io (opcional — fa
 > têm fallback de placeholder — o build passa, mas o login não funciona sem os
 > valores reais.
 
-### 2. Branch Protection Rules
+### 2. SonarCloud Setup (obrigatório para o job de análise funcionar)
+
+1. Acesse [sonarcloud.io](https://sonarcloud.io) e faça login com sua conta GitHub
+2. Clique em **"+"** → **Analyze new project** → selecione o repositório `KRUG3R/CoachMatch`
+3. Escolha **"GitHub Actions"** como método de análise
+4. O SonarCloud vai mostrar seu `SONAR_TOKEN` — copie
+5. No GitHub: **Settings → Secrets and Variables → Actions → New repository secret**
+   - Nome: `SONAR_TOKEN`
+   - Valor: cole o token copiado
+6. Confirme que o `sonar-project.properties` na raiz do repo tem:
+   - `sonar.organization=` igual ao seu org no SonarCloud (normalmente seu usuário GitHub em lowercase)
+   - `sonar.projectKey=` igual ao que o SonarCloud mostrar (normalmente `KRUG3R_CoachMatch`)
+
+> O `GITHUB_TOKEN` é gerado automaticamente pelo GitHub Actions — não precisa configurar.
+
+### 3. Branch Protection Rules
 
 Configure em **Settings → Branches → Branch protection rules** para `main`:
 

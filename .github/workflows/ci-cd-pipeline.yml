@@ -2,9 +2,9 @@ name: CI/CD Pipeline - Full Stack
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, 'release/**']
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, 'release/**']
   workflow_dispatch:
     inputs:
       environment:
@@ -126,6 +126,13 @@ jobs:
           name: backend-coverage
           fail_ci_if_error: false
 
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage-lcov
+          path: server/coachmatch/coverage/lcov.info
+          retention-days: 1
+
   # ── 4. FRONTEND TESTS ───────────────────────────────────────────────────────
   test-frontend:
     name: Frontend Tests
@@ -160,6 +167,13 @@ jobs:
           flags: frontend
           name: frontend-coverage
           fail_ci_if_error: false
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage-lcov
+          path: client/coverage/lcov.info
+          retention-days: 1
 
   # ── 5. BUILD ────────────────────────────────────────────────────────────────
   build:
@@ -245,10 +259,43 @@ jobs:
           path: playwright-report/
           retention-days: 5
 
-  # ── 7. QUALITY GATE ─────────────────────────────────────────────────────────
+  # ── 7. SONARCLOUD ───────────────────────────────────────────────────────────
+  sonarcloud:
+    name: SonarCloud Analysis
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: backend-coverage-lcov
+          path: server/coachmatch/coverage
+
+      - uses: actions/download-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: frontend-coverage-lcov
+          path: client/coverage
+
+      - uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # ── 8. QUALITY GATE ─────────────────────────────────────────────────────────
   quality-gate:
     name: Quality Gate
-    needs: [lint, test-backend, test-frontend, build, security]
+    needs: [lint, test-backend, test-frontend, build, security, sonarcloud]
     runs-on: ubuntu-latest
     if: always()
 
@@ -265,13 +312,15 @@ jobs:
           echo "| Frontend Tests | ${{ needs.test-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SonarCloud | ${{ needs.sonarcloud.result }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Fail if build, tests or lint broke
         if: |
           needs.lint.result == 'failure' ||
           needs.build.result == 'failure' ||
           needs.test-backend.result == 'failure' ||
-          needs.test-frontend.result == 'failure'
+          needs.test-frontend.result == 'failure' ||
+          needs.sonarcloud.result == 'failure'
         run: |
           echo "❌ Pipeline bloqueado por falha em um ou mais jobs críticos." >> $GITHUB_STEP_SUMMARY
           exit 1
