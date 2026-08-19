@@ -2,9 +2,9 @@ name: Performance and Monitoring
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, 'release/**']
   pull_request:
-    branches: [main]
+    branches: [main, develop, 'release/**']
   schedule:
     - cron: '0 8 * * 1'
 
