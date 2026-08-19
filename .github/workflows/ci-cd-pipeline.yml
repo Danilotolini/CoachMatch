@@ -12,9 +12,9 @@ on:
         required: true
         type: choice
         options:
-          - develop
-          - homol
           - prod
+          # - homol   # criar bucket S3 + CloudFront e adicionar S3_BUCKET_HOMOL / CLOUDFRONT_HOMOL_ID
+          # - develop # criar bucket S3 + CloudFront e adicionar S3_BUCKET_DEVELOP / CLOUDFRONT_DEVELOP_ID
       confirm:
         description: 'Digite CONFIRMAR para prosseguir'
         required: true
