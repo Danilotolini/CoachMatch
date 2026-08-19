@@ -1,0 +1,63 @@
+name: Auto PR
+
+on:
+  push:
+    branches:
+      - 'feat/**'
+      - 'release/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-pr:
+    name: Abrir PR automático
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # feat/* → develop
+      - name: PR feat → develop
+        if: startsWith(github.ref, 'refs/heads/feat/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          TITLE="$(echo "$BRANCH" | sed 's|feat/||')"
+
+          EXISTING=$(gh pr list --head "$BRANCH" --base develop --json number --jq 'length')
+          if [ "$EXISTING" = "0" ]; then
+            gh pr create \
+              --title "$TITLE" \
+              --body "PR automático de \`$BRANCH\` para \`develop\`." \
+              --base develop \
+              --head "$BRANCH" \
+              --draft
+            echo "PR criado: $BRANCH → develop"
+          else
+            echo "PR já existe para $BRANCH → develop, pulando."
+          fi
+
+      # release/* → main
+      - name: PR release → main
+        if: startsWith(github.ref, 'refs/heads/release/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          TITLE="release: $(echo "$BRANCH" | sed 's|release/||')"
+
+          EXISTING=$(gh pr list --head "$BRANCH" --base main --json number --jq 'length')
+          if [ "$EXISTING" = "0" ]; then
+            gh pr create \
+              --title "$TITLE" \
+              --body "PR automático de \`$BRANCH\` para \`main\`." \
+              --base main \
+              --head "$BRANCH" \
+              --draft
+            echo "PR criado: $BRANCH → main"
+          else
+            echo "PR já existe para $BRANCH → main, pulando."
+          fi
