@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'feat/**'
+      - develop
       - 'release/**'
 
 permissions:
@@ -38,6 +39,33 @@ jobs:
             echo "PR criado: $BRANCH → develop"
           else
             echo "PR já existe para $BRANCH → develop, pulando."
+          fi
+
+      # develop → release/*
+      - name: PR develop → release
+        if: github.ref == 'refs/heads/develop'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_BRANCH="release/$(date +%Y-%m-%d)"
+
+          git fetch origin
+          if ! git ls-remote --exit-code origin "refs/heads/$RELEASE_BRANCH"; then
+            git checkout -b "$RELEASE_BRANCH"
+            git push origin "$RELEASE_BRANCH"
+          fi
+
+          EXISTING=$(gh pr list --head develop --base "$RELEASE_BRANCH" --json number --jq 'length')
+          if [ "$EXISTING" = "0" ]; then
+            gh pr create \
+              --title "release: $(date +%Y-%m-%d)" \
+              --body "PR automático de \`develop\` para \`$RELEASE_BRANCH\`." \
+              --base "$RELEASE_BRANCH" \
+              --head develop \
+              --draft
+            echo "PR criado: develop → $RELEASE_BRANCH"
+          else
+            echo "PR já existe para develop → $RELEASE_BRANCH, pulando."
           fi
 
       # release/* → main
