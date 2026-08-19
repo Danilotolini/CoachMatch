@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       versao:
-        description: 'Versão da release (ex: 2025-08-19 ou v1.2.0)'
+        description: 'Versão da release (ex: v1.0.0, v1.2.3)'
         required: true
 
 permissions:
@@ -68,8 +68,8 @@ jobs:
           EXISTING=$(gh pr list --head "$RELEASE_BRANCH" --base main --json number --jq 'length')
           if [ "$EXISTING" = "0" ]; then
             gh pr create \
-              --title "release: ${{ github.event.inputs.versao }}" \
-              --body "PR de \`$RELEASE_BRANCH\` para \`main\`." \
+              --title "release ${{ github.event.inputs.versao }}" \
+              --body "PR de \`$RELEASE_BRANCH\` para \`main\`. Versão: ${{ github.event.inputs.versao }}" \
               --base main \
               --head "$RELEASE_BRANCH" \
               --draft
