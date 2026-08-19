@@ -12,8 +12,9 @@ on:
         required: true
         type: choice
         options:
-          # - develop  # desativado até a infra de develop existir (ver .github/RUNBOOK.md)
-          - production
+          - prod
+          # - homol   # criar bucket S3 + CloudFront e adicionar S3_BUCKET_HOMOL / CLOUDFRONT_HOMOL_ID
+          # - develop # criar bucket S3 + CloudFront e adicionar S3_BUCKET_DEVELOP / CLOUDFRONT_DEVELOP_ID
       confirm:
         description: 'Digite CONFIRMAR para prosseguir'
         required: true
@@ -372,42 +373,52 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: sa-east-1
 
-      # Backend sempre vai para o stage dev (único ambiente real), independente
-      # do environment escolhido. SERVERLESS_ACCESS_KEY é exigido pelo SF v4 em CI.
-      - name: Deploy backend (serverless, stage dev)
-        run: cd server/coachmatch && pnpm run deploy:dev
-        env:
-          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
-
       - uses: actions/download-artifact@v4
         with:
           name: client-build
           path: client/dist
 
-      # ── Deploy para develop (staging) ─────────────────────────────────────────
-      # DESATIVADO: o ambiente de develop ainda não existe na AWS (sem bucket S3
-      # nem distribuição CloudFront próprios). Reativar quando a infra de develop
-      # for criada. Ver pendência em .github/RUNBOOK.md.
-      # - name: Deploy para develop (staging)
-      #   if: github.event.inputs.environment == 'develop'
-      #   run: |
-      #     aws s3 sync client/dist s3://${{ vars.S3_BUCKET_DEVELOP }}/coachmatch_site --delete
-      #     aws cloudfront create-invalidation \
-      #       --distribution-id ${{ vars.CLOUDFRONT_DEVELOP_ID }} \
-      #       --paths "/*"
-      #     echo "✅ Deploy realizado em develop (staging)" >> $GITHUB_STEP_SUMMARY
-
-      - name: Deploy para production
-        if: github.event.inputs.environment == 'production' && github.ref == 'refs/heads/main'
+      # ── develop ───────────────────────────────────────────────────────────────
+      - name: Deploy para develop
+        if: github.event.inputs.environment == 'develop'
         run: |
+          cd server/coachmatch && pnpm run deploy:dev
+          aws s3 sync client/dist s3://${{ vars.S3_BUCKET_DEVELOP }}/coachmatch_site --delete
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ vars.CLOUDFRONT_DEVELOP_ID }} \
+            --paths "/*"
+          echo "✅ Deploy realizado em develop" >> $GITHUB_STEP_SUMMARY
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+
+      # ── homol ─────────────────────────────────────────────────────────────────
+      - name: Deploy para homol
+        if: github.event.inputs.environment == 'homol'
+        run: |
+          cd server/coachmatch && pnpm run deploy:dev
+          aws s3 sync client/dist s3://${{ vars.S3_BUCKET_HOMOL }}/coachmatch_site --delete
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ vars.CLOUDFRONT_HOMOL_ID }} \
+            --paths "/*"
+          echo "✅ Deploy realizado em homol" >> $GITHUB_STEP_SUMMARY
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+
+      # ── prod ──────────────────────────────────────────────────────────────────
+      - name: Deploy para prod
+        if: github.event.inputs.environment == 'prod' && github.ref == 'refs/heads/main'
+        run: |
+          cd server/coachmatch && pnpm run deploy:dev
           aws s3 sync client/dist s3://${{ vars.S3_BUCKET_PRODUCTION }}/coachmatch_site --delete
           aws cloudfront create-invalidation \
             --distribution-id ${{ vars.CLOUDFRONT_PRODUCTION_ID }} \
             --paths "/*"
-          echo "✅ Deploy realizado em production" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Deploy realizado em prod" >> $GITHUB_STEP_SUMMARY
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
 
-      - name: Block production deploy from non-main branch
-        if: github.event.inputs.environment == 'production' && github.ref != 'refs/heads/main'
+      - name: Bloquear prod fora da main
+        if: github.event.inputs.environment == 'prod' && github.ref != 'refs/heads/main'
         run: |
-          echo "❌ Deploy de production só é permitido a partir da branch main."
+          echo "❌ Deploy de prod só é permitido a partir da branch main."
           exit 1
