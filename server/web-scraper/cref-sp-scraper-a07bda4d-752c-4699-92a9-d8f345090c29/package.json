@@ -1,0 +1,18 @@
+{
+  "name": "cref-sp-scraper",
+  "version": "1.0.0",
+  "description": "AWS Lambda que faz scraping da consulta pública de inscritos no CREF-SP, resolvendo o reCAPTCHA via 2captcha.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node -e \"require('./index').handler(JSON.parse(process.env.EVENT || '{}')).then(r => console.log(JSON.stringify(r, null, 2)))\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-sqs": "^3.658.0",
+    "@sparticuz/chromium": "^131.0.1",
+    "axios": "^1.7.7",
+    "puppeteer-core": "^23.7.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
