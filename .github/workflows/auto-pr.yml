@@ -4,8 +4,12 @@ on:
   push:
     branches:
       - 'feat/**'
-      - develop
       - 'release/**'
+  workflow_dispatch:
+    inputs:
+      versao:
+        description: 'Versão da release (ex: 2025-08-19 ou v1.2.0)'
+        required: true
 
 permissions:
   contents: write
@@ -43,31 +47,29 @@ jobs:
             echo "PR já existe para $BRANCH → develop, pulando."
           fi
 
-      # develop → cria release/YYYY-MM-DD a partir do develop e abre PR release → main
-      - name: Criar release branch e PR → main
-        if: github.ref == 'refs/heads/develop'
+      # workflow_dispatch → cria release a partir do develop e abre PR release → main
+      - name: Criar release branch e PR → main (manual)
+        if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          RELEASE_BRANCH="release/$(date +%Y-%m-%d)"
+          RELEASE_BRANCH="release/${{ github.event.inputs.versao }}"
 
           git fetch origin
 
-          # Cria a release branch a partir do HEAD do develop se ainda não existe
           if ! git ls-remote --exit-code origin "refs/heads/$RELEASE_BRANCH"; then
-            git checkout -b "$RELEASE_BRANCH"
+            git checkout -b "$RELEASE_BRANCH" origin/develop
             git push origin "$RELEASE_BRANCH"
-            echo "Branch $RELEASE_BRANCH criada."
+            echo "Branch $RELEASE_BRANCH criada a partir de develop."
           else
             echo "Branch $RELEASE_BRANCH já existe."
           fi
 
-          # Abre PR da release para main
           EXISTING=$(gh pr list --head "$RELEASE_BRANCH" --base main --json number --jq 'length')
           if [ "$EXISTING" = "0" ]; then
             gh pr create \
-              --title "release: $(date +%Y-%m-%d)" \
-              --body "PR automático de \`$RELEASE_BRANCH\` para \`main\`." \
+              --title "release: ${{ github.event.inputs.versao }}" \
+              --body "PR de \`$RELEASE_BRANCH\` para \`main\`." \
               --base main \
               --head "$RELEASE_BRANCH" \
               --draft
