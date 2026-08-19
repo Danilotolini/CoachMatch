@@ -287,7 +287,7 @@ jobs:
           name: frontend-coverage-lcov
           path: client/coverage
 
-      - uses: sonarsource/sonarcloud-github-action@master
+      - uses: sonarsource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838 # v3.1.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
