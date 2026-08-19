@@ -152,24 +152,67 @@ SONAR_TOKEN                    # Token do projeto no SonarCloud (obrigatório �
 
 > O `GITHUB_TOKEN` é gerado automaticamente pelo GitHub Actions — não precisa configurar.
 
-### 3. Branch Protection Rules
+### 3. Fluxo de Branches
 
-Configure em **Settings → Branches → Branch protection rules** para `main`:
+```
+feat/minha-feature
+       │
+       │  PR automático (auto-pr.yml)
+       ▼
+    develop  ──── (PR manual quando pronto para release)
+       │
+       ▼
+  release/YYYY-MM-DD
+       │
+       │  PR automático (auto-pr.yml)
+       ▼
+      main
+```
 
+**Regras:**
+- `feat/*` → push na branch → PR automático criado como draft para `develop`
+- `develop` → ninguém faz push direto, só via PR aprovado
+- `release/*` → push na branch → PR automático criado como draft para `main`
+- `main` → ninguém faz push direto, só via PR de `release/*`
+
+**Criar uma release:**
+```bash
+git checkout develop
+git pull
+git checkout -b release/2025-01-15
+git push origin release/2025-01-15
+# PR automático para main é aberto
+```
+
+### 4. Branch Protection Rules
+
+Configure em **Settings → Branches → Branch protection rules**.
+
+#### main
 ```
 ✅ Require a pull request before merging
 ✅ Require status checks to pass before merging
 ✅ Require branches to be up to date before merging
 ✅ Dismiss stale pull request approvals
 ✅ Require code review approvals (1)
+✅ Do not allow bypassing the above settings
 ```
 
 Status checks obrigatórios:
-- `lint` ✅
-- `security` ✅
-- `test-backend` ✅
-- `test-frontend` ✅
-- `build` ✅
+- `lint`
+- `security`
+- `test-backend`
+- `test-frontend`
+- `build`
+
+#### develop
+```
+✅ Require a pull request before merging
+✅ Require status checks to pass before merging
+✅ Do not allow bypassing the above settings
+```
+
+> Sem revisão obrigatória em develop para não travar o fluxo do time, mas push direto bloqueado.
 
 ### 3. Environment Configuration
 
