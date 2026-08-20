@@ -70,7 +70,13 @@ jobs:
             echo "Branch $RELEASE_BRANCH já existe."
           fi
 
-          # Abre PR da release para main
+          # Só abre PR se houver commits novos em relação à main
+          COMMITS_AHEAD=$(git rev-list --count origin/main..origin/$RELEASE_BRANCH 2>/dev/null || echo "0")
+          if [ "$COMMITS_AHEAD" = "0" ]; then
+            echo "Nenhum commit novo em $RELEASE_BRANCH em relação à main. PR não criado."
+            exit 0
+          fi
+
           EXISTING=$(gh pr list --head "$RELEASE_BRANCH" --base main --json number --jq 'length')
           if [ "$EXISTING" = "0" ]; then
             gh pr create \
