@@ -49,17 +49,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git fetch --tags
+          git fetch origin
 
-          # Pega a última tag ou começa em v0.0.0
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          MAJOR=$(echo "$LATEST_TAG" | sed 's/v//' | cut -d. -f1)
-          MINOR=$(echo "$LATEST_TAG" | sed 's/v//' | cut -d. -f2)
-          PATCH=$(echo "$LATEST_TAG" | sed 's/v//' | cut -d. -f3)
+          # Pega o maior patch das branches release/vX.Y.Z existentes
+          LATEST=$(git branch -r | grep 'origin/release/v' | sed 's|.*origin/release/v||' | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+          if [ -z "$LATEST" ]; then
+            MAJOR=0; MINOR=0; PATCH=0
+          else
+            MAJOR=$(echo "$LATEST" | cut -d. -f1)
+            MINOR=$(echo "$LATEST" | cut -d. -f2)
+            PATCH=$(echo "$LATEST" | cut -d. -f3)
+          fi
           NEW_VERSION="v${MAJOR}.${MINOR}.$((PATCH + 1))"
           RELEASE_BRANCH="release/$NEW_VERSION"
 
-          echo "Última versão: $LATEST_TAG → Nova: $NEW_VERSION"
+          echo "Última branch de release: v${MAJOR}.${MINOR}.${PATCH} → Nova: $NEW_VERSION"
 
           # Cria a release branch a partir do HEAD do develop se não existe
           if ! git ls-remote --exit-code origin "refs/heads/$RELEASE_BRANCH"; then
