@@ -1,0 +1,27 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "localhost:4317"
+      http:
+        endpoint: "localhost:4318"
+
+exporters:
+  otlphttp:
+    endpoint: "${env:GRAFANA_OTLP_ENDPOINT}"
+    headers:
+      Authorization: "Basic ${env:GRAFANA_OTLP_TOKEN}"
+    tls:
+      insecure: false
+
+  logging:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      exporters: [otlphttp]

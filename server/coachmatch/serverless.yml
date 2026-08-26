@@ -22,6 +22,14 @@ stages:
       apiGatewayId: ${self:custom.config.dev.apiGatewayId}
       apiKey: ${self:custom.config.dev.apiKey}
       apiSecret: ${self:custom.config.dev.apiSecret}
+      # AWS OTel Lambda Layer — Node.js amd64, sa-east-1.
+      # Verificar versão mais recente em: https://github.com/aws-observability/aws-otel-lambda/releases
+      otelLayerArn: "arn:aws:lambda:sa-east-1:901920570463:layer:aws-otel-nodejs-amd64-ver-1-30-0:1"
+      # Grafana Cloud OTLP — setar como secrets no GitHub Actions:
+      #   GRAFANA_OTLP_ENDPOINT → https://otlp-gateway-prod-<REGION>.grafana.net/otlp
+      #   GRAFANA_OTLP_TOKEN    → Base64("<instanceId>:<apiKey>") — gerado em grafana.com → My Account → OTLP
+      grafanaOtlpEndpoint: ${env:GRAFANA_OTLP_ENDPOINT, ""}
+      grafanaOtlpToken: ${env:GRAFANA_OTLP_TOKEN, ""}
   # Stage local — serverless-offline + DynamoDB Local (nunca faz deploy na AWS)
   local:
     params:
@@ -32,6 +40,9 @@ stages:
       secret_access: ${self:custom.config.local.secretAccessKey}
       apiKey: ${self:custom.config.dev.apiKey}
       apiSecret: ${self:custom.config.dev.apiSecret}
+      otelLayerArn: ""
+      grafanaOtlpEndpoint: ""
+      grafanaOtlpToken: ""
 
 plugins:
   - serverless-dynamodb
@@ -72,6 +83,17 @@ provider:
   environment:
     BUCKET_NAME: ${param:bucketName, "coachmatch-profile-videos-138413505977-sa-east-1-an"}
     SIGNED_URL_EXPIRES: ${param:signedUrlExpires, "3600"}
+    # OTel — ADOT Collector embutido como Lambda Extension (via layer em custom.otelLayers).
+    # AWS_LAMBDA_EXEC_WRAPPER ativa auto-instrumentação de DynamoDB, HTTP e SQS.
+    # Em `local` estes valores ficam vazios (ver custom.otelWrapper / custom.otelCollectorUri).
+    OTEL_SERVICE_NAME: coachmatch-${param:stage}
+    AWS_LAMBDA_EXEC_WRAPPER: ${self:custom.otelWrapper.${sls:stage}}
+    OPENTELEMETRY_COLLECTOR_CONFIG_URI: ${self:custom.otelCollectorUri.${sls:stage}}
+    GRAFANA_OTLP_ENDPOINT: ${param:grafanaOtlpEndpoint}
+    GRAFANA_OTLP_TOKEN: ${param:grafanaOtlpToken}
+
+  # ADOT Layer — presente apenas no dev (local: lista vazia).
+  layers: ${self:custom.otelLayers.${sls:stage}}
 
   # httpApi por stage (ver custom.httpApiByStage):
   #   • dev   → API externa (id = qht6965nv9). O Serverless NÃO pode gerenciar
@@ -791,3 +813,19 @@ custom:
       migrate: true
   serverless-offline:
     ignoreJWTSignature: true
+
+  # ─── OTel / ADOT ────────────────────────────────────────────────────────────
+  # Layer ativo só no dev. Local não tem deploy real — lista vazia evita crash do offline.
+  otelLayers:
+    dev:
+      - "arn:aws:lambda:sa-east-1:901920570463:layer:aws-otel-nodejs-amd64-ver-1-30-0:1"
+    local: []
+
+  # Exec wrapper e config do Collector ativos só no dev.
+  otelWrapper:
+    dev: /opt/otel-handler
+    local: ""
+
+  otelCollectorUri:
+    dev: /var/task/collector.yml
+    local: ""
