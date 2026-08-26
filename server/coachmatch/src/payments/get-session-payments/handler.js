@@ -1,6 +1,7 @@
+import { withLogger } from '../../shared/logger.js';
 import { getSessionPayments } from './index.js';
 
-export const handler = async (event) => {
+const _handler = async (event) => {
   const callerId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!callerId) {
     return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado.' }) };
@@ -22,3 +23,4 @@ export const handler = async (event) => {
 
   return { statusCode: 200, body: JSON.stringify({ transactions, total: transactions.length }) };
 };
+export const handler = withLogger(_handler);

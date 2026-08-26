@@ -1,3 +1,4 @@
+import { withLogger } from '../../shared/logger.js';
 import { updateCoachProfile } from './index.js';
 import { getCoachProfile } from '../get-coach/index.js';
 import { ValidationException, NotFoundException } from '../../shared/exceptions.js';
@@ -6,7 +7,7 @@ import { ValidationException, NotFoundException } from '../../shared/exceptions.
  * Handler HTTP: PUT /coaches/me
  * Recebe o payload flat do front-end, atualiza o perfil e retorna o CoachMe atualizado.
  */
-export const handler = async (event) => {
+const _handler = async (event) => {
   const coachId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!coachId) {
     return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado' }) };
@@ -33,3 +34,4 @@ export const handler = async (event) => {
     throw err;
   }
 };
+export const handler = withLogger(_handler);

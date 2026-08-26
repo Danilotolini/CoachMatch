@@ -146,8 +146,9 @@ describe('get-coach › handler', () => {
     expect(response.statusCode).toBe(404);
   });
 
-  it('propaga erros inesperados', async () => {
+  it('retorna 500 em erros inesperados', async () => {
     findCoachById.mockRejectedValue(new Error('DynamoDB down'));
-    await expect(handler(buildAuthEvent())).rejects.toThrow('DynamoDB down');
+    const result = await handler(buildAuthEvent());
+    expect(result.statusCode).toBe(500);
   });
 });

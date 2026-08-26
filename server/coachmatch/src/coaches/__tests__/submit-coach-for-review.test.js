@@ -125,8 +125,9 @@ describe('submit-coach-for-review › handler', () => {
     expect(response.statusCode).toBe(409);
   });
 
-  it('propaga erros inesperados', async () => {
+  it('retorna 500 em erros inesperados', async () => {
     transitionToReview.mockRejectedValue(new Error('Falha no banco'));
-    await expect(handler(buildAuthEvent())).rejects.toThrow('Falha no banco');
+    const result = await handler(buildAuthEvent());
+    expect(result.statusCode).toBe(500);
   });
 });

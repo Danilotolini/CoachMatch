@@ -1,3 +1,4 @@
+import { withLogger } from '../../shared/logger.js';
 import { submitForReview } from './index.js';
 import { getCoachProfile } from '../get-coach/index.js';
 import { NotFoundException, ConflictException } from '../../shared/exceptions.js';
@@ -10,7 +11,7 @@ import { NotFoundException, ConflictException } from '../../shared/exceptions.js
  *
  * Front-end chama via `submitCoachForReview()` em client/src/api/coaches.ts.
  */
-export const handler = async (event) => {
+const _handler = async (event) => {
   const coachId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!coachId) {
     return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado' }) };
@@ -30,3 +31,4 @@ export const handler = async (event) => {
     throw err;
   }
 };
+export const handler = withLogger(_handler);

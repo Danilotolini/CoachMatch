@@ -1,9 +1,10 @@
+import { withLogger } from '../../shared/logger.js';
 import { createCardPayment, createPixPayment } from './index.js';
 import { ValidationException } from '../../shared/exceptions.js';
 
 const VALID_METHODS = ['pix', 'credit_card'];
 
-export const handler = async (event) => {
+const _handler = async (event) => {
   const studentId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!studentId) {
     return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado.' }) };
@@ -39,3 +40,4 @@ export const handler = async (event) => {
     throw err;
   }
 };
+export const handler = withLogger(_handler);

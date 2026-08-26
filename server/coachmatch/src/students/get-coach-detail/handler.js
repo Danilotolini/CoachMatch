@@ -1,7 +1,8 @@
+import { withLogger } from '../../shared/logger.js';
 import { getCoachDetail } from "./index.js";
 import { NotFoundException } from "../../shared/exceptions.js";
 
-export const handler = async (event) => {
+const _handler = async (event) => {
   const coachId = event?.pathParameters?.coachId;
 
   if (!coachId) {
@@ -38,3 +39,4 @@ export const handler = async (event) => {
     };
   }
 };
+export const handler = withLogger(_handler);

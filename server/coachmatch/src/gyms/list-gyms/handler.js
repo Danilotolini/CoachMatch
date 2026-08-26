@@ -1,3 +1,4 @@
+import { withLogger } from '../../shared/logger.js';
 import { listGyms } from './index.js';
 
 /**
@@ -13,7 +14,7 @@ const mapGym = ({ gymId, ...rest }) => ({ id: gymId, ...rest });
  * Handler HTTP: GET /gyms
  * Retorna a lista paginada de academias com cursor-based pagination.
  */
-export const handler = async (event) => {
+const _handler = async (event) => {
   const params = event?.queryStringParameters ?? {};
   const limit  = params.limit  ? Number(params.limit) : 20;
   const cursor = params.cursor ?? undefined;
@@ -28,3 +29,4 @@ export const handler = async (event) => {
     }),
   };
 };
+export const handler = withLogger(_handler);

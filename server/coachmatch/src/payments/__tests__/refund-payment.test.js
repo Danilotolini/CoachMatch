@@ -181,8 +181,9 @@ describe('refund-payment › handler', () => {
     expect(res.statusCode).toBe(422);
   });
 
-  it('propaga erros inesperados', async () => {
+  it('retorna 500 em erros inesperados', async () => {
     markAsRefunded.mockRejectedValue(new Error('DB error'));
-    await expect(handler(buildEvent({ amount: 50000 }))).rejects.toThrow('DB error');
+    const result = await handler(buildEvent({ amount: 50000 }));
+    expect(result.statusCode).toBe(500);
   });
 });

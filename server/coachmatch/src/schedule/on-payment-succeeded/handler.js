@@ -1,3 +1,4 @@
+import { withLogger } from '../../shared/logger.js';
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
 
@@ -12,7 +13,7 @@ const TABLE = 'schedule';
  *
  * Usa partial batch response: só devolve ao SQS os itens com falha transitória.
  */
-export const handler = async (event) => {
+const _handler = async (event) => {
   const docClient = createClient();
   const batchItemFailures = [];
 
@@ -56,3 +57,4 @@ export const handler = async (event) => {
 
   return { batchItemFailures };
 };
+export const handler = withLogger(_handler);
