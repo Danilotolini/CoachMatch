@@ -1,3 +1,4 @@
+import { withLogger } from '../../shared/logger.js';
 import { listCoaches } from "./index.js";
 
 // No payload 2.0 do HTTP API não existe multiValueQueryStringParameters: valores
@@ -15,7 +16,7 @@ function parseSpecialties(qs, multiQs) {
     .filter(Boolean);
 }
 
-export const handler = async (event) => {
+const _handler = async (event) => {
   const qs      = event.queryStringParameters || {};
   const multiQs = event.multiValueQueryStringParameters || {};
 
@@ -45,4 +46,4 @@ export const handler = async (event) => {
       body: JSON.stringify({ message: "Erro interno" }),
     };
   }
-};
+};export const handler = withLogger(_handler);

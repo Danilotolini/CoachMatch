@@ -1,3 +1,4 @@
+import { withLogger } from '../../shared/logger.js';
 import { refundPayment } from './index.js';
 import { ValidationException } from '../../shared/exceptions.js';
 import {
@@ -16,7 +17,7 @@ const PAYMENT_EXCEPTIONS = [
   PaymentForbiddenException,
 ];
 
-export const handler = async (event) => {
+const _handler = async (event) => {
   const callerId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!callerId) {
     return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado.' }) };
@@ -47,3 +48,4 @@ export const handler = async (event) => {
     throw err;
   }
 };
+export const handler = withLogger(_handler);

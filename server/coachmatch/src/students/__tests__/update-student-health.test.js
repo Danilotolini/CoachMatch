@@ -201,10 +201,11 @@ describe('update-student-health › handler', () => {
     expect(body.details).toBeDefined();
   });
 
-  it('propaga erros inesperados (não trata 500 silenciosamente)', async () => {
+  it('retorna 500 em erros inesperados', async () => {
     updateStudentHealth.mockRejectedValue(new Error('Erro inesperado'));
     const event = buildAuthEvent();
 
-    await expect(handler(event)).rejects.toThrow('Erro inesperado');
+    const result = await handler(event);
+    expect(result.statusCode).toBe(500);
   });
 });

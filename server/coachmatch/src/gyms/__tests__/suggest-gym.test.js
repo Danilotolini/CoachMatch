@@ -105,8 +105,9 @@ describe('suggest-gym › handler', () => {
     expect(response.statusCode).toBe(201);
   });
 
-  it('lança erro quando body está ausente', async () => {
-    await expect(handler({})).rejects.toThrow('body ausente');
+  it('retorna 500 quando body está ausente', async () => {
+    const result = await handler({});
+    expect(result.statusCode).toBe(500);
   });
 
   it('retorna 422 quando dados da academia são inválidos', async () => {
@@ -116,8 +117,9 @@ describe('suggest-gym › handler', () => {
     expect(body.details).toBeDefined();
   });
 
-  it('propaga erros inesperados', async () => {
+  it('retorna 500 em erros inesperados', async () => {
     insertGym.mockRejectedValue(new Error('Falha no DB'));
-    await expect(handler(buildEvent())).rejects.toThrow('Falha no DB');
+    const result = await handler(buildEvent());
+    expect(result.statusCode).toBe(500);
   });
 });

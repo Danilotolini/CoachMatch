@@ -1,3 +1,4 @@
+import { withLogger } from '../../shared/logger.js';
 import { getCoachProfile } from './index.js';
 import { NotFoundException } from '../../shared/exceptions.js';
 
@@ -5,7 +6,7 @@ import { NotFoundException } from '../../shared/exceptions.js';
  * Handler HTTP: GET /coaches/me
  * Retorna o perfil completo do coach autenticado.
  */
-export const handler = async (event) => {
+const _handler = async (event) => {
   const coachId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!coachId) {
     return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado' }) };
@@ -21,3 +22,4 @@ export const handler = async (event) => {
     throw err;
   }
 };
+export const handler = withLogger(_handler);

@@ -1,3 +1,4 @@
+import { withLogger } from '../../shared/logger.js';
 import { updateProfile } from './index.js';
 import { getStudentProfile } from '../get-student/index.js';
 import { ValidationException } from '../../shared/exceptions.js';
@@ -21,7 +22,7 @@ const normalizePhone = (phone) => {
  * Recebe dados pessoais e de localização do estudante.
  * Retorna o perfil atualizado compatível com o tipo Client do front-end.
  */
-export const handler = async (event) => {
+const _handler = async (event) => {
   const studentId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!studentId) {
     return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado' }) };
@@ -45,3 +46,4 @@ export const handler = async (event) => {
     throw err;
   }
 };
+export const handler = withLogger(_handler);

@@ -233,10 +233,11 @@ describe('update-student-profile › handler', () => {
     expect(body.details).toBeDefined();
   });
 
-  it('propaga erros inesperados sem tratar com 5xx silencioso', async () => {
+  it('retorna 500 em erros inesperados', async () => {
     updateStudentProfile.mockRejectedValue(new Error('Falha crítica'));
     const event = buildAuthEvent();
 
-    await expect(handler(event)).rejects.toThrow('Falha crítica');
+    const result = await handler(event);
+    expect(result.statusCode).toBe(500);
   });
 });

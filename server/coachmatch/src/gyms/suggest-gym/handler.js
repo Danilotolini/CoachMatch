@@ -1,3 +1,4 @@
+import { withLogger } from '../../shared/logger.js';
 import { suggestGym } from './index.js';
 import { ValidationException } from '../../shared/exceptions.js';
 
@@ -5,7 +6,7 @@ import { ValidationException } from '../../shared/exceptions.js';
  * Handler HTTP: POST /gyms/suggest
  * Recebe a sugestão de uma nova academia e a persiste para revisão.
  */
-export const handler = async (event) => {
+const _handler = async (event) => {
   if (!event?.body) {
     throw new Error('Evento inválido: body ausente');
   }
@@ -22,3 +23,4 @@ export const handler = async (event) => {
     throw err;
   }
 };
+export const handler = withLogger(_handler);
