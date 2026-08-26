@@ -274,8 +274,9 @@ describe('update-coach › handler', () => {
     expect(body.details).toBeDefined();
   });
 
-  it('propaga erros inesperados', async () => {
+  it('retorna 500 em erros inesperados', async () => {
     persistCoachUpdate.mockRejectedValue(new Error('Falha crítica'));
-    await expect(handler(buildAuthEvent())).rejects.toThrow('Falha crítica');
+    const result = await handler(buildAuthEvent());
+    expect(result.statusCode).toBe(500);
   });
 });

@@ -1,10 +1,11 @@
+import { withCognitoLogger } from '../../shared/logger.js';
 import { createStudent } from './index.js';
 
 /**
  * Handler do trigger PostConfirmation do Cognito.
  * Cria o registro do estudante no DynamoDB após confirmação de e-mail.
  */
-export const handler = async (event) => {
+const _handler = async (event) => {
   const cognitoAttributes = event?.request?.userAttributes;
 
   if (!cognitoAttributes) {
@@ -15,3 +16,4 @@ export const handler = async (event) => {
 
   return event;
 };
+export const handler = withCognitoLogger(_handler);

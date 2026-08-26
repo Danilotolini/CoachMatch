@@ -1,3 +1,4 @@
+import { withLogger } from '../../shared/logger.js';
 import { getStudentDetailForCoach } from './index.js';
 import { ForbiddenException, NotFoundException } from '../../shared/exceptions.js';
 
@@ -6,7 +7,7 @@ import { ForbiddenException, NotFoundException } from '../../shared/exceptions.j
  * Retorna o detalhe de um aluno (sem dados de contato) para o coach autenticado,
  * desde que exista vínculo de sessão entre eles.
  */
-export const handler = async (event) => {
+const _handler = async (event) => {
   const coachId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!coachId) {
     return {
@@ -50,3 +51,4 @@ export const handler = async (event) => {
     throw err;
   }
 };
+export const handler = withLogger(_handler);

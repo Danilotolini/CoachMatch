@@ -161,9 +161,9 @@ describe('get-student-detail › handler', () => {
     expect(response.statusCode).toBe(404);
   });
 
-  it('propaga erros inesperados', async () => {
+  it('retorna 500 em erros inesperados', async () => {
     coachHasSessionWithStudent.mockRejectedValue(new Error('Falha de rede'));
-
-    await expect(handler(buildEvent())).rejects.toThrow('Falha de rede');
+    const result = await handler(buildEvent());
+    expect(result.statusCode).toBe(500);
   });
 });

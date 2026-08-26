@@ -144,10 +144,11 @@ describe('get-student › handler', () => {
     expect(body.message).toBeDefined();
   });
 
-  it('propaga erros inesperados (não os trata com 5xx silencioso)', async () => {
+  it('retorna 500 em erros inesperados', async () => {
     findStudentById.mockRejectedValue(new Error('Falha de rede'));
     const event = buildAuthEvent();
 
-    await expect(handler(event)).rejects.toThrow('Falha de rede');
+    const result = await handler(event);
+    expect(result.statusCode).toBe(500);
   });
 });

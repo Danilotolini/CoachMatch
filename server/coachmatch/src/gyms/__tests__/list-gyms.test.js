@@ -78,8 +78,9 @@ describe('list-gyms › handler', () => {
     expect(JSON.parse(response.body).items).toHaveLength(0);
   });
 
-  it('propaga erros do repositório', async () => {
+  it('retorna 500 em erros do repositório', async () => {
     listGymsRepository.mockRejectedValue(new Error('DynamoDB indisponível'));
-    await expect(handler({})).rejects.toThrow('DynamoDB indisponível');
+    const result = await handler({});
+    expect(result.statusCode).toBe(500);
   });
 });
