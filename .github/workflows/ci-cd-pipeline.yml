@@ -390,6 +390,8 @@ jobs:
           echo "✅ Deploy realizado em develop" >> $GITHUB_STEP_SUMMARY
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+          GRAFANA_OTLP_ENDPOINT: ${{ secrets.GRAFANA_OTLP_ENDPOINT }}
+          GRAFANA_OTLP_TOKEN: ${{ secrets.GRAFANA_OTLP_TOKEN }}
 
       # ── homol ─────────────────────────────────────────────────────────────────
       - name: Deploy para homol
@@ -403,6 +405,8 @@ jobs:
           echo "✅ Deploy realizado em homol" >> $GITHUB_STEP_SUMMARY
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+          GRAFANA_OTLP_ENDPOINT: ${{ secrets.GRAFANA_OTLP_ENDPOINT }}
+          GRAFANA_OTLP_TOKEN: ${{ secrets.GRAFANA_OTLP_TOKEN }}
 
       # ── prod ──────────────────────────────────────────────────────────────────
       - name: Deploy para prod
@@ -416,6 +420,8 @@ jobs:
           echo "✅ Deploy realizado em prod" >> $GITHUB_STEP_SUMMARY
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+          GRAFANA_OTLP_ENDPOINT: ${{ secrets.GRAFANA_OTLP_ENDPOINT }}
+          GRAFANA_OTLP_TOKEN: ${{ secrets.GRAFANA_OTLP_TOKEN }}
 
       - name: Bloquear prod fora da main
         if: github.event.inputs.environment == 'prod' && github.ref != 'refs/heads/main'
