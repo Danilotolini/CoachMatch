@@ -126,6 +126,10 @@ VITE_COGNITO_STUDENT_DOMAIN    # Ex: https://student.coachmatch.com.br
 # ── Observabilidade / Qualidade ───────────────────────────────────────
 CODECOV_TOKEN                  # Token do projeto em codecov.io (opcional — fail_ci_if_error: false)
 SONAR_TOKEN                    # Token do projeto no SonarCloud (obrigatório — ver setup abaixo)
+
+# ── Grafana Cloud / OTel ──────────────────────────────────────────────
+GRAFANA_OTLP_ENDPOINT          # Ex: https://otlp-gateway-prod-sa-east-1.grafana.net/otlp
+GRAFANA_OTLP_TOKEN             # Base64("<instanceId>:<apiKey>") — ver "Setup Grafana Cloud" abaixo
 ```
 
 > **Nota:** `apiKey`, `apiSecret`, `apiGatewayId`, região e account ID do backend
@@ -426,3 +430,44 @@ Via GitHub Actions artifacts:
 **Status: Production Ready** ✅
 
 Este pipeline é totalmente funcional e segue padrões de empresas de Bay Area (Google, Meta, Stripe, etc.)
+
+---
+
+## Setup Grafana Cloud (Observabilidade — custo zero)
+
+### O que você vai ter
+
+- **Traces**: DynamoDB, HTTP e SQS de todas as Lambdas (via ADOT Layer)
+- **Logs JSON estruturados**: `trace_id`, `userId`, `path`, `statusCode`, `duration_ms` (via CloudWatch → Grafana)
+- **Métricas**: invocações, erros, duração das Lambdas
+
+### Passos
+
+1. **Criar conta** em [grafana.com](https://grafana.com) → plano gratuito (10k séries, 50GB logs, 14 dias)
+
+2. **Pegar credenciais OTLP**
+   - Vá em: **My Account → Your Grafana Cloud stack → Send data with OpenTelemetry**
+   - Copie o **OTLP endpoint** (ex: `https://otlp-gateway-prod-sa-east-1.grafana.net/otlp`)
+   - Gere um **API Token** com escopo `MetricsPublisher` + `LogsPublisher` + `TracesPublisher`
+   - Monte o token: `Base64("<instanceId>:<apiKey>")` → use `echo -n "ID:KEY" | base64`
+
+3. **Adicionar secrets no GitHub**
+   - `GRAFANA_OTLP_ENDPOINT` = endpoint OTLP copiado
+   - `GRAFANA_OTLP_TOKEN` = base64 calculado acima
+
+4. **Verificar ARN da ADOT Layer** (se precisar atualizar)
+   - ARN atual: `arn:aws:lambda:sa-east-1:901920570463:layer:aws-otel-nodejs-amd64-ver-1-30-0:1`
+   - Versões mais recentes: https://github.com/aws-observability/aws-otel-lambda/releases
+   - Se a versão mudou, atualizar `custom.otelLayers.dev` em `server/coachmatch/serverless.yml`
+
+5. **Conectar CloudWatch ao Grafana** (para ver os logs JSON)
+   - No Grafana Cloud: **Connections → AWS → CloudWatch Logs**
+   - Permissão mínima IAM: `logs:FilterLogEvents`, `logs:DescribeLogGroups`
+
+### Como funciona no deploy
+
+```
+Lambda invocação
+  → ADOT Layer (Extension) intercepta spans → Grafana Tempo (traces)
+  → stdout JSON (withLogger) → CloudWatch Logs → Grafana Loki
+```
