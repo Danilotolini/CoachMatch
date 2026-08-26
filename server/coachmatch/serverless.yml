@@ -92,8 +92,8 @@ provider:
     GRAFANA_OTLP_ENDPOINT: ${param:grafanaOtlpEndpoint}
     GRAFANA_OTLP_TOKEN: ${param:grafanaOtlpToken}
 
-  # ADOT Layer — presente apenas no dev (local: lista vazia).
-  layers: ${self:custom.otelLayers.${sls:stage}}
+  # ADOT Layer — desativado até confirmar ARN correto em sa-east-1.
+  # layers: ${self:custom.otelLayers.${sls:stage}}
 
   # httpApi por stage (ver custom.httpApiByStage):
   #   • dev   → API externa (id = qht6965nv9). O Serverless NÃO pode gerenciar
@@ -815,17 +815,18 @@ custom:
     ignoreJWTSignature: true
 
   # ─── OTel / ADOT ────────────────────────────────────────────────────────────
-  # Layer ativo só no dev. Local não tem deploy real — lista vazia evita crash do offline.
+  # Layer removido temporariamente — ARN precisa ser verificado em sa-east-1.
+  # Para reativar: descobrir ARN correto via `aws lambda list-layer-versions
+  # --layer-name arn:aws:lambda:sa-east-1:901920570463:layer:aws-otel-nodejs-amd64
+  # --region sa-east-1` e atualizar otelLayers.dev abaixo.
   otelLayers:
-    dev:
-      - "arn:aws:lambda:sa-east-1:901920570463:layer:aws-otel-nodejs-amd64-ver-1-30-0:1"
+    dev: []
     local: []
 
-  # Exec wrapper e config do Collector ativos só no dev.
   otelWrapper:
-    dev: /opt/otel-handler
+    dev: ""
     local: ""
 
   otelCollectorUri:
-    dev: /var/task/collector.yml
+    dev: ""
     local: ""
