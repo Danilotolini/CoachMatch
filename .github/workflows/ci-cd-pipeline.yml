@@ -380,7 +380,7 @@ jobs:
       - name: Deploy para develop
         if: github.event.inputs.environment == 'develop'
         run: |
-          cd server/coachmatch && pnpm run deploy:dev
+          (cd server/coachmatch && pnpm run deploy:dev)
           aws s3 sync client/dist s3://${{ vars.S3_BUCKET_DEVELOP }}/coachmatch_site --delete
           aws cloudfront create-invalidation \
             --distribution-id ${{ vars.CLOUDFRONT_DEVELOP_ID }} \
@@ -395,7 +395,7 @@ jobs:
       - name: Deploy para homol
         if: github.event.inputs.environment == 'homol'
         run: |
-          cd server/coachmatch && pnpm run deploy:dev
+          (cd server/coachmatch && pnpm run deploy:dev)
           aws s3 sync client/dist s3://${{ vars.S3_BUCKET_HOMOL }}/coachmatch_site --delete
           aws cloudfront create-invalidation \
             --distribution-id ${{ vars.CLOUDFRONT_HOMOL_ID }} \
@@ -410,7 +410,7 @@ jobs:
       - name: Deploy para prod
         if: github.event.inputs.environment == 'prod' && github.ref == 'refs/heads/main'
         run: |
-          cd server/coachmatch && pnpm run deploy:dev
+          (cd server/coachmatch && pnpm run deploy:dev)
           aws s3 sync client/dist s3://${{ vars.S3_BUCKET_PRODUCTION }}/coachmatch_site --delete
           aws cloudfront create-invalidation \
             --distribution-id ${{ vars.CLOUDFRONT_PRODUCTION_ID }} \
