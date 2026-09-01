@@ -91,9 +91,11 @@ provider:
     OPENTELEMETRY_COLLECTOR_CONFIG_URI: ${self:custom.otelCollectorUri.${sls:stage}}
     GRAFANA_OTLP_ENDPOINT: ${param:grafanaOtlpEndpoint}
     GRAFANA_OTLP_TOKEN: ${param:grafanaOtlpToken}
+    GRAFANA_CLOUD_INSTANCE_ID: "1808134"
+    GRAFANA_CLOUD_OTLP_ENDPOINT: "https://otlp-gateway-prod-sa-east-1.grafana.net/otlp"
+    GRAFANA_CLOUD_API_KEY: ${env:GRAFANA_CLOUD_API_KEY, ""}
 
-  # ADOT Layer — desativado até confirmar ARN correto em sa-east-1.
-  # layers: ${self:custom.otelLayers.${sls:stage}}
+  layers: ${self:custom.otelLayers.${sls:stage}}
 
   # httpApi por stage (ver custom.httpApiByStage):
   #   • dev   → API externa (id = qht6965nv9). O Serverless NÃO pode gerenciar
@@ -143,6 +145,12 @@ provider:
             - s3:GetObject
           Resource:
             - arn:aws:s3:::coachmatch-profile-videos-138413505977-sa-east-1-an/*
+        # Grafana Lambda Extension lê o API key do Secrets Manager na inicialização
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource:
+            - arn:aws:secretsmanager:sa-east-1:138413505977:secret:grafana-cloud-api-key-*
 
 functions:
 
@@ -820,7 +828,8 @@ custom:
   # --layer-name arn:aws:lambda:sa-east-1:901920570463:layer:aws-otel-nodejs-amd64
   # --region sa-east-1` e atualizar otelLayers.dev abaixo.
   otelLayers:
-    dev: []
+    dev:
+      - "arn:aws:lambda:sa-east-1:050451360540:layer:opentelemetry-collector-grafana-amd64-v0_138_0:2"
     local: []
 
   otelWrapper:
