@@ -215,10 +215,22 @@ O `serverless-dynamodb` sobe a tabela `gyms` já populada a partir de
 [`seed/gyms.json`](seed/gyms.json), configurado em `custom.dynamodb.seed` no
 `serverless.yml`. Para incluir outras academias, basta editar o arquivo.
 
-> **Limitação conhecida:** o trigger `PostConfirmation` do Cognito não dispara contra o
-> ambiente local, então um usuário que existe no pool não ganha registro nas tabelas
-> `student`/`coaches` — e o front-end fica preso na tela de onboarding, mesmo com as
-> chamadas respondendo `200`. A criação automática desse registro está em andamento.
+Os registros de aluno e treinador **não** precisam de seed: entre com a sua própria conta
+do Cognito e o registro correspondente é criado no primeiro acesso a `/student/me` ou
+`/coaches/me`, a partir das claims do seu ID token. Nada a configurar, nenhum `sub` a
+descobrir.
+
+O motivo: o trigger `PostConfirmation` do Cognito roda na AWS, não contra o
+`serverless-offline`, então quem autentica localmente nunca ganharia registro em
+`student`/`coaches` — e o front-end ficaria preso na tela de onboarding, mesmo com as
+chamadas respondendo `200`. Quem cobre essa lacuna é
+[`shared/local-autoseed.js`](src/shared/local-autoseed.js), que só age quando
+`STAGE=local` e nunca sobrescreve um registro existente.
+
+> **Atenção:** isso faz o ambiente local divergir de produção, onde um registro ausente
+> resulta em `404`. Se o auto-seed falhar (claims incompletas, por exemplo), o request
+> segue para o `404` normal e o motivo aparece como `local_autoseed_failed` no log do
+> `pnpm dev`.
 
 ### Executar testes
 
