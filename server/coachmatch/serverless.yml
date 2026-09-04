@@ -819,6 +819,12 @@ custom:
       port: 8000
       inMemory: true
       migrate: true
+      seed: true
+    seed:
+      local:
+        sources:
+          - table: gyms
+            sources: [./seed/gyms.json]
   serverless-offline:
     ignoreJWTSignature: true
 

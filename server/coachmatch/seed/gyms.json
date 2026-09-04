@@ -1,0 +1,32 @@
+[
+  {
+    "gymId": "gym_sp001",
+    "name": "Smart Fit Paulista",
+    "address": "Av. Paulista, 1000",
+    "city": "São Paulo",
+    "state": "SP",
+    "neighborhood": "Bela Vista",
+    "coordinates": { "lat": -23.5614, "lng": -46.6559 },
+    "active": "True"
+  },
+  {
+    "gymId": "gym_rj001",
+    "name": "Smart Fit Copacabana",
+    "address": "Av. Nossa Sra. de Copacabana, 540",
+    "city": "Rio de Janeiro",
+    "state": "RJ",
+    "neighborhood": "Copacabana",
+    "coordinates": { "lat": -22.9711, "lng": -43.1822 },
+    "active": "True"
+  },
+  {
+    "gymId": "gym_mg001",
+    "name": "Smart Fit Savassi",
+    "address": "Av. Getúlio Vargas, 1420",
+    "city": "Belo Horizonte",
+    "state": "MG",
+    "neighborhood": "Savassi",
+    "coordinates": { "lat": -19.9379, "lng": -43.9349 },
+    "active": "True"
+  }
+]

@@ -209,6 +209,17 @@ pnpm dev
 # serverless offline start — sobe serverless-offline + DynamoDB Local na porta 8000
 ```
 
+### Dados de teste
+
+O `serverless-dynamodb` sobe a tabela `gyms` já populada a partir de
+[`seed/gyms.json`](seed/gyms.json), configurado em `custom.dynamodb.seed` no
+`serverless.yml`. Para incluir outras academias, basta editar o arquivo.
+
+> **Limitação conhecida:** o trigger `PostConfirmation` do Cognito não dispara contra o
+> ambiente local, então um usuário que existe no pool não ganha registro nas tabelas
+> `student`/`coaches` — e o front-end fica preso na tela de onboarding, mesmo com as
+> chamadas respondendo `200`. A criação automática desse registro está em andamento.
+
 ### Executar testes
 
 ```bash
