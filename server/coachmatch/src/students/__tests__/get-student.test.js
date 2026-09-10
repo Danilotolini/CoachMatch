@@ -27,7 +27,7 @@ const buildStudentRecord = (overrides = {}) => ({
   studentId: STUDENT_ID,
   email: 'aluno@email.com',
   status: 'ACTIVE',
-  profile: { name: 'Maria Santos' },
+  name: 'Maria Santos',
   phone: '+5511987654321',
   birthDate: '1995-06-15',
   gender: 'F',
@@ -69,7 +69,6 @@ describe('get-student › index (getStudentProfile)', () => {
       studentId: STUDENT_ID,
       email: 'aluno@email.com',
       status: 'PENDING_PROFILE',
-      profile: { name: 'Novo' },
     });
 
     const result = await getStudentProfile(STUDENT_ID);

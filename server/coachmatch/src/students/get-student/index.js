@@ -14,7 +14,7 @@ const mapToClient = async (record) => ({
   clientId:   record.studentId,
   email:      record.email,
   status:     record.status,
-  name:       record.profile?.name  ?? null,
+  name:       record.name            ?? null,
   phone:      record.phone          ?? null,
   birthDate:  record.birthDate      ?? null,
   gender:     record.gender         ?? null,
