@@ -95,7 +95,7 @@ provider:
     GRAFANA_CLOUD_OTLP_ENDPOINT: "https://otlp-gateway-prod-sa-east-1.grafana.net/otlp"
     GRAFANA_CLOUD_API_KEY: ${env:GRAFANA_CLOUD_API_KEY, ""}
 
-  layers: ${self:custom.otelLayers.${sls:stage}}
+  # layers: ${self:custom.otelLayers.${sls:stage}}
 
   # httpApi por stage (ver custom.httpApiByStage):
   #   • dev   → API externa (id = qht6965nv9). O Serverless NÃO pode gerenciar
