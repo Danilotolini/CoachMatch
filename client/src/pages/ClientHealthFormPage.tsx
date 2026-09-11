@@ -65,8 +65,8 @@ export default function ClientHealthFormPage() {
         medicalDisclaimer: form.medicalDisclaimer,
       },
       {
-        onSuccess: () => {
-          void navigate('/client')
+        onSuccess: (data) => {
+          void navigate(data.status === 'ACTIVE' ? '/client' : '/client/health')
         },
       },
     )

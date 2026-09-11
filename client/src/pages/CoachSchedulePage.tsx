@@ -117,7 +117,9 @@ function getDefaultConfig(): GenerateConfig {
 }
 
 function getCoachGymIds(workLocations: WorkLocation[] | undefined): string[] {
-  const gymIds = (workLocations ?? []).map((location) => location.gymId)
+  const gymIds = (workLocations ?? []).flatMap((location) =>
+    location.type === 'GYM' ? [location.gymId] : [],
+  )
   return [...new Set(gymIds)]
 }
 

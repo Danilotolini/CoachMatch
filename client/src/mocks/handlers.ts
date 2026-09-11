@@ -248,8 +248,6 @@ function buildInitialClient(): Client {
     goal: null,
     health: null,
     photo_url: null,
-    createdAt: '2026-01-01T00:00:00.000Z',
-    updatedAt: '2026-01-01T00:00:00.000Z',
   }
 }
 
@@ -658,7 +656,7 @@ export const handlers = [
     if (!payload.lgpdConsent || !payload.medicalDisclaimer) {
       return HttpResponse.json({ error: 'Consentimentos obrigatórios.' }, { status: 400 })
     }
-    const client = setClient({ ...state.client, status: 'ACTIVE', updatedAt: nowIso() })
+    const client = setClient({ ...state.client, status: 'ACTIVE' })
     return HttpResponse.json<Client>(client)
   }),
 
@@ -679,7 +677,6 @@ export const handlers = [
       ...(payload.photo_key !== undefined ? { photo_url: mockSignedUrl(payload.photo_key) } : {}),
       // Espelha o back-end: só avança a partir de PENDING_PROFILE; editar não regride o status.
       status: state.client.status === 'PENDING_PROFILE' ? 'ONBOARDING_HEALTH' : state.client.status,
-      updatedAt: nowIso(),
     })
     return HttpResponse.json<Client>(client)
   }),
@@ -929,7 +926,7 @@ export const handlers = [
   http.post('*/dev/client/onboarded', async ({ request }) => {
     await wait(150)
     const payload = (await request.json()) as { status: ClientStatus }
-    const client = setClient({ ...state.client, status: payload.status, updatedAt: nowIso() })
+    const client = setClient({ ...state.client, status: payload.status })
     return HttpResponse.json<Client>(client)
   }),
 

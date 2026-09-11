@@ -104,7 +104,7 @@ function gymToOption(gym: Gym): GymOption {
 }
 
 function extractGymIds(workLocation: WorkLocation[]): string[] {
-  return workLocation.map((item) => item.gymId)
+  return workLocation.flatMap((item) => (item.type === 'GYM' ? [item.gymId] : []))
 }
 
 function profileStatusLabel(coach: Coach): string {
