@@ -186,8 +186,8 @@ export default function ClientOnboardingPage() {
         ...(form.photoKey ? { photo_key: form.photoKey } : {}),
       },
       {
-        onSuccess: () => {
-          void navigate('/client/health')
+        onSuccess: (data) => {
+          void navigate(data.status === 'ACTIVE' ? '/client' : '/client/health')
         },
       },
     )

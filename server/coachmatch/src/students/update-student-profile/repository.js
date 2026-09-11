@@ -56,14 +56,17 @@ export const updateStudentProfile = async (studentId, profileData) => {
     })
   );
 
-  // Avança o status para ONBOARDING_HEALTH somente se ainda estiver em PENDING_PROFILE
+  // Avança o status para ONBOARDING_HEALTH se:
+  // - ainda está em PENDING_PROFILE (fluxo normal), OU
+  // - status não existe (conta criada antes do campo existir)
+  // Não regride se já estiver em ONBOARDING_HEALTH ou ACTIVE.
   try {
     await docClient.send(
       new UpdateCommand({
         TableName: TABLE,
         Key: { studentId },
         UpdateExpression: 'SET #status = :next',
-        ConditionExpression: '#status = :current',
+        ConditionExpression: 'attribute_not_exists(#status) OR #status = :current',
         ExpressionAttributeNames: { '#status': 'status' },
         ExpressionAttributeValues: {
           ':next':    'ONBOARDING_HEALTH',
