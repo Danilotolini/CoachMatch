@@ -14,5 +14,5 @@ export function refundPayment(
   amount: number,
   reason?: string,
 ): Promise<Transaction> {
-  return apiPost<Transaction>(`/payments/${transactionId}/refund`, { amount, reason })
+  return apiPost<Transaction>(`/payments/${transactionId}/refund`, { amount, reason }, { role: 'client' })
 }

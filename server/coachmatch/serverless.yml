@@ -372,7 +372,7 @@ functions:
       - httpApi:
           path: /payments/coach/{coachId}
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
 
   paymentGetByStudent:
     handler: src/payments/get-student-payments/handler.handler

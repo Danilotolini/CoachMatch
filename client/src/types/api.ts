@@ -25,7 +25,11 @@ export interface WorkLocationGym {
   gymId: string
 }
 
-export type WorkLocation = WorkLocationGym
+export interface WorkLocationHomeService {
+  type: 'HOME_SERVICE'
+}
+
+export type WorkLocation = WorkLocationGym | WorkLocationHomeService
 
 export interface Coach {
   coachId: string
@@ -94,7 +98,7 @@ export interface CoachDetail {
 }
 
 export interface CoachSummaryProfile {
-  name: string
+  name: string | null
   phone: string | null
   specialties: string[]
   cref: string | null
@@ -175,8 +179,6 @@ export interface Client {
   health: ClientHealth | null
   /** URL assinada de leitura da foto de perfil. null quando não há foto. */
   photo_url: string | null
-  createdAt: string
-  updatedAt: string
 }
 
 /** Recorte de um aluno visível ao treinador */

@@ -16,6 +16,6 @@ export const createStudent = async (cognitoAttributes) => {
     studentId: cognitoAttributes.sub,
     email: cognitoAttributes.email,
     status: 'PENDING_PROFILE',
-    profile: { name: cognitoAttributes.name },
+    name: cognitoAttributes.name,
   });
 };

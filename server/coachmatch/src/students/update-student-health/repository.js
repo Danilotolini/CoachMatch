@@ -16,7 +16,8 @@ export const updateStudentHealth = async (studentId, healthData) => {
     new UpdateCommand({
       TableName: TABLE,
       Key: { studentId },
-      UpdateExpression: `SET #health = :health, #status = :status`,
+      UpdateExpression: `SET #health = :health, #status = :next`,
+      ConditionExpression: 'attribute_not_exists(#status) OR #status = :current',
       ExpressionAttributeNames: {
         '#health': 'health',
         '#status': 'status',
@@ -28,7 +29,8 @@ export const updateStudentHealth = async (studentId, healthData) => {
           lgpdConsent:       healthData.lgpdConsent,
           medicalDisclaimer: healthData.medicalDisclaimer,
         },
-        ':status': 'ACTIVE',
+        ':next':    'ACTIVE',
+        ':current': 'ONBOARDING_HEALTH',
       },
     })
   );

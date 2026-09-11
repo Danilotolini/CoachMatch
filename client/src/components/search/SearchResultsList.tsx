@@ -12,7 +12,7 @@ export function SearchResultsList({ coaches, onCoachClick }: SearchResultsListPr
       {coaches.map((coach) => (
         <CoachCard
           key={coach.coachId}
-          name={coach.profile.name}
+          name={coach.profile.name ?? ''}
           specialties={coach.profile.specialties.join(' · ')}
           {...(coach.profile.photo_url ? { image: coach.profile.photo_url } : {})}
           {...(onCoachClick

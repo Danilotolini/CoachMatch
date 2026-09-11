@@ -383,7 +383,7 @@ function ScheduleCard({
             studentId={studentId}
             amountCents={Math.round(parseFloat(schedule.price) * 100)}
             amountLabel={formatMoney(schedule.price)}
-            coachName={coach?.profile.name}
+            coachName={coach?.profile.name ?? undefined}
             specialtyLabel={specialty}
             dateLabel={`${formatDay(schedule.startDateTime)} · ${formatTimeRange(schedule)}`}
             onPaid={onPaymentUpdated}

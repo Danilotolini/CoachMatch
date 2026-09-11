@@ -27,7 +27,7 @@ const buildStudentRecord = (overrides = {}) => ({
   studentId: STUDENT_ID,
   email: 'aluno@email.com',
   status: 'ACTIVE',
-  profile: { name: 'Maria Santos' },
+  name: 'Maria Santos',
   phone: '+5511987654321',
   birthDate: '1995-06-15',
   gender: 'F',
@@ -76,7 +76,7 @@ describe('get-student-detail › index (getStudentDetailForCoach)', () => {
 
   it('mapeia campos ausentes para null', async () => {
     coachHasSessionWithStudent.mockResolvedValue(true);
-    findStudentById.mockResolvedValue({ studentId: STUDENT_ID, profile: {} });
+    findStudentById.mockResolvedValue({ studentId: STUDENT_ID });
 
     const result = await getStudentDetailForCoach({ coachId: COACH_ID, studentId: STUDENT_ID });
 

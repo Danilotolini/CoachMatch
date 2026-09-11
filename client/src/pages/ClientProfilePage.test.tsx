@@ -44,8 +44,6 @@ const activeClient: Client = {
   goal: 'HYPERTROPHY',
   health: null,
   photo_url: null,
-  createdAt: '2026-01-01T00:00:00.000Z',
-  updatedAt: '2026-01-01T00:00:00.000Z',
 }
 
 function mockCepSuccess() {
@@ -114,7 +112,6 @@ describe('ClientProfilePage', () => {
           name: receivedPayload.name,
           goal: receivedPayload.goal,
           radius: receivedPayload.radius,
-          updatedAt: '2026-06-19T12:00:00Z',
         })
       }),
     )

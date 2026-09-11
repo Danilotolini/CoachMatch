@@ -13,7 +13,7 @@ import { ForbiddenException, NotFoundException } from '../../shared/exceptions.j
  */
 const mapToCoachStudentDetail = (record) => ({
   studentId: record.studentId,
-  name:      record.profile?.name ?? null,
+  name:      record.name          ?? null,
   gender:    record.gender        ?? null,
   birthDate: record.birthDate     ?? null,
   goal:      record.goal          ?? null,

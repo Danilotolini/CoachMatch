@@ -70,7 +70,7 @@ describe('create-student › index (createStudent)', () => {
       studentId: validAttributes.sub,
       email: validAttributes.email,
       status: 'PENDING_PROFILE',
-      profile: { name: validAttributes.name },
+      name: validAttributes.name,
     });
   });
 

@@ -183,7 +183,7 @@ function CoachRail() {
                 className="w-[76vw] max-w-70 shrink-0 snap-start md:w-62.5 lg:w-auto lg:max-w-none"
               >
                 <SharedCoachCard
-                  name={coach.profile.name}
+                  name={coach.profile.name ?? ''}
                   specialties={coach.profile.specialties.join(' · ')}
                   onClick={() => {
                     void navigate(`/client/coaches/${coach.coachId}`)
