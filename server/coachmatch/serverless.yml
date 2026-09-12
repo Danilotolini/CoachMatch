@@ -75,7 +75,7 @@ provider:
     OTEL_SERVICE_NAME: coachmatch-${param:stage}
     GRAFANA_CLOUD_INSTANCE_ID: "1808134"
     GRAFANA_CLOUD_OTLP_ENDPOINT: "https://otlp-gateway-prod-sa-east-1.grafana.net/otlp"
-    GRAFANA_CLOUD_API_KEY_ARN: "arn:aws:secretsmanager:sa-east-1:138413505977:secret:grafana-cloud-api-key-jDrQtP"
+    GRAFANA_CLOUD_API_KEY: ${ssm:/coachmatch/grafana-cloud-api-key}
 
   layers: ${self:custom.otelLayers.${sls:stage}}
 
@@ -127,12 +127,12 @@ provider:
             - s3:GetObject
           Resource:
             - arn:aws:s3:::coachmatch-profile-videos-138413505977-sa-east-1-an/*
-        # Grafana Lambda Extension lê o API key do Secrets Manager na inicialização
+        # Serverless Framework lê o API key do SSM no deploy (valor já vem como env var)
         - Effect: Allow
           Action:
-            - secretsmanager:GetSecretValue
+            - ssm:GetParameter
           Resource:
-            - arn:aws:secretsmanager:sa-east-1:138413505977:secret:grafana-cloud-api-key-*
+            - arn:aws:ssm:sa-east-1:138413505977:parameter/coachmatch/grafana-cloud-api-key
 
 functions:
 
