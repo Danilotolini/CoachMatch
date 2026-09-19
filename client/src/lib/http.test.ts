@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import { ApiError, apiGet, apiPost, apiPut } from './http'
+import { ApiError, apiGet, apiGetWithBody, apiPost, apiPut } from './http'
 import { server } from '@/mocks/server'
 import { SESSION_EXPIRED_EVENT, getToken } from '@/lib/auth'
 import { loginAs } from '@/test/session'
@@ -268,5 +268,67 @@ describe('apiPut', () => {
     await apiPut('/items/1', { name: 'bar' })
     expect(receivedMethod).toBe('PUT')
     expect(receivedBody).toEqual({ name: 'bar' })
+  })
+})
+
+// `apiGetWithBody` com body vai por XMLHttpRequest, não por fetch: é um caminho
+// de erro paralelo ao de `apiGet` e precisa das mesmas garantias de sessão.
+describe('apiGetWithBody (caminho XHR)', () => {
+  it('faz GET com body e retorna o JSON parseado', async () => {
+    server.use(http.get('http://api.test/search', () => HttpResponse.json({ items: [1] })))
+
+    const data = await apiGetWithBody<{ items: number[] }>('/search', { term: 'a' })
+    expect(data).toEqual({ items: [1] })
+  })
+
+  it('401 encerra a sessão', async () => {
+    const listener = vi.fn()
+    loginAs('coach', 'coach-token')
+    window.addEventListener(SESSION_EXPIRED_EVENT, listener)
+    server.use(http.get('http://api.test/search', () => new HttpResponse(null, { status: 401 })))
+
+    await expect(apiGetWithBody('/search', { term: 'a' }, { role: 'coach' })).rejects.toMatchObject(
+      { status: 401 },
+    )
+    expect(getSessionToken('coach')).toBeNull()
+    expect((listener.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
+      reason: 'unauthorized',
+      status: 401,
+      role: 'coach',
+    })
+    window.removeEventListener(SESSION_EXPIRED_EVENT, listener)
+  })
+
+  it('mantém a sessão em 403: recurso alheio não é sessão inválida', async () => {
+    const listener = vi.fn()
+    loginAs('coach', 'coach-token')
+    window.addEventListener(SESSION_EXPIRED_EVENT, listener)
+    server.use(
+      http.get('http://api.test/search', () =>
+        HttpResponse.json({ message: 'Você não tem sessões com este aluno.' }, { status: 403 }),
+      ),
+    )
+
+    await expect(apiGetWithBody('/search', { term: 'a' }, { role: 'coach' })).rejects.toMatchObject(
+      { status: 403 },
+    )
+    expect(getSessionToken('coach')).toBe('coach-token')
+    expect(listener).not.toHaveBeenCalled()
+    window.removeEventListener(SESSION_EXPIRED_EVENT, listener)
+  })
+
+  it('não chama API quando token local já expirou', async () => {
+    const requestSpy = vi.fn()
+    loginAs('coach', encodeJwt({ exp: Math.floor(Date.now() / 1000) - 1 }))
+    server.use(
+      http.get('http://api.test/search', () => {
+        requestSpy()
+        return HttpResponse.json({})
+      }),
+    )
+
+    await expect(apiGetWithBody('/search', { term: 'a' })).rejects.toMatchObject({ status: 401 })
+    expect(requestSpy).not.toHaveBeenCalled()
+    expect(getToken()).toBeNull()
   })
 })
