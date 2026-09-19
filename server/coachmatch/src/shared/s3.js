@@ -1,14 +1,33 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-// Força o endpoint regional (s3.<region>.amazonaws.com). Sem isso, buckets fora de
-// us-east-1 podem receber endpoint global e responder com redirect 301/307 — mesmo
-// cuidado adotado na lambda Python generate-profile-video-upload-url.
+/**
+ * Cliente S3 compartilhado por quem assina URLs (GET aqui, POST em
+ * uploads/create-upload-url).
+ *
+ * Força o endpoint regional (s3.<region>.amazonaws.com). Sem isso, buckets fora
+ * de us-east-1 podem receber endpoint global e responder com redirect 301/307 —
+ * o navegador não segue redirect num POST CORS e o upload falha.
+ *
+ * Em `local` as credenciais vêm das variáveis nomeadas do projeto, como em
+ * `shared/config.js`. Assinar é uma operação offline, então isso basta para o
+ * serverless-offline responder — sem elas o SDK cai na cadeia padrão e estoura
+ * `CredentialsProviderError`. Não há S3 local: o endpoint segue o real.
+ */
 let client;
-const getClient = () => {
+export const createS3Client = () => {
   if (!client) {
     const region = process.env.REGION ?? process.env.AWS_REGION ?? 'sa-east-1';
-    client = new S3Client({ region, endpoint: `https://s3.${region}.amazonaws.com` });
+    client = new S3Client({
+      region,
+      endpoint: `https://s3.${region}.amazonaws.com`,
+      ...(process.env.STAGE === 'local' && {
+        credentials: {
+          accessKeyId: process.env.ACCESS_KEY_ID,
+          secretAccessKey: process.env.SECRET_ACCESS_KEY,
+        },
+      }),
+    });
   }
   return client;
 };
@@ -27,5 +46,5 @@ export const signGetUrl = async (key) => {
 
   const expiresIn = Number(process.env.SIGNED_URL_EXPIRES ?? 3600);
   const command = new GetObjectCommand({ Bucket: bucket, Key: key });
-  return getSignedUrl(getClient(), command, { expiresIn });
+  return getSignedUrl(createS3Client(), command, { expiresIn });
 };
