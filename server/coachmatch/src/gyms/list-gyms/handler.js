@@ -16,7 +16,7 @@ const mapGym = ({ gymId, ...rest }) => ({ id: gymId, ...rest });
  */
 const _handler = async (event) => {
   const params = event?.queryStringParameters ?? {};
-  const limit  = params.limit  ? Number(params.limit) : 20;
+  const limit  = params.limit;
   const cursor = params.cursor ?? undefined;
   const search = params.search ?? '';
   const city   = params.city ?? '';
