@@ -1,8 +1,8 @@
 # API GATEWAY COMPARTILHADO (HTTP API qht6965nv9, sa-east-1)
 # ─────────────────────────────────────────────────────────────────────────────
-# O stack usa uma API EXTERNA (httpApi.id). As rotas Node são gerenciadas por
-# este stack; as rotas Python e os authorizers JWT (bg0uj6 coach / ahu157 student)
-# são criados manualmente, fora do stack.
+# O stack usa uma API EXTERNA (httpApi.id). Todas as rotas declaradas aqui são
+# gerenciadas por este stack; apenas os authorizers JWT (bg0uj6 coach /
+# ahu157 student) continuam sendo recursos manuais, fora do stack.
 #
 # Como a API é externa, o Serverless NÃO pode gerenciar authorizers nela — por isso
 # eles são referenciados por `id` no evento em `dev` (ver custom.coachAuthorizer /
@@ -22,6 +22,7 @@ stages:
       apiGatewayId: ${self:custom.config.dev.apiGatewayId}
       apiKey: ${self:custom.config.dev.apiKey}
       apiSecret: ${self:custom.config.dev.apiSecret}
+      mailSenderQueueUrl: ${self:custom.config.dev.mailSenderQueueUrl}
       # AWS OTel Lambda Layer — Node.js amd64, sa-east-1.
       # Verificar versão mais recente em: https://github.com/aws-observability/aws-otel-lambda/releases
       otelLayerArn: "arn:aws:lambda:sa-east-1:901920570463:layer:aws-otel-nodejs-amd64-ver-1-30-0:1"
@@ -40,6 +41,7 @@ stages:
       secret_access: ${self:custom.config.local.secretAccessKey}
       apiKey: ${self:custom.config.dev.apiKey}
       apiSecret: ${self:custom.config.dev.apiSecret}
+      mailSenderQueueUrl: ""
       otelLayerArn: ""
       grafanaOtlpEndpoint: ""
       grafanaOtlpToken: ""
@@ -51,7 +53,7 @@ plugins:
 package:
   individually: true
   patterns:
-    - '!node_modules/aws-sdk/**'
+    - "!node_modules/aws-sdk/**"
 
 build:
   esbuild:
@@ -77,12 +79,22 @@ provider:
   stage: ${param:stage}
   region: ${param:region}
 
-  # Bucket privado de mídias (foto/vídeo). Os endpoints de leitura assinam URLs de GET.
-  # Fica em provider.environment para valer em todas as funções que chamam shared/s3.js.
-  # É o mesmo bucket usado pela lambda Python de upload (generate-profile-video-upload-url).
   environment:
+    # Conexão com o DynamoDB (shared/config.js) e assinatura no S3 (shared/s3.js):
+    # toda função do stack precisa, então fica aqui em vez de repetido por função.
+    # As credenciais nomeadas só têm valor em `local`; na AWS o SDK usa a role.
+    STAGE: ${param:stage}
+    REGION: ${param:region}
+    ENDPOINT: ${param:endpoint, ""}
+    ACCESS_KEY_ID: ${param:access_key_id, ""}
+    SECRET_ACCESS_KEY: ${param:secret_access, ""}
+    # Bucket privado de mídias (foto/vídeo). Os endpoints de leitura assinam URLs de
+    # GET; é o mesmo bucket em que `uploadCreateUrl` assina os POSTs de upload.
     BUCKET_NAME: ${param:bucketName, "coachmatch-profile-videos-138413505977-sa-east-1-an"}
     SIGNED_URL_EXPIRES: ${param:signedUrlExpires, "3600"}
+    # Fila externa (pré-existente, fora deste stack) usada pelas lambdas de agendamento
+    # para notificação por e-mail. Vazia em `local` — schedule/shared/notify.js vira no-op.
+    MAIL_SENDER_QUEUE_URL: ${param:mailSenderQueueUrl, ""}
     # OTel — ADOT Collector embutido como Lambda Extension (via layer em custom.otelLayers).
     # AWS_LAMBDA_EXEC_WRAPPER ativa auto-instrumentação de DynamoDB, HTTP e SQS.
     # Em `local` estes valores ficam vazios (ver custom.otelWrapper / custom.otelCollectorUri).
@@ -124,12 +136,17 @@ provider:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/gyms
             - arn:aws:dynamodb:sa-east-1:138413505977:table/payments
             - arn:aws:dynamodb:sa-east-1:138413505977:table/payments/index/*
-        # onPaymentSucceeded grava paymentStatus no schedule
+            # specialtiesGet faz Scan no catálogo de especialidades
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/specialties
+        # schedule: onPaymentSucceeded + as 12 lambdas de agendamento
         - Effect: Allow
           Action:
-            - dynamodb:UpdateItem
+            - dynamodb:PutItem
             - dynamodb:GetItem
+            - dynamodb:BatchGetItem
+            - dynamodb:UpdateItem
             - dynamodb:Query
+            - dynamodb:Scan
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule
             - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule/index/*
@@ -139,6 +156,13 @@ provider:
             - sqs:SendMessage
           Resource:
             - !GetAtt PaymentSucceededQueue.Arn
+        # Notificação por e-mail (fila externa, pré-existente, fora deste stack —
+        # mesmo tratamento dado à API Gateway externa)
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+          Resource:
+            - arn:aws:sqs:sa-east-1:138413505977:MailSender
         # Endpoints de leitura assinam URLs de GET das mídias (foto/vídeo) no bucket privado
         - Effect: Allow
           Action:
@@ -151,17 +175,16 @@ provider:
             - secretsmanager:GetSecretValue
           Resource:
             - arn:aws:secretsmanager:sa-east-1:138413505977:secret:grafana-cloud-api-key-*
+        # uploadCreateUrl assina POST (createPresignedPost) para upload de foto/vídeo
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+          Resource:
+            - arn:aws:s3:::coachmatch-profile-videos-138413505977-sa-east-1-an/*
 
 functions:
-
   gymGet:
     handler: src/gyms/list-gyms/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /coach/gyms
@@ -174,12 +197,6 @@ functions:
 
   gymSuggest:
     handler: src/gyms/suggest-gym/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /coach/gyms/suggest
@@ -192,12 +209,6 @@ functions:
 
   coachGetMe:
     handler: src/coaches/get-coach/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /coach/me
@@ -206,12 +217,6 @@ functions:
 
   coachUpdateMe:
     handler: src/coaches/update-coach/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /coach/me
@@ -220,12 +225,6 @@ functions:
 
   coachCreate:
     handler: src/coaches/create-coach/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - cognitoUserPool:
           pool: CoachAccess
@@ -235,12 +234,6 @@ functions:
   # DESATIVADA TEMPORARIAMENTE
   # coachSubmitForReview:
   #   handler: src/coaches/submit-coach-for-review/handler.handler
-  #   environment:
-  #     STAGE: ${param:stage}
-  #     REGION: ${param:region}
-  #     ENDPOINT: ${param:endpoint, ""}
-  #     ACCESS_KEY_ID: ${param:access_key_id, ""}
-  #     SECRET_ACCESS_KEY: ${param:secret_access, ""}
   #   events:
   #     # NOTA: esta rota NÃO existe no API Gateway (qht6965nv9), o coach é cadastrado como ativo.
   #     - httpApi:
@@ -251,12 +244,6 @@ functions:
 
   studentCreate:
     handler: src/students/create-student/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - cognitoUserPool:
           pool: StudentAccess
@@ -265,12 +252,6 @@ functions:
 
   studentGetProfile:
     handler: src/students/get-student/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /student/me
@@ -279,12 +260,6 @@ functions:
 
   studentUpdateProfile:
     handler: src/students/update-student-profile/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /student/me/profile
@@ -293,12 +268,6 @@ functions:
 
   studentUpdateHealth:
     handler: src/students/update-student-health/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /student/me/health
@@ -307,12 +276,6 @@ functions:
 
   studentGetCoaches:
     handler: src/students/get-coaches/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /student/coaches
@@ -321,12 +284,6 @@ functions:
 
   studentGetCoachDetail:
     handler: src/students/get-coach-detail/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /student/coaches/{coachId}
@@ -335,12 +292,6 @@ functions:
 
   coachGetStudentDetail:
     handler: src/coaches/get-student-detail/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /coach/students/{studentId}
@@ -352,11 +303,6 @@ functions:
   paymentCreate:
     handler: src/payments/create-payment/handler.handler
     environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
       PAYMENT_SUCCEEDED_QUEUE_URL: !Ref PaymentSucceededQueue
     events:
       - httpApi:
@@ -366,12 +312,6 @@ functions:
 
   paymentGet:
     handler: src/payments/get-payment/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /payments/{transactionId}
@@ -380,12 +320,6 @@ functions:
 
   paymentGetByCoach:
     handler: src/payments/get-coach-payments/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /payments/coach/{coachId}
@@ -394,12 +328,6 @@ functions:
 
   paymentGetByStudent:
     handler: src/payments/get-student-payments/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /payments/student/{studentId}
@@ -408,12 +336,6 @@ functions:
 
   paymentGetBySession:
     handler: src/payments/get-session-payments/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /payments/session/{sessionId}
@@ -422,12 +344,6 @@ functions:
 
   paymentRefund:
     handler: src/payments/refund-payment/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - httpApi:
           path: /payments/{transactionId}/refund
@@ -437,11 +353,6 @@ functions:
   chatToken:
     handler: src/api-chat/token.handler
     environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
       STREAM_API_KEY: ${param:apiKey, ""}
       STREAM_API_SECRET: ${param:apiSecret, ""}
     events:
@@ -457,11 +368,6 @@ functions:
   chatConversationCreate:
     handler: src/api-chat/conversations.create
     environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
       STREAM_API_KEY: ${param:apiKey, ""}
       STREAM_API_SECRET: ${param:apiSecret, ""}
     events:
@@ -477,11 +383,6 @@ functions:
   chatConversationList:
     handler: src/api-chat/conversations.list
     environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
       STREAM_API_KEY: ${param:apiKey, ""}
       STREAM_API_SECRET: ${param:apiSecret, ""}
     events:
@@ -497,11 +398,6 @@ functions:
   chatConversationUpdate:
     handler: src/api-chat/conversations.update
     environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
       STREAM_API_KEY: ${param:apiKey, ""}
       STREAM_API_SECRET: ${param:apiSecret, ""}
     events:
@@ -517,11 +413,6 @@ functions:
   chatConversationDelete:
     handler: src/api-chat/conversations.remove
     environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
       STREAM_API_KEY: ${param:apiKey, ""}
       STREAM_API_SECRET: ${param:apiSecret, ""}
     events:
@@ -537,11 +428,6 @@ functions:
   chatMessageSend:
     handler: src/api-chat/messages.send
     environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
       STREAM_API_KEY: ${param:apiKey, ""}
       STREAM_API_SECRET: ${param:apiSecret, ""}
     events:
@@ -557,11 +443,6 @@ functions:
   chatMessageList:
     handler: src/api-chat/messages.list
     environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
       STREAM_API_KEY: ${param:apiKey, ""}
       STREAM_API_SECRET: ${param:apiSecret, ""}
     events:
@@ -577,11 +458,6 @@ functions:
   chatMessageUpdate:
     handler: src/api-chat/messages.update
     environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
       STREAM_API_KEY: ${param:apiKey, ""}
       STREAM_API_SECRET: ${param:apiSecret, ""}
     events:
@@ -596,11 +472,6 @@ functions:
 
   chatMessageDelete:
     environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
       STREAM_API_KEY: ${param:apiKey, ""}
       STREAM_API_SECRET: ${param:apiSecret, ""}
     handler: src/api-chat/messages.remove
@@ -614,27 +485,151 @@ functions:
           method: DELETE
           authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
 
-
   # ─── Integração Pagamento → Agendamento ─────────────────────────────────────
   # Consome `payment.succeeded` e marca o schedule como PAID. Ver PLAN.md.
 
   onPaymentSucceeded:
     handler: src/schedule/on-payment-succeeded/handler.handler
-    environment:
-      STAGE: ${param:stage}
-      REGION: ${param:region}
-      ENDPOINT: ${param:endpoint, ""}
-      ACCESS_KEY_ID: ${param:access_key_id, ""}
-      SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - sqs:
           arn: !GetAtt PaymentSucceededQueue.Arn
           batchSize: 10
           functionResponseType: ReportBatchItemFailures
 
+  # ─── Especialidades ─────────────────────────────────────────────────────────
+  # Catálogo global de especialidades — mesmos dados para coach e aluno; as duas
+  # rotas existem só porque os JWT authorizers são por papel.
+
+  specialtiesGet:
+    handler: src/specialties/list-specialties/handler.handler
+    events:
+      - httpApi:
+          path: /coach/specialties
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/specialties
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  # ─── Upload de mídia (foto/vídeo de perfil) ─────────────────────────────────
+
+  uploadCreateUrl:
+    handler: src/uploads/create-upload-url/handler.handler
+    environment:
+      UPLOAD_EXPIRES_IN: "300"
+      UPLOAD_MAX_BYTES: "209715200"
+    events:
+      - httpApi:
+          path: /coach/upload-url
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/upload-url
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  # ─── Agendamento ────────────────────────────────────────────────────────────
+
+  coachGetSchedule:
+    handler: src/schedule/get-own-schedule/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
+  studentGetCoachSchedule:
+    handler: src/schedule/get-availability/handler.coach
+    events:
+      - httpApi:
+          path: /student/coach/schedules
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  studentGetGymSchedule:
+    handler: src/schedule/get-availability/handler.gym
+    events:
+      - httpApi:
+          path: /student/gyms/schedule
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  coachGetScheduleRequests:
+    handler: src/schedule/get-schedule-requests/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule/requests
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
+  studentGetScheduleRequests:
+    handler: src/schedule/get-student-requests/handler.handler
+    events:
+      - httpApi:
+          path: /student/coach/schedules/request
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  coachCreateSchedule:
+    handler: src/schedule/create-schedule/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
+  studentCreateScheduleRequest:
+    handler: src/schedule/create-schedule-request/handler.handler
+    events:
+      - httpApi:
+          path: /student/coach/schedules/request
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  coachApproveSchedule:
+    handler: src/schedule/approve-schedule-request/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule/approve
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
+  coachCancelSchedule:
+    handler: src/schedule/cancel-schedule/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule/cancel
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
+  studentCancelSchedule:
+    handler: src/schedule/cancel-booked-schedule/handler.handler
+    events:
+      - httpApi:
+          path: /student/coach/schedules/cancel
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  studentCancelScheduleRequest:
+    handler: src/schedule/cancel-schedule-request/handler.handler
+    events:
+      - httpApi:
+          path: /student/coach/schedules/request
+          method: DELETE
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  coachUpdateClassStatus:
+    handler: src/schedule/update-class-status/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule/class/status
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
 resources:
   Conditions:
-    IsLocal: !Equals [ "${param:stage}", "local" ]
+    IsLocal: !Equals ["${param:stage}", "local"]
   Resources:
     gymsTable:
       Type: AWS::DynamoDB::Table
@@ -758,6 +753,83 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
 
+    specialtiesTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsLocal
+      Properties:
+        TableName: specialties
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+    scheduleTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsLocal
+      Properties:
+        TableName: schedule
+        AttributeDefinitions:
+          - AttributeName: scheduleId
+            AttributeType: S
+          - AttributeName: coachId
+            AttributeType: S
+          - AttributeName: gymId
+            AttributeType: S
+          - AttributeName: studentId
+            AttributeType: S
+          - AttributeName: startDateTime
+            AttributeType: S
+        KeySchema:
+          - AttributeName: scheduleId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          # Nota: na AWS real, o GSI Gym_Date tem um 3º atributo (coachId) na key
+          # schema — inconsistência da tabela em produção. O código só usa
+          # gymId + startDateTime na KeyConditionExpression; CloudFormation só
+          # aceita 1 HASH + 1 RANGE, então declaramos aqui a forma que reflete
+          # como a query realmente é feita.
+          - IndexName: Coach_Date
+            KeySchema:
+              - AttributeName: coachId
+                KeyType: HASH
+              - AttributeName: startDateTime
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: Gym_Date
+            KeySchema:
+              - AttributeName: gymId
+                KeyType: HASH
+              - AttributeName: startDateTime
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: Student_Date
+            KeySchema:
+              - AttributeName: studentId
+                KeyType: HASH
+              - AttributeName: startDateTime
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
     # Fila do evento payment.succeeded (gerenciada pelo stack, todos os stages)
     PaymentSucceededQueue:
       Type: AWS::SQS::Queue
@@ -780,6 +852,7 @@ custom:
   httpApiByStage:
     local:
       id: ""
+      cors: true
       authorizers:
         # Pool CoachAccess (sa-east-1_2DDuPPtc0) — rotas /coach/*
         cognitoAuthorizer:
@@ -825,8 +898,11 @@ custom:
         sources:
           - table: gyms
             sources: [./seed/gyms.json]
+          - table: specialties
+            sources: [./seed/specialties.json]
   serverless-offline:
     ignoreJWTSignature: true
+    host: 0.0.0.0
 
   # ─── OTel / ADOT ────────────────────────────────────────────────────────────
   # Layer removido temporariamente — ARN precisa ser verificado em sa-east-1.

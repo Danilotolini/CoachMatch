@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { fetchSpecialties } from '@/api/specialties'
 import { getToken } from '@/lib/auth'
 
@@ -10,5 +10,6 @@ export function useSpecialties(search?: string) {
     queryFn: () => fetchSpecialties({ search }),
     enabled: !!getToken(),
     staleTime: ONE_HOUR,
+    placeholderData: keepPreviousData,
   })
 }

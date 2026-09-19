@@ -1,0 +1,14 @@
+[
+  { "id": "MUSCULATION", "label": "Musculação" },
+  { "id": "CROSSFIT", "label": "CrossFit" },
+  { "id": "FUNCTIONAL", "label": "Funcional" },
+  { "id": "PILATES", "label": "Pilates" },
+  { "id": "YOGA", "label": "Yoga" },
+  { "id": "RUNNING", "label": "Corrida" },
+  { "id": "SWIMMING", "label": "Natação" },
+  { "id": "FIGHTING", "label": "Lutas" },
+  { "id": "REHAB", "label": "Reabilitação" },
+  { "id": "WEIGHT_LOSS", "label": "Emagrecimento" },
+  { "id": "HYPERTROPHY", "label": "Hipertrofia" },
+  { "id": "MOBILITY", "label": "Mobilidade" }
+]

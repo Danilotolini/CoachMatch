@@ -12,6 +12,9 @@ local:
 dev:
   stage: dev
   region: sa-east-1
-  apiGatewayId: qht6965nv9 
+  apiGatewayId: qht6965nv9
   apiKey: xnxquux7rewk
   apiSecret: 5r6k2r89855m464pvm9mx9c886s5mfx4nyts8vygyxy4sjzqzm8vcwbq743fzub3
+  # Fila externa (pré-existente, fora deste stack) usada pelas lambdas de agendamento
+  # para notificação por e-mail.
+  mailSenderQueueUrl: https://sqs.sa-east-1.amazonaws.com/138413505977/MailSender
