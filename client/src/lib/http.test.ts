@@ -142,6 +142,24 @@ describe('apiGet', () => {
     expect(getToken()).toBe('client-token')
   })
 
+  it('mantém a sessão em 403: recurso alheio não é sessão inválida', async () => {
+    const listener = vi.fn()
+    loginAs('coach', 'coach-token')
+    window.addEventListener(SESSION_EXPIRED_EVENT, listener)
+    server.use(
+      http.get('http://api.test/secure', () =>
+        HttpResponse.json({ message: 'Você não tem sessões com este aluno.' }, { status: 403 }),
+      ),
+    )
+
+    await expect(apiGet('/secure', undefined, { role: 'coach' })).rejects.toMatchObject({
+      status: 403,
+    })
+    expect(getSessionToken('coach')).toBe('coach-token')
+    expect(listener).not.toHaveBeenCalled()
+    window.removeEventListener(SESSION_EXPIRED_EVENT, listener)
+  })
+
   it('não chama API quando token local já expirou', async () => {
     const listener = vi.fn()
     const requestSpy = vi.fn()
