@@ -1,6 +1,7 @@
 import { withLogger } from '../../shared/logger.js';
 import { getCoachProfile } from './index.js';
 import { NotFoundException } from '../../shared/exceptions.js';
+import { ensureLocalRecord } from '../../shared/local-autoseed.js';
 
 /**
  * Handler HTTP: GET /coaches/me
@@ -11,6 +12,9 @@ const _handler = async (event) => {
   if (!coachId) {
     return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado' }) };
   }
+
+  // No-op fora da stage local — ver shared/local-autoseed.js.
+  await ensureLocalRecord('coach', event);
 
   try {
     const profile = await getCoachProfile(coachId);

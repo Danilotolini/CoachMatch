@@ -1,6 +1,7 @@
 import { withLogger } from '../../shared/logger.js';
 import { getStudentProfile } from './index.js';
 import { NotFoundException } from '../../shared/exceptions.js';
+import { ensureLocalRecord } from '../../shared/local-autoseed.js';
 
 /**
  * Handler HTTP: GET /clients/me
@@ -11,6 +12,9 @@ const _handler = async (event) => {
   if (!studentId) {
     return { statusCode: 401, body: JSON.stringify({ message: 'Não autorizado' }) };
   }
+
+  // No-op fora da stage local — ver shared/local-autoseed.js.
+  await ensureLocalRecord('student', event);
 
   try {
     const profile = await getStudentProfile(studentId);
