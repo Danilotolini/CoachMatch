@@ -101,6 +101,26 @@ describe('list-gyms › index (listGyms)', () => {
     expect(thirdPage.nextCursor).toBeNull();
   });
 
+  it.each(['sao paulo', 'SAO PAULO'])('search sem acento encontra cadastro acentuado (%s)', async (term) => {
+    listGymsRepository.mockResolvedValue(rawGyms);
+    expect((await listGyms({ search: term })).items).toEqual([rawGyms[0]]);
+  });
+
+  it('city sem acento encontra cadastro acentuado', async () => {
+    listGymsRepository.mockResolvedValue(rawGyms);
+    expect((await listGyms({ city: 'sao paulo' })).items).toEqual([rawGyms[0]]);
+  });
+
+  // O cursor é offset absoluto: um limit não-positivo devolveria o mesmo cursor
+  // para sempre, e NaN esvaziaria todas as páginas.
+  it.each([0, -5, 'abc'])('limit inválido (%s) cai no default em vez de travar a paginação', async (limit) => {
+    listGymsRepository.mockResolvedValue(rawGyms);
+    const result = await listGyms({ limit });
+
+    expect(result.items).toEqual(rawGyms);
+    expect(result.nextCursor).toBeNull();
+  });
+
   it('cursor inválido/corrompido cai para a primeira página em vez de quebrar', async () => {
     listGymsRepository.mockResolvedValue(rawGyms);
     const garbageCursor = Buffer.from('not-a-number', 'utf8').toString('base64');
