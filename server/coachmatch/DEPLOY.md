@@ -80,8 +80,8 @@ authorizers. **Só funciona para funções que já existem** no stack.
 pnpm deploy:dev
 ```
 
-O stack é dono das rotas Node, não tenta criar authorizers e não colide com as
-rotas manuais Python.
+O stack é dono de todas as rotas que declara e não tenta criar authorizers — estes
+seguem sendo recursos manuais, apenas referenciados por id.
 
 ## Inspecionar o estado real (read-only)
 

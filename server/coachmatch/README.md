@@ -89,6 +89,22 @@ Mesma Lambda atende coach e aluno quando o caminho difere só pelo papel; o auth
 | `GET`  | `/student/gyms` | `gymGet` | Cognito JWT (StudentAccess) |
 | `POST` | `/student/gyms/suggest` | `gymSuggest` | Cognito JWT (StudentAccess) |
 | `GET`  | `/student/coaches` | `studentGetCoaches` | Cognito JWT (StudentAccess) |
+| `GET`  | `/coach/specialties` | `specialtiesGet` | Cognito JWT (CoachAccess) |
+| `GET`  | `/student/specialties` | `specialtiesGet` | Cognito JWT (StudentAccess) |
+| `POST` | `/coach/upload-url` | `uploadCreateUrl` | Cognito JWT (CoachAccess) |
+| `POST` | `/student/upload-url` | `uploadCreateUrl` | Cognito JWT (StudentAccess) |
+| `GET`  | `/coach/schedule` | `coachGetSchedule` | Cognito JWT (CoachAccess) |
+| `GET`  | `/coach/schedule/requests` | `coachGetScheduleRequests` | Cognito JWT (CoachAccess) |
+| `POST` | `/coach/schedule` | `coachCreateSchedule` | Cognito JWT (CoachAccess) |
+| `POST` | `/coach/schedule/approve` | `coachApproveSchedule` | Cognito JWT (CoachAccess) |
+| `POST` | `/coach/schedule/cancel` | `coachCancelSchedule` | Cognito JWT (CoachAccess) |
+| `POST` | `/coach/schedule/class/status` | `coachUpdateClassStatus` | Cognito JWT (CoachAccess) |
+| `GET`  | `/student/coach/schedules` | `studentGetCoachSchedule` | Cognito JWT (StudentAccess) |
+| `GET`  | `/student/gyms/schedule` | `studentGetGymSchedule` | Cognito JWT (StudentAccess) |
+| `GET`  | `/student/coach/schedules/request` | `studentGetScheduleRequests` | Cognito JWT (StudentAccess) |
+| `POST` | `/student/coach/schedules/request` | `studentCreateScheduleRequest` | Cognito JWT (StudentAccess) |
+| `DELETE` | `/student/coach/schedules/request` | `studentCancelScheduleRequest` | Cognito JWT (StudentAccess) |
+| `POST` | `/student/coach/schedules/cancel` | `studentCancelSchedule` | Cognito JWT (StudentAccess) |
 | `POST` | `/payments` | `paymentCreate` | Cognito JWT (StudentAccess) |
 | `GET`  | `/payments/{transactionId}` | `paymentGet` | Cognito JWT (StudentAccess) |
 | `GET`  | `/payments/coach/{coachId}` | `paymentGetByCoach` | Cognito JWT (StudentAccess) |
@@ -140,10 +156,9 @@ APPROVED   /   REJECTED
 O serviço usa um **HTTP API externo** ao stack (`qht6965nv9`, `sa-east-1`, domínio
 `api.coachmatch.com.br`). A propriedade dos recursos é dividida:
 
-- **Gerenciado por este stack** (`coachmatch-dev`): todas as rotas Node da tabela acima,
+- **Gerenciado por este stack** (`coachmatch-dev`): todas as rotas da tabela acima,
   suas integrações Lambda e os triggers Cognito.
-- **Manual, fora do stack**: as rotas **Python** (`*/schedule*`, `*/specialties`,
-  `*/upload-url`) e os **authorizers JWT**.
+- **Manual, fora do stack**: apenas os **authorizers JWT**.
 
 ### Authorizers numa API externa (ponto-chave)
 
@@ -157,8 +172,8 @@ authorizers** nela — declarar `provider.httpApi.authorizers` gerenciado quebra
 - **local** → `{ id: "", authorizers: {…} }`. O serverless-offline sobe a própria API
   e valida o JWT por nome (`ignoreJWTSignature: true`).
 
-Os authorizers continuam recursos **manuais** na AWS (compartilhados com as rotas
-Python). O stack apenas os referencia; não os cria nem deleta. Por isso eles precisam
+Os authorizers continuam recursos **manuais** na AWS. O stack apenas os referencia;
+não os cria nem deleta. Por isso eles precisam
 seguir declarados por nome no bloco `local`, mesmo o `dev` referenciando por id.
 
 | Authorizer | ID       | Pool Cognito                          | Rotas                       |
@@ -261,11 +276,20 @@ pnpm test:coverage      # com relatório de cobertura (coverage/)
 | `student` | `studentId` (HASH) | |
 | `gyms` | `gymId` (HASH) | |
 | `payments` | `PK` (HASH) + `SK` (RANGE) | GSI1/GSI2/GSI3 (ProjectionType ALL) |
+| `schedule` | `scheduleId` (HASH) | GSIs `Coach_Date`, `Gym_Date` e `Student_Date` |
+| `specialties` | `id` (HASH) | Catálogo global |
 
 Em `local` as tabelas são criadas pelo `serverless-dynamodb` (condição `IsLocal`); em
 `dev` já existem na conta AWS.
 
 ## Histórico
+
+### Agendamento, especialidades e upload em Node (2026-09)
+
+As rotas de `*/schedule*`, `*/specialties` e `*/upload-url`, antes servidas por
+Lambdas Python manuais, foram reescritas em Node e passaram a ser gerenciadas por
+este stack. As Lambdas Python permanecem temporariamente disponíveis apenas para
+rollback durante o período de observação.
 
 ### Migração 2026-06-16
 
@@ -285,11 +309,10 @@ Backup pré-deploy em `server/coachmatch/apigw-backup-20260616/`.
 
 - `POST /coach/me/submit-for-review` (`coachSubmitForReview`) está **comentada** no
   `serverless.yml` e não existe no API Gateway.
-- Lambdas **Python** (`schedule`, `specialties`, `upload-url`) e os **authorizers**
-  continuam manuais. Migrá-los para o stack é trabalho futuro (exigiria a API deixar de
-  ser externa ou recriar as rotas Python no stack).
+- Os **authorizers JWT** continuam manuais. Trazê-los para o stack exigiria a API
+  deixar de ser externa.
 - **Status de pagamento é filtrado só no frontend.** O treinador não deve ver o
-  `paymentStatus` da sessão, mas hoje a API (rotas `schedule`, Python) devolve o campo
+  `paymentStatus` da sessão, mas hoje a API de `schedule` devolve o campo
   igual para os dois papéis; o cliente apenas o omite na visão do coach
   (`SessionSummaryCard`/`SessionSummaryModal`). O correto seria não retornar
   `paymentStatus` na resposta do coach, mas isso exigiria endpoints/lambdas de schedule
