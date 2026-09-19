@@ -4,30 +4,21 @@ import { createClient } from '../../shared/config.js';
 const TABLE = 'gyms';
 
 /**
- * Lista academias com paginação via cursor (base64-encoded ExclusiveStartKey).
- *
- * @param {object} options
- * @param {number} [options.limit=20]  - Máximo de itens por página.
- * @param {string} [options.cursor]    - Token de paginação da página anterior.
- * @returns {{ items: object[], nextCursor: string|null }}
+ * Scan completo da tabela. Aceitável aqui porque a lista de academias é
+ * pequena (dezenas de itens); busca e paginação acontecem em memória.
  */
-export const listGyms = async ({ limit = 20, cursor } = {}) => {
+export const listGyms = async () => {
   const docClient = createClient();
+  const items = [];
+  let exclusiveStartKey;
 
-  const params = {
-    TableName: TABLE,
-    Limit: limit,
-    ...(cursor && {
-      ExclusiveStartKey: JSON.parse(Buffer.from(cursor, 'base64').toString('utf8')),
-    }),
-  };
+  do {
+    const result = await docClient.send(
+      new ScanCommand({ TableName: TABLE, ExclusiveStartKey: exclusiveStartKey }),
+    );
+    items.push(...(result.Items ?? []));
+    exclusiveStartKey = result.LastEvaluatedKey;
+  } while (exclusiveStartKey);
 
-  const result = await docClient.send(new ScanCommand(params));
-
-  return {
-    items: result.Items ?? [],
-    nextCursor: result.LastEvaluatedKey
-      ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
-      : null,
-  };
+  return items;
 };
