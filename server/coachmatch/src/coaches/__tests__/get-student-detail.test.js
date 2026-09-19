@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 vi.mock('../get-student-detail/repository.js', () => ({
-  coachHasSessionWithStudent: vi.fn(),
+  coachIsLinkedToStudent: vi.fn(),
   findStudentById: vi.fn(),
 }));
 
 import { handler } from '../get-student-detail/handler.js';
 import { getStudentDetailForCoach } from '../get-student-detail/index.js';
 import {
-  coachHasSessionWithStudent,
+  coachIsLinkedToStudent,
   findStudentById,
 } from '../get-student-detail/repository.js';
 import { ForbiddenException, NotFoundException } from '../../shared/exceptions.js';
@@ -50,7 +50,7 @@ describe('get-student-detail › index (getStudentDetailForCoach)', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('retorna apenas campos de treino, sem dados de contato', async () => {
-    coachHasSessionWithStudent.mockResolvedValue(true);
+    coachIsLinkedToStudent.mockResolvedValue(true);
     findStudentById.mockResolvedValue(buildStudentRecord());
 
     const result = await getStudentDetailForCoach({ coachId: COACH_ID, studentId: STUDENT_ID });
@@ -75,7 +75,7 @@ describe('get-student-detail › index (getStudentDetailForCoach)', () => {
   });
 
   it('mapeia campos ausentes para null', async () => {
-    coachHasSessionWithStudent.mockResolvedValue(true);
+    coachIsLinkedToStudent.mockResolvedValue(true);
     findStudentById.mockResolvedValue({ studentId: STUDENT_ID });
 
     const result = await getStudentDetailForCoach({ coachId: COACH_ID, studentId: STUDENT_ID });
@@ -87,8 +87,8 @@ describe('get-student-detail › index (getStudentDetailForCoach)', () => {
     expect(result.health).toBeNull();
   });
 
-  it('lança ForbiddenException quando não há vínculo de sessão', async () => {
-    coachHasSessionWithStudent.mockResolvedValue(false);
+  it('lança ForbiddenException quando não há vínculo', async () => {
+    coachIsLinkedToStudent.mockResolvedValue(false);
 
     await expect(
       getStudentDetailForCoach({ coachId: COACH_ID, studentId: STUDENT_ID }),
@@ -97,7 +97,7 @@ describe('get-student-detail › index (getStudentDetailForCoach)', () => {
   });
 
   it('lança NotFoundException quando o aluno não existe', async () => {
-    coachHasSessionWithStudent.mockResolvedValue(true);
+    coachIsLinkedToStudent.mockResolvedValue(true);
     findStudentById.mockResolvedValue(null);
 
     await expect(
@@ -106,12 +106,12 @@ describe('get-student-detail › index (getStudentDetailForCoach)', () => {
   });
 
   it('checa o vínculo com coachId e studentId corretos', async () => {
-    coachHasSessionWithStudent.mockResolvedValue(true);
+    coachIsLinkedToStudent.mockResolvedValue(true);
     findStudentById.mockResolvedValue(buildStudentRecord());
 
     await getStudentDetailForCoach({ coachId: COACH_ID, studentId: STUDENT_ID });
 
-    expect(coachHasSessionWithStudent).toHaveBeenCalledWith(COACH_ID, STUDENT_ID);
+    expect(coachIsLinkedToStudent).toHaveBeenCalledWith(COACH_ID, STUDENT_ID);
   });
 });
 
@@ -120,7 +120,7 @@ describe('get-student-detail › handler', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('retorna 200 com o detalhe do aluno', async () => {
-    coachHasSessionWithStudent.mockResolvedValue(true);
+    coachIsLinkedToStudent.mockResolvedValue(true);
     findStudentById.mockResolvedValue(buildStudentRecord());
 
     const response = await handler(buildEvent());
@@ -145,7 +145,7 @@ describe('get-student-detail › handler', () => {
   });
 
   it('retorna 403 quando não há vínculo', async () => {
-    coachHasSessionWithStudent.mockResolvedValue(false);
+    coachIsLinkedToStudent.mockResolvedValue(false);
 
     const response = await handler(buildEvent());
 
@@ -153,7 +153,7 @@ describe('get-student-detail › handler', () => {
   });
 
   it('retorna 404 quando o aluno não existe', async () => {
-    coachHasSessionWithStudent.mockResolvedValue(true);
+    coachIsLinkedToStudent.mockResolvedValue(true);
     findStudentById.mockResolvedValue(null);
 
     const response = await handler(buildEvent());
@@ -162,7 +162,7 @@ describe('get-student-detail › handler', () => {
   });
 
   it('retorna 500 em erros inesperados', async () => {
-    coachHasSessionWithStudent.mockRejectedValue(new Error('Falha de rede'));
+    coachIsLinkedToStudent.mockRejectedValue(new Error('Falha de rede'));
     const result = await handler(buildEvent());
     expect(result.statusCode).toBe(500);
   });

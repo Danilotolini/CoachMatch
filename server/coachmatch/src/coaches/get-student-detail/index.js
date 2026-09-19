@@ -1,4 +1,4 @@
-import { coachHasSessionWithStudent, findStudentById } from './repository.js';
+import { coachIsLinkedToStudent, findStudentById } from './repository.js';
 import { ForbiddenException, NotFoundException } from '../../shared/exceptions.js';
 
 /**
@@ -27,13 +27,13 @@ const mapToCoachStudentDetail = (record) => ({
  * @param {string} params.coachId   - ID do coach extraído do JWT.
  * @param {string} params.studentId - ID do aluno solicitado.
  * @returns {Promise<object>} Detalhe do aluno (sem dados de contato).
- * @throws {ForbiddenException} Se o coach não tiver sessão com o aluno.
+ * @throws {ForbiddenException} Se o coach não tiver vínculo com o aluno.
  * @throws {NotFoundException}  Se o aluno não existir.
  */
 export const getStudentDetailForCoach = async ({ coachId, studentId }) => {
-  const linked = await coachHasSessionWithStudent(coachId, studentId);
+  const linked = await coachIsLinkedToStudent(coachId, studentId);
   if (!linked) {
-    throw new ForbiddenException('Você não tem sessões com este aluno.');
+    throw new ForbiddenException('Você não tem sessões nem solicitações com este aluno.');
   }
 
   const record = await findStudentById(studentId);
