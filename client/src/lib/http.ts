@@ -90,7 +90,9 @@ async function request<T>(
   })
 
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
+    // Só 401 encerra a sessão. 403 é "autenticado, sem permissão neste recurso"
+    // — derrubar a sessão aí desloga o usuário por causa de um recurso alheio.
+    if (res.status === 401) {
       endRequestSession(options.role)
       notifySessionExpired(sessionExpiredDetail('unauthorized', res.status, options.role))
     }
@@ -132,7 +134,7 @@ async function requestGetWithBody<T>(
 
     xhr.onload = () => {
       if (xhr.status < 200 || xhr.status >= 300) {
-        if (xhr.status === 401 || xhr.status === 403) {
+        if (xhr.status === 401) {
           endRequestSession(options.role)
           notifySessionExpired(sessionExpiredDetail('unauthorized', xhr.status, options.role))
         }
