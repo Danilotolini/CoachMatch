@@ -19,7 +19,7 @@
 - Rode tudo dentro de `client/`.
 - Sempre `pnpm`, nunca `npm`/`yarn`.
 - Use os scripts declarados em [`package.json`](package.json); não replique a lista aqui.
-- Após mudanças no frontend, rode `pnpm test`, depois `pnpm lint.
+- Após mudanças no frontend, rode `pnpm test`, depois `pnpm lint`.
 - Rode `pnpm type-check` e/ou `pnpm build` quando mexer em tipos globais, config, rotas, PWA ou integração entre módulos.
 
 ## Convenções
