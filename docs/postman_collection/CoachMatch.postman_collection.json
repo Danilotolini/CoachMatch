@@ -196,13 +196,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/upload-url",
+              "raw": "{{baseUrl}}/coach/upload-url",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -304,13 +301,10 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/specialties?search=Cross",
+              "raw": "{{baseUrl}}/coach/specialties?search=Cross",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -352,13 +346,10 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/gyms?limit=5&cursor=eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9&search=Fit",
+              "raw": "{{baseUrl}}/coach/gyms?limit=5&cursor=eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9&search=Fit",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -407,13 +398,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/gyms/suggest",
+              "raw": "{{baseUrl}}/coach/gyms/suggest",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -440,13 +428,10 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/schedule?startDateTime=2026-05-01T08:00:30-03:00&endDateTime=2026-06-06T08:00:30-03:00",
+              "raw": "{{baseUrl}}/coach/schedule?startDateTime=2026-05-01T08:00:30-03:00&endDateTime=2026-06-06T08:00:30-03:00",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -491,13 +476,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/schedule",
+              "raw": "{{baseUrl}}/coach/schedule",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -523,13 +505,10 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/schedule/requests?scheduleId=avl_6cb2b644248448c68e63f350119c032d",
+              "raw": "{{baseUrl}}/coach/schedule/requests?scheduleId=avl_6cb2b644248448c68e63f350119c032d",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -571,13 +550,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/schedule/approve",
+              "raw": "{{baseUrl}}/coach/schedule/approve",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -613,13 +589,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/schedule/cancel",
+              "raw": "{{baseUrl}}/coach/schedule/cancel",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -655,13 +628,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/schedule/class/status",
+              "raw": "{{baseUrl}}/coach/schedule/class/status",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -689,13 +659,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/me",
+              "raw": "{{baseUrl}}/coach/me",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -728,13 +695,10 @@
               }
             ],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/me",
+              "raw": "{{baseUrl}}/coach/me",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -770,13 +734,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/chat/token",
+              "raw": "{{baseUrl}}/coach/chat/token",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -813,13 +774,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/chat/conversations",
+              "raw": "{{baseUrl}}/coach/chat/conversations",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -847,13 +805,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/chat/conversations?limit=30",
+              "raw": "{{baseUrl}}/coach/chat/conversations?limit=30",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -895,13 +850,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "raw": "{{baseUrl}}/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -930,13 +882,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "raw": "{{baseUrl}}/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -973,13 +922,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages",
+              "raw": "{{baseUrl}}/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -1008,13 +954,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages?limit=30&before=",
+              "raw": "{{baseUrl}}/coach/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages?limit=30&before=",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -1063,13 +1006,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/chat/messages/<MESSAGE_ID>",
+              "raw": "{{baseUrl}}/coach/chat/messages/<MESSAGE_ID>",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -1097,13 +1037,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/chat/messages/<MESSAGE_ID>",
+              "raw": "{{baseUrl}}/coach/chat/messages/<MESSAGE_ID>",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -1131,13 +1068,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/coach/students/037c4a8a-6031-705c-e02f-8e45f93bd387",
+              "raw": "{{baseUrl}}/coach/students/037c4a8a-6031-705c-e02f-8e45f93bd387",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "coach",
@@ -1299,13 +1233,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/upload-url",
+              "raw": "{{baseUrl}}/student/upload-url",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1331,13 +1262,10 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/specialties?search=Cross",
+              "raw": "{{baseUrl}}/student/specialties?search=Cross",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1379,13 +1307,10 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/gyms?limit=5&cursor=eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9&search=Fit",
+              "raw": "{{baseUrl}}/student/gyms?limit=5&cursor=eyJneW1JZCI6Imd5bV9iMWNhYzkzMiJ9&search=Fit",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1434,13 +1359,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/gyms/suggest",
+              "raw": "{{baseUrl}}/student/gyms/suggest",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1467,13 +1389,10 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/coach/schedules?coachId=83dcfaba-f0c1-705d-b109-2b381fed0971&startDateTime=2026-05-01T08:00:30-03:00&endDateTime=2026-06-06T08:00:30-03:00",
+              "raw": "{{baseUrl}}/student/coach/schedules?coachId=83dcfaba-f0c1-705d-b109-2b381fed0971&startDateTime=2026-05-01T08:00:30-03:00&endDateTime=2026-06-06T08:00:30-03:00",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1514,13 +1433,10 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/gyms/schedule?gymId=gym_sp005&startDateTime=2026-05-01T08:00:30-03:00&endDateTime=2026-06-06T08:00:30-03:00",
+              "raw": "{{baseUrl}}/student/gyms/schedule?gymId=gym_sp005&startDateTime=2026-05-01T08:00:30-03:00&endDateTime=2026-06-06T08:00:30-03:00",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1570,13 +1486,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/coach/schedules/request",
+              "raw": "{{baseUrl}}/student/coach/schedules/request",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1616,13 +1529,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/coach/schedules/request",
+              "raw": "{{baseUrl}}/student/coach/schedules/request",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1659,13 +1569,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/coach/schedules/cancel",
+              "raw": "{{baseUrl}}/student/coach/schedules/cancel",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1702,13 +1609,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/coach/schedules/request",
+              "raw": "{{baseUrl}}/student/coach/schedules/request",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1736,13 +1640,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/me",
+              "raw": "{{baseUrl}}/student/me",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1775,13 +1676,10 @@
               }
             ],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/me/profile",
+              "raw": "{{baseUrl}}/student/me/profile",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1824,13 +1722,10 @@
               }
             ],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/me/health",
+              "raw": "{{baseUrl}}/student/me/health",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1867,13 +1762,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/coaches?q=Cross&specialties[]=Musculação&limit=12",
+              "raw": "{{baseUrl}}/student/coaches?q=Cross&specialties[]=Musculação&limit=12",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1919,13 +1811,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/coaches/83dcfaba-f0c1-705d-b109-2b381fed0971",
+              "raw": "{{baseUrl}}/student/coaches/83dcfaba-f0c1-705d-b109-2b381fed0971",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -1959,13 +1848,10 @@
               }
             ],
             "url": {
-              "raw": "https://api.coachmatch.com.br/payments",
+              "raw": "{{baseUrl}}/payments",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "payments"
@@ -2006,13 +1892,10 @@
               }
             ],
             "url": {
-              "raw": "https://api.coachmatch.com.br/payments",
+              "raw": "{{baseUrl}}/payments",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "payments"
@@ -2047,13 +1930,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/payments/txn_9f2a1b7c4e8d4a6f",
+              "raw": "{{baseUrl}}/payments/txn_9f2a1b7c4e8d4a6f",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "payments",
@@ -2079,13 +1959,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/payments/coach/83dcfaba-f0c1-705d-b109-2b381fed0971",
+              "raw": "{{baseUrl}}/payments/coach/83dcfaba-f0c1-705d-b109-2b381fed0971",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "payments",
@@ -2112,13 +1989,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/payments/student/83dcfaba-f0c1-705d-b109-2b381fed0971",
+              "raw": "{{baseUrl}}/payments/student/83dcfaba-f0c1-705d-b109-2b381fed0971",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "payments",
@@ -2145,13 +2019,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/payments/session/3f9c1d2e-7a4b-4c8d-9e10-2b6f5a1c8d34",
+              "raw": "{{baseUrl}}/payments/session/3f9c1d2e-7a4b-4c8d-9e10-2b6f5a1c8d34",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "payments",
@@ -2184,13 +2055,10 @@
               }
             ],
             "url": {
-              "raw": "https://api.coachmatch.com.br/payments/txn_9f2a1b7c4e8d4a6f/refund",
+              "raw": "{{baseUrl}}/payments/txn_9f2a1b7c4e8d4a6f/refund",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "payments",
@@ -2227,13 +2095,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/chat/token",
+              "raw": "{{baseUrl}}/student/chat/token",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -2270,13 +2135,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/chat/conversations",
+              "raw": "{{baseUrl}}/student/chat/conversations",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -2304,13 +2166,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/chat/conversations?limit=30",
+              "raw": "{{baseUrl}}/student/chat/conversations?limit=30",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -2352,13 +2211,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "raw": "{{baseUrl}}/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -2387,13 +2243,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
+              "raw": "{{baseUrl}}/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -2430,13 +2283,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages",
+              "raw": "{{baseUrl}}/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -2465,13 +2315,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages?limit=30&before=",
+              "raw": "{{baseUrl}}/student/chat/conversations/dm_1a2b3c4d_5e6f7a8b/messages?limit=30&before=",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -2520,13 +2367,10 @@
               }
             },
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/chat/messages/<MESSAGE_ID>",
+              "raw": "{{baseUrl}}/student/chat/messages/<MESSAGE_ID>",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -2554,13 +2398,10 @@
             },
             "header": [],
             "url": {
-              "raw": "https://api.coachmatch.com.br/student/chat/messages/<MESSAGE_ID>",
+              "raw": "{{baseUrl}}/student/chat/messages/<MESSAGE_ID>",
               "protocol": "https",
               "host": [
-                "api",
-                "coachmatch",
-                "com",
-                "br"
+                "{{baseUrl}}"
               ],
               "path": [
                 "student",
@@ -2573,6 +2414,13 @@
           "response": []
         }
       ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.coachmatch.com.br",
+      "type": "string"
     }
   ]
 }
