@@ -1,8 +1,8 @@
 # API GATEWAY COMPARTILHADO (HTTP API qht6965nv9, sa-east-1)
 # ─────────────────────────────────────────────────────────────────────────────
-# O stack usa uma API EXTERNA (httpApi.id). As rotas Node são gerenciadas por
-# este stack; as rotas Python e os authorizers JWT (bg0uj6 coach / ahu157 student)
-# são criados manualmente, fora do stack.
+# O stack usa uma API EXTERNA (httpApi.id). Todas as rotas declaradas aqui são
+# gerenciadas por este stack; apenas os authorizers JWT (bg0uj6 coach /
+# ahu157 student) continuam sendo recursos manuais, fora do stack.
 #
 # Como a API é externa, o Serverless NÃO pode gerenciar authorizers nela — por isso
 # eles são referenciados por `id` no evento em `dev` (ver custom.coachAuthorizer /
@@ -22,6 +22,7 @@ stages:
       apiGatewayId: ${self:custom.config.dev.apiGatewayId}
       apiKey: ${self:custom.config.dev.apiKey}
       apiSecret: ${self:custom.config.dev.apiSecret}
+      mailSenderQueueUrl: ${self:custom.config.dev.mailSenderQueueUrl}
   # Stage local — serverless-offline + DynamoDB Local (nunca faz deploy na AWS)
   local:
     params:
@@ -32,6 +33,7 @@ stages:
       secret_access: ${self:custom.config.local.secretAccessKey}
       apiKey: ${self:custom.config.dev.apiKey}
       apiSecret: ${self:custom.config.dev.apiSecret}
+      mailSenderQueueUrl: ""
 
 plugins:
   - serverless-dynamodb
@@ -70,8 +72,14 @@ provider:
   # Fica em provider.environment para valer em todas as funções que chamam shared/s3.js.
   # É o mesmo bucket usado pela lambda Python de upload (generate-profile-video-upload-url).
   environment:
+    STAGE: ${param:stage}
+    REGION: ${param:region}
+    ENDPOINT: ${param:endpoint, ""}
+    ACCESS_KEY_ID: ${param:access_key_id, ""}
+    SECRET_ACCESS_KEY: ${param:secret_access, ""}
     BUCKET_NAME: ${param:bucketName, "coachmatch-profile-videos-138413505977-sa-east-1-an"}
     SIGNED_URL_EXPIRES: ${param:signedUrlExpires, "3600"}
+    MAIL_SENDER_QUEUE_URL: ${param:mailSenderQueueUrl, ""}
     OTEL_SERVICE_NAME: coachmatch-${param:stage}
     GRAFANA_CLOUD_INSTANCE_ID: "1808134"
     GRAFANA_CLOUD_OTLP_ENDPOINT: "https://otlp-gateway-prod-sa-east-1.grafana.net/otlp"
@@ -106,12 +114,16 @@ provider:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/gyms
             - arn:aws:dynamodb:sa-east-1:138413505977:table/payments
             - arn:aws:dynamodb:sa-east-1:138413505977:table/payments/index/*
-        # onPaymentSucceeded grava paymentStatus no schedule
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/specialties
+        # onPaymentSucceeded e as funções de agendamento compartilham a tabela.
         - Effect: Allow
           Action:
+            - dynamodb:PutItem
             - dynamodb:UpdateItem
             - dynamodb:GetItem
+            - dynamodb:BatchGetItem
             - dynamodb:Query
+            - dynamodb:Scan
           Resource:
             - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule
             - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule/index/*
@@ -121,10 +133,20 @@ provider:
             - sqs:SendMessage
           Resource:
             - !GetAtt PaymentSucceededQueue.Arn
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+          Resource:
+            - arn:aws:sqs:sa-east-1:138413505977:MailSender
         # Endpoints de leitura assinam URLs de GET das mídias (foto/vídeo) no bucket privado
         - Effect: Allow
           Action:
             - s3:GetObject
+          Resource:
+            - arn:aws:s3:::coachmatch-profile-videos-138413505977-sa-east-1-an/*
+        - Effect: Allow
+          Action:
+            - s3:PutObject
           Resource:
             - arn:aws:s3:::coachmatch-profile-videos-138413505977-sa-east-1-an/*
         # Grafana Lambda Extension lê o API key do Secrets Manager na inicialização
@@ -614,6 +636,129 @@ functions:
           batchSize: 10
           functionResponseType: ReportBatchItemFailures
 
+  specialtiesGet:
+    handler: src/specialties/list-specialties/handler.handler
+    events:
+      - httpApi:
+          path: /coach/specialties
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/specialties
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  uploadCreateUrl:
+    handler: src/uploads/create-upload-url/handler.handler
+    environment:
+      UPLOAD_EXPIRES_IN: "300"
+      UPLOAD_MAX_BYTES: "209715200"
+    events:
+      - httpApi:
+          path: /coach/upload-url
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+      - httpApi:
+          path: /student/upload-url
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  coachGetSchedule:
+    handler: src/schedule/get-own-schedule/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
+  studentGetCoachSchedule:
+    handler: src/schedule/get-availability/handler.coach
+    events:
+      - httpApi:
+          path: /student/coach/schedules
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  studentGetGymSchedule:
+    handler: src/schedule/get-availability/handler.gym
+    events:
+      - httpApi:
+          path: /student/gyms/schedule
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  coachGetScheduleRequests:
+    handler: src/schedule/get-schedule-requests/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule/requests
+          method: GET
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
+  studentGetScheduleRequests:
+    handler: src/schedule/get-student-requests/handler.handler
+    events:
+      - httpApi:
+          path: /student/coach/schedules/request
+          method: GET
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  coachCreateSchedule:
+    handler: src/schedule/create-schedule/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
+  studentCreateScheduleRequest:
+    handler: src/schedule/create-schedule-request/handler.handler
+    events:
+      - httpApi:
+          path: /student/coach/schedules/request
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  coachApproveSchedule:
+    handler: src/schedule/approve-schedule-request/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule/approve
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
+  coachCancelSchedule:
+    handler: src/schedule/cancel-schedule/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule/cancel
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
+  studentCancelSchedule:
+    handler: src/schedule/cancel-booked-schedule/handler.handler
+    events:
+      - httpApi:
+          path: /student/coach/schedules/cancel
+          method: POST
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  studentCancelScheduleRequest:
+    handler: src/schedule/cancel-schedule-request/handler.handler
+    events:
+      - httpApi:
+          path: /student/coach/schedules/request
+          method: DELETE
+          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+
+  coachUpdateClassStatus:
+    handler: src/schedule/update-class-status/handler.handler
+    events:
+      - httpApi:
+          path: /coach/schedule/class/status
+          method: POST
+          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+
 resources:
   Conditions:
     IsLocal: !Equals [ "${param:stage}", "local" ]
@@ -740,6 +885,81 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
 
+    specialtiesTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsLocal
+      Properties:
+        TableName: specialties
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+    scheduleTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsLocal
+      Properties:
+        TableName: schedule
+        AttributeDefinitions:
+          - AttributeName: scheduleId
+            AttributeType: S
+          - AttributeName: coachId
+            AttributeType: S
+          - AttributeName: gymId
+            AttributeType: S
+          - AttributeName: studentId
+            AttributeType: S
+          - AttributeName: startDateTime
+            AttributeType: S
+        KeySchema:
+          - AttributeName: scheduleId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          # A tabela AWS tem um terceiro atributo no schema de Gym_Date, mas o
+          # código consulta somente gymId + startDateTime. O DynamoDB Local usa
+          # a forma válida equivalente: uma HASH e uma RANGE.
+          - IndexName: Coach_Date
+            KeySchema:
+              - AttributeName: coachId
+                KeyType: HASH
+              - AttributeName: startDateTime
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: Gym_Date
+            KeySchema:
+              - AttributeName: gymId
+                KeyType: HASH
+              - AttributeName: startDateTime
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: Student_Date
+            KeySchema:
+              - AttributeName: studentId
+                KeyType: HASH
+              - AttributeName: startDateTime
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
     # Fila do evento payment.succeeded (gerenciada pelo stack, todos os stages)
     PaymentSucceededQueue:
       Type: AWS::SQS::Queue
@@ -807,8 +1027,11 @@ custom:
         sources:
           - table: gyms
             sources: [./seed/gyms.json]
+          - table: specialties
+            sources: [./seed/specialties.json]
   serverless-offline:
     ignoreJWTSignature: true
+    host: 0.0.0.0
 
   # ─── OTel / ADOT ────────────────────────────────────────────────────────────
   # Layer removido temporariamente — ARN precisa ser verificado em sa-east-1.
