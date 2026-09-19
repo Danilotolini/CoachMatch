@@ -18,8 +18,10 @@ const _handler = async (event) => {
   const params = event?.queryStringParameters ?? {};
   const limit  = params.limit  ? Number(params.limit) : 20;
   const cursor = params.cursor ?? undefined;
+  const search = params.search ?? '';
+  const city   = params.city ?? '';
 
-  const result = await listGyms({ limit, cursor });
+  const result = await listGyms({ search, city, limit, cursor });
 
   return {
     statusCode: 200,
