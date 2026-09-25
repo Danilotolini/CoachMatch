@@ -1,4 +1,4 @@
-# Architecture Decision Record — Adoção de Arquitetura Serverless na AWS
+# ADR 0001 — Adoção de Arquitetura Serverless na AWS
 
 ## Status
 
