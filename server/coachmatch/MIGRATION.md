@@ -288,10 +288,9 @@ scratchpad ou do histórico desta sessão.
 
 ## Pendências fora do escopo desta migração
 
-- **Rota pendurada**: `ANY /student/me` existe no API Gateway **sem integração**
-  (`Target: None`). `GET /student/me` funciona porque rota específica ganha de
-  `ANY`, mas `POST`/`PUT /student/me` caem na pendurada. Não é desta frente,
-  mas alguém precisa decidir se deleta.
+- ~~**Rota pendurada**: `ANY /student/me` sem integração.~~ Não existe mais em
+  25/09/2026: as 52 rotas do API Gateway batem exatamente (rota + authorizer) com
+  as declaradas no `serverless.yml`, e nenhuma está sem integração.
 - **Refactor de env vars adiado**: consolidar `STAGE`/`REGION`/`ENDPOINT`/
   `ACCESS_KEY_ID`/`SECRET_ACCESS_KEY` em `provider.environment` e remover o bloco
   `environment:` duplicado das 28 funções antigas. Era 87% do diff do
