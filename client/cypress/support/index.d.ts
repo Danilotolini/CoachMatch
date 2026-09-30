@@ -5,5 +5,11 @@ declare namespace Cypress {
      * e espera a home do papel carregar.
      */
     loginAs(role: 'client' | 'coach'): Chainable<void>
+
+    /**
+     * Desliga os mocks de API do app na página atual para que `cy.intercept`
+     * passe a controlar as respostas. Chame depois de a página carregar.
+     */
+    disableApiMocks(): Chainable<void>
   }
 }
