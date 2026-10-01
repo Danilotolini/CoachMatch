@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { ActiveFiltersBar } from '@/components/search/ActiveFiltersBar'
 import { FilterSheet } from '@/components/search/FilterSheet'
@@ -39,6 +39,34 @@ function paramsFromFilters(filters: CoachSearchFilters): URLSearchParams {
   return params
 }
 
+// A URL só muda quando a navegação do roteador termina, de forma assíncrona. Um
+// input controlado direto por ela volta ao valor antigo entre duas teclas rápidas
+// e perde caracteres, por isso o texto vive em estado local. Mudanças na URL que
+// não vieram da digitação (limpar filtros, voltar no histórico) sobrescrevem o
+// texto; ecos da própria digitação são ignorados.
+function useSearchQuery(urlQuery: string, onChange: (query: string) => void) {
+  const [query, setQuery] = useState(urlQuery)
+  const pendingWrites = useRef<string[]>([])
+
+  useEffect(() => {
+    const echoIndex = pendingWrites.current.indexOf(urlQuery)
+    if (echoIndex >= 0) {
+      pendingWrites.current = pendingWrites.current.slice(echoIndex + 1)
+      return
+    }
+    pendingWrites.current = []
+    setQuery(urlQuery)
+  }, [urlQuery])
+
+  function changeQuery(next: string) {
+    pendingWrites.current.push(next)
+    setQuery(next)
+    onChange(next)
+  }
+
+  return [query, changeQuery] as const
+}
+
 export default function ClientSearchPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -55,6 +83,10 @@ export default function ClientSearchPage() {
     isFetchingNextPage,
   } = useCoachSearch(filters)
   const coaches = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data])
+
+  const [query, changeQuery] = useSearchQuery(filters.q ?? '', (q) => {
+    updateFilters({ q: q || undefined })
+  })
 
   function updateFilters(next: CoachSearchFilters) {
     setSearchParams(paramsFromFilters({ ...filters, ...next }))
@@ -100,10 +132,8 @@ export default function ClientSearchPage() {
         <section className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 pb-12 sm:px-6 md:px-10">
           <SearchHeader
             type="search"
-            value={filters.q ?? ''}
-            onChange={(q) => {
-              updateFilters({ q: q || undefined })
-            }}
+            value={query}
+            onChange={changeQuery}
             onOpenFilters={() => {
               setFiltersOpen(true)
             }}

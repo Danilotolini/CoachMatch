@@ -54,6 +54,28 @@ describe('ClientSearchPage', () => {
     })
   })
 
+  it('leva o texto digitado para o filtro ativo', async () => {
+    renderClientSearch()
+    const input = screen.getByLabelText('Nome ou bairro')
+
+    await userEvent.type(input, 'Marcos')
+
+    expect(input).toHaveValue('Marcos')
+    expect(await screen.findByText('Busca: Marcos')).toBeInTheDocument()
+  })
+
+  it('esvazia o campo quando a busca é removida pelo chip', async () => {
+    renderClientSearch(['/client/search?q=funcional'])
+    const input = screen.getByLabelText('Nome ou bairro')
+    expect(input).toHaveValue('funcional')
+
+    await userEvent.click(await screen.findByLabelText('Remover Busca: funcional'))
+
+    await waitFor(() => {
+      expect(input).toHaveValue('')
+    })
+  })
+
   it('aplica modalidade pelo sheet de filtros', async () => {
     renderClientSearch()
 

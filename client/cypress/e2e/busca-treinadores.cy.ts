@@ -1,8 +1,3 @@
-// O campo de busca é controlado pela URL, que o roteador atualiza de forma
-// assíncrona. Na velocidade padrão do Cypress (10 ms por tecla) a tecla seguinte
-// chega antes de a anterior ser aplicada e o texto se perde.
-const RITMO_DE_DIGITACAO = { delay: 100 }
-
 describe('Busca de treinadores', () => {
   beforeEach(() => {
     cy.loginAs('client')
@@ -19,7 +14,7 @@ describe('Busca de treinadores', () => {
   })
 
   it('filtra pelo nome digitado', () => {
-    cy.get('input[aria-label="Nome ou bairro"]').type('Marcos', RITMO_DE_DIGITACAO)
+    cy.get('input[aria-label="Nome ou bairro"]').type('Marcos')
 
     cy.contains('1 treinadores encontrados').should('be.visible')
     cy.contains('button', 'Marcos Vieira').should('be.visible')
@@ -39,7 +34,7 @@ describe('Busca de treinadores', () => {
   })
 
   it('mostra estado vazio e permite limpar a busca', () => {
-    cy.get('input[aria-label="Nome ou bairro"]').type('inexistente', RITMO_DE_DIGITACAO)
+    cy.get('input[aria-label="Nome ou bairro"]').type('inexistente')
     cy.contains('Nenhum treinador encontrado pra esses filtros').should('be.visible')
 
     cy.contains('button', 'LIMPAR FILTROS').click()
@@ -48,7 +43,7 @@ describe('Busca de treinadores', () => {
   })
 
   it('abre o perfil do treinador escolhido', () => {
-    cy.get('input[aria-label="Nome ou bairro"]').type('Marcos', RITMO_DE_DIGITACAO)
+    cy.get('input[aria-label="Nome ou bairro"]').type('Marcos')
     cy.contains('button', 'Marcos Vieira').click()
 
     cy.location('pathname').should('eq', '/client/coaches/coach_marcos')
