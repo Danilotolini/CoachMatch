@@ -75,7 +75,7 @@ src/
 ## Rotas implementadas
 
 Mesma Lambda atende coach e aluno quando o caminho difere só pelo papel; o authorizer
-é escolhido por rota (ver [Arquitetura do API Gateway](#arquitetura-do-api-gateway-compartilhado)).
+é escolhido por rota (ver [Arquitetura do API Gateway](#arquitetura-do-api-gateway)).
 
 | Método | Rota | Lambda | Auth |
 |--------|------|--------|------|
@@ -151,35 +151,41 @@ PENDING_REVIEW
 APPROVED   /   REJECTED
 ```
 
-## Arquitetura do API Gateway compartilhado
+## Arquitetura do API Gateway
 
-O serviço usa um **HTTP API externo** ao stack (`qht6965nv9`, `sa-east-1`, domínio
-`api.coachmatch.com.br`). A propriedade dos recursos é dividida:
+O HTTP API é **criado por este stack** (`coachmatch-<stage>`, `sa-east-1`), junto com
+as rotas, as integrações Lambda, os authorizers JWT e o CORS. Nada disso depende do
+console.
 
-- **Gerenciado por este stack** (`coachmatch-dev`): todas as rotas da tabela acima,
-  suas integrações Lambda e os triggers Cognito.
-- **Manual, fora do stack**: apenas os **authorizers JWT**.
+No `dev`, o stack também cria o **API mapping** (`$default`) de
+`api.coachmatch.com.br` para a sua API. Ficam **fora do stack**, como recursos
+manuais, só o custom domain e o certificado ACM. O DNS aponta para o endpoint regional
+do custom domain, que não muda ao trocar de API (ver [`DEPLOY.md`](DEPLOY.md)).
 
-### Authorizers numa API externa (ponto-chave)
+Clientes (front, Postman, OpenAPI) usam sempre `https://api.coachmatch.com.br`, nunca a
+URL `execute-api`.
 
-Como a API é externa (`httpApi.id` setado), o Serverless **não pode gerenciar
-authorizers** nela — declarar `provider.httpApi.authorizers` gerenciado quebra com
-`Cannot setup authorizers for externally configured HTTP API`. Por isso o
-`serverless.yml` resolve `httpApi` por stage (`custom.httpApiByStage`):
+### Authorizers e CORS
 
-- **dev** → só `{ id: qht6965nv9 }`. Cada rota referencia o authorizer **existente
-  por id** (`custom.coachAuthorizer` = `bg0uj6`, `custom.studentAuthorizer` = `ahu157`).
-- **local** → `{ id: "", authorizers: {…} }`. O serverless-offline sobe a própria API
-  e valida o JWT por nome (`ignoreJWTSignature: true`).
+Declarados em `provider.httpApi`, iguais em todos os stages. Cada rota referencia o
+authorizer por nome; `src/__tests__/route-authorizers.test.js` garante o perfil de cada
+rota. No `local`, o serverless-offline valida o JWT pelos mesmos nomes
+(`ignoreJWTSignature: true`).
 
-Os authorizers continuam recursos **manuais** na AWS. O stack apenas os referencia;
-não os cria nem deleta. Por isso eles precisam
-seguir declarados por nome no bloco `local`, mesmo o `dev` referenciando por id.
+| Authorizer          | Pool Cognito                          | Rotas                       |
+|---------------------|---------------------------------------|-----------------------------|
+| `coachAuthorizer`   | `sa-east-1_2DDuPPtc0` (CoachAccess)   | `/coach/*`                  |
+| `studentAuthorizer` | `sa-east-1_2DSfT6kmB` (StudentAccess) | `/student/*`, `/payments/*` |
 
-| Authorizer | ID       | Pool Cognito                          | Rotas                       |
-|------------|----------|---------------------------------------|-----------------------------|
-| coach      | `bg0uj6` | `sa-east-1_2DDuPPtc0` (CoachAccess)   | `/coach/*`                  |
-| student    | `ahu157` | `sa-east-1_2DSfT6kmB` (StudentAccess) | `/student/*`, `/payments/*` |
+O CORS libera só `https://coachmatch.com.br`, `https://www.coachmatch.com.br` e
+`http://localhost:5173` (o front local chama a API real quando o MSW está desligado).
+
+### Stages
+
+| Stage     | API                   | Observação                                                   |
+|-----------|-----------------------|--------------------------------------------------------------|
+| `local`   | serverless-offline    | DynamoDB Local                                               |
+| `dev`     | mapeada no domínio    | É produção                                                   |
 
 ## Setup local
 
@@ -214,7 +220,6 @@ local:
 dev:
   stage: dev
   region: sa-east-1
-  apiGatewayId: qht6965nv9
 ```
 
 ### Iniciar servidor local
