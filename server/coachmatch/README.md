@@ -78,38 +78,38 @@ Mesma Lambda atende coach e aluno quando o caminho difere só pelo papel; o auth
 é escolhido por rota (ver [Arquitetura do API Gateway](#arquitetura-do-api-gateway)).
 
 | Método | Rota | Lambda | Auth |
-|--------|------|--------|------|
-| `GET`  | `/coach/me` | `coachGetMe` | Cognito JWT (CoachAccess) |
-| `PUT`  | `/coach/me` | `coachUpdateMe` | Cognito JWT (CoachAccess) |
-| `GET`  | `/coach/gyms` | `gymGet` | Cognito JWT (CoachAccess) |
+| -------- | ------ | -------- | ------ |
+| `GET` | `/coach/me` | `coachGetMe` | Cognito JWT (CoachAccess) |
+| `PUT` | `/coach/me` | `coachUpdateMe` | Cognito JWT (CoachAccess) |
+| `GET` | `/coach/gyms` | `gymGet` | Cognito JWT (CoachAccess) |
 | `POST` | `/coach/gyms/suggest` | `gymSuggest` | Cognito JWT (CoachAccess) |
-| `GET`  | `/student/me` | `studentGetProfile` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/me` | `studentGetProfile` | Cognito JWT (StudentAccess) |
 | `POST` | `/student/me/profile` | `studentUpdateProfile` | Cognito JWT (StudentAccess) |
 | `POST` | `/student/me/health` | `studentUpdateHealth` | Cognito JWT (StudentAccess) |
-| `GET`  | `/student/gyms` | `gymGet` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/gyms` | `gymGet` | Cognito JWT (StudentAccess) |
 | `POST` | `/student/gyms/suggest` | `gymSuggest` | Cognito JWT (StudentAccess) |
-| `GET`  | `/student/coaches` | `studentGetCoaches` | Cognito JWT (StudentAccess) |
-| `GET`  | `/coach/specialties` | `specialtiesGet` | Cognito JWT (CoachAccess) |
-| `GET`  | `/student/specialties` | `specialtiesGet` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/coaches` | `studentGetCoaches` | Cognito JWT (StudentAccess) |
+| `GET` | `/coach/specialties` | `specialtiesGet` | Cognito JWT (CoachAccess) |
+| `GET` | `/student/specialties` | `specialtiesGet` | Cognito JWT (StudentAccess) |
 | `POST` | `/coach/upload-url` | `uploadCreateUrl` | Cognito JWT (CoachAccess) |
 | `POST` | `/student/upload-url` | `uploadCreateUrl` | Cognito JWT (StudentAccess) |
-| `GET`  | `/coach/schedule` | `coachGetSchedule` | Cognito JWT (CoachAccess) |
-| `GET`  | `/coach/schedule/requests` | `coachGetScheduleRequests` | Cognito JWT (CoachAccess) |
+| `GET` | `/coach/schedule` | `coachGetSchedule` | Cognito JWT (CoachAccess) |
+| `GET` | `/coach/schedule/requests` | `coachGetScheduleRequests` | Cognito JWT (CoachAccess) |
 | `POST` | `/coach/schedule` | `coachCreateSchedule` | Cognito JWT (CoachAccess) |
 | `POST` | `/coach/schedule/approve` | `coachApproveSchedule` | Cognito JWT (CoachAccess) |
 | `POST` | `/coach/schedule/cancel` | `coachCancelSchedule` | Cognito JWT (CoachAccess) |
 | `POST` | `/coach/schedule/class/status` | `coachUpdateClassStatus` | Cognito JWT (CoachAccess) |
-| `GET`  | `/student/coach/schedules` | `studentGetCoachSchedule` | Cognito JWT (StudentAccess) |
-| `GET`  | `/student/gyms/schedule` | `studentGetGymSchedule` | Cognito JWT (StudentAccess) |
-| `GET`  | `/student/coach/schedules/request` | `studentGetScheduleRequests` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/coach/schedules` | `studentGetCoachSchedule` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/gyms/schedule` | `studentGetGymSchedule` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/coach/schedules/request` | `studentGetScheduleRequests` | Cognito JWT (StudentAccess) |
 | `POST` | `/student/coach/schedules/request` | `studentCreateScheduleRequest` | Cognito JWT (StudentAccess) |
 | `DELETE` | `/student/coach/schedules/request` | `studentCancelScheduleRequest` | Cognito JWT (StudentAccess) |
 | `POST` | `/student/coach/schedules/cancel` | `studentCancelSchedule` | Cognito JWT (StudentAccess) |
 | `POST` | `/payments` | `paymentCreate` | Cognito JWT (StudentAccess) |
-| `GET`  | `/payments/{transactionId}` | `paymentGet` | Cognito JWT (StudentAccess) |
-| `GET`  | `/payments/coach/{coachId}` | `paymentGetByCoach` | Cognito JWT (StudentAccess) |
-| `GET`  | `/payments/student/{studentId}` | `paymentGetByStudent` | Cognito JWT (StudentAccess) |
-| `GET`  | `/payments/session/{sessionId}` | `paymentGetBySession` | Cognito JWT (StudentAccess) |
+| `GET` | `/payments/{transactionId}` | `paymentGet` | Cognito JWT (StudentAccess) |
+| `GET` | `/payments/coach/{coachId}` | `paymentGetByCoach` | Cognito JWT (StudentAccess) |
+| `GET` | `/payments/student/{studentId}` | `paymentGetByStudent` | Cognito JWT (StudentAccess) |
+| `GET` | `/payments/session/{sessionId}` | `paymentGetBySession` | Cognito JWT (StudentAccess) |
 | `POST` | `/payments/{transactionId}/refund` | `paymentRefund` | Cognito JWT (StudentAccess) |
 
 Triggers Cognito (não HTTP):
@@ -128,15 +128,15 @@ Cada rota existe sob `/coach/chat/*` (authorizer CoachAccess) e `/student/chat/*
 canal (conversa) ou da mensagem, conforme a rota.
 
 | Método | Rota | Lambda | Descrição |
-|--------|------|--------|-----------|
-| `POST`   | `/{role}/chat/token` | `chatToken` | Emite token de acesso do Stream (TTL 24h) |
-| `POST`   | `/{role}/chat/conversations` | `chatConversationCreate` | Cria/recupera a conversa direta com um par (`peerId`) |
-| `GET`    | `/{role}/chat/conversations` | `chatConversationList` | Lista as conversas do usuário (`?limit`) |
-| `PATCH`  | `/{role}/chat/conversations/{id}` | `chatConversationUpdate` | Edita nome/`frozen` da conversa |
+| -------- | ------ | -------- | ----------- |
+| `POST` | `/{role}/chat/token` | `chatToken` | Emite token de acesso do Stream (TTL 24h) |
+| `POST` | `/{role}/chat/conversations` | `chatConversationCreate` | Cria/recupera a conversa direta com um par (`peerId`) |
+| `GET` | `/{role}/chat/conversations` | `chatConversationList` | Lista as conversas do usuário (`?limit`) |
+| `PATCH` | `/{role}/chat/conversations/{id}` | `chatConversationUpdate` | Edita nome/`frozen` da conversa |
 | `DELETE` | `/{role}/chat/conversations/{id}` | `chatConversationDelete` | Oculta a conversa para o usuário |
-| `POST`   | `/{role}/chat/conversations/{id}/messages` | `chatMessageSend` | Envia mensagem na conversa |
-| `GET`    | `/{role}/chat/conversations/{id}/messages` | `chatMessageList` | Lista mensagens (`?limit`, `?before`) |
-| `PATCH`  | `/{role}/chat/messages/{id}` | `chatMessageUpdate` | Edita mensagem do próprio autor |
+| `POST` | `/{role}/chat/conversations/{id}/messages` | `chatMessageSend` | Envia mensagem na conversa |
+| `GET` | `/{role}/chat/conversations/{id}/messages` | `chatMessageList` | Lista mensagens (`?limit`, `?before`) |
+| `PATCH` | `/{role}/chat/messages/{id}` | `chatMessageUpdate` | Edita mensagem do próprio autor |
 | `DELETE` | `/{role}/chat/messages/{id}` | `chatMessageDelete` | Apaga (soft delete) mensagem do próprio autor |
 
 ## Status de coach (fluxo)
@@ -193,6 +193,7 @@ O CORS libera só `https://coachmatch.com.br`, `https://www.coachmatch.com.br` e
 
 ```bash
 node >= 22
+java         # qualquer JDK/JRE no PATH; ver "DynamoDB Local" abaixo
 ```
 
 ### Instalar dependências
@@ -202,6 +203,41 @@ monorepo); instale a partir da raiz:
 
 ```bash
 cd ../.. && pnpm install
+```
+
+### DynamoDB Local
+
+`pnpm dev` sobe dois processos:
+
+- **serverless-offline** (porta 3000): serve as rotas HTTP e valida o JWT pelos mesmos
+  authorizers do stack;
+- **DynamoDB Local** (porta 8000): banco em memória, criado a cada start a partir dos
+  `resources` com `Condition: IsLocal` e populado com os seeds de `seed/`.
+
+O DynamoDB Local é um **programa Java** (`DynamoDBLocal.jar`), não um container: o
+plugin `serverless-dynamodb` roda `java` direto, com o diretório de trabalho em
+`.dynamodb/`. Por isso é preciso Java no `PATH` e o jar baixado nessa pasta.
+
+O jar não vem com o `pnpm install`. Baixe uma vez por clone (a pasta é ignorada pelo
+git):
+
+```bash
+pnpm exec serverless dynamodb install --stage local
+```
+
+Sem esse passo, `pnpm dev` falha com:
+
+```
+Error: spawn java ENOENT
+```
+
+A mensagem engana: o Java pode estar instalado. O Node dá esse mesmo erro quando o
+diretório de trabalho do processo não existe — aqui, o `.dynamodb/`. Confira as duas
+causas:
+
+```bash
+java -version      # Java no PATH?
+ls .dynamodb       # jar baixado?
 ```
 
 ### Configuração
@@ -263,7 +299,7 @@ pnpm test:coverage      # com relatório de cobertura (coverage/)
 ## Variáveis de ambiente (runtime)
 
 | Variável | Descrição |
-|----------|-----------|
+| ---------- | ----------- |
 | `STAGE` | `local` habilita DynamoDB Local; qualquer outro valor usa AWS |
 | `REGION` | Região AWS (ex: `sa-east-1`) |
 | `ENDPOINT` | URL do DynamoDB Local (somente em `STAGE=local`) |
@@ -276,7 +312,7 @@ pnpm test:coverage      # com relatório de cobertura (coverage/)
 ## Tabelas DynamoDB
 
 | Tabela | Chave | Observação |
-|--------|-------|------------|
+| -------- | ------- | ------------ |
 | `coaches` | `coachId` (HASH) | |
 | `student` | `studentId` (HASH) | |
 | `gyms` | `gymId` (HASH) | |
