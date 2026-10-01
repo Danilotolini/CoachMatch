@@ -1,13 +1,9 @@
-# API GATEWAY COMPARTILHADO (HTTP API qht6965nv9, sa-east-1)
+# HTTP API
 # ─────────────────────────────────────────────────────────────────────────────
-# O stack usa uma API EXTERNA (httpApi.id). Todas as rotas declaradas aqui são
-# gerenciadas por este stack; apenas os authorizers JWT (bg0uj6 coach /
-# ahu157 student) continuam sendo recursos manuais, fora do stack.
-#
-# Como a API é externa, o Serverless NÃO pode gerenciar authorizers nela — por isso
-# eles são referenciados por `id` no evento em `dev` (ver custom.coachAuthorizer /
-# custom.studentAuthorizer e custom.httpApiByStage). No `local`, o serverless-offline
-# sobe a própria API e usa os authorizers declarados por nome.
+# A API, os authorizers JWT e o CORS são criados por este stack em todos os
+# stages; no dev, também o API mapping de `api.coachmatch.com.br`. Ficam fora
+# apenas o custom domain e o certificado. O DNS aponta para o custom domain, não
+# para a API, então trocar a API servida não muda DNS (ver DEPLOY.md).
 # ─────────────────────────────────────────────────────────────────────────────
 org: coachmatch
 app: coachmatchapp
@@ -19,7 +15,6 @@ stages:
     params:
       stage: ${self:custom.config.dev.stage}
       region: ${self:custom.config.dev.region}
-      apiGatewayId: ${self:custom.config.dev.apiGatewayId}
       apiKey: ${self:custom.config.dev.apiKey}
       apiSecret: ${self:custom.config.dev.apiSecret}
       mailSenderQueueUrl: ${self:custom.config.dev.mailSenderQueueUrl}
@@ -87,14 +82,35 @@ provider:
 
   layers: ${self:custom.otelLayers.${sls:stage}}
 
-  # httpApi por stage (ver custom.httpApiByStage):
-  #   • dev   → API externa (id = qht6965nv9). O Serverless NÃO pode gerenciar
-  #             authorizers numa API externa, então NÃO declaramos o bloco
-  #             `authorizers` aqui; cada rota referencia o authorizer já existente
-  #             por id (custom.coachAuthorizer / custom.studentAuthorizer).
-  #   • local → id vazio (serverless-offline sobe a própria API) + authorizers
-  #             declarados por nome para o offline validar o JWT.
-  httpApi: ${self:custom.httpApiByStage.${sls:stage}}
+  httpApi:
+    name: coachmatch-${param:stage}
+    cors:
+      # Sem `*`: só o front publicado e o Vite local, que em dev aponta para esta API.
+      allowedOrigins:
+        - https://coachmatch.com.br
+        - https://www.coachmatch.com.br
+        - http://localhost:5173
+      allowedHeaders:
+        - '*'
+      allowedMethods:
+        - '*'
+      exposedResponseHeaders:
+        - '*'
+    authorizers:
+      # Pool CoachAccess — rotas /coach/*
+      coachAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
+        audience:
+          - 76hul7797npfkmpoju0mbghti7
+      # Pool StudentAccess — rotas /student/* e /payments/*
+      studentAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DSfT6kmB
+        audience:
+          - 3rjn45koljliioocd5usijdv9s
 
   iam:
     role:
@@ -170,11 +186,13 @@ functions:
       - httpApi:
           path: /coach/gyms
           method: GET
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/gyms
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   gymSuggest:
     handler: src/gyms/suggest-gym/handler.handler
@@ -188,11 +206,13 @@ functions:
       - httpApi:
           path: /coach/gyms/suggest
           method: POST
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/gyms/suggest
           method: POST
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   coachGetMe:
     handler: src/coaches/get-coach/handler.handler
@@ -206,7 +226,8 @@ functions:
       - httpApi:
           path: /coach/me
           method: GET
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
 
   coachUpdateMe:
     handler: src/coaches/update-coach/handler.handler
@@ -220,7 +241,8 @@ functions:
       - httpApi:
           path: /coach/me
           method: PUT
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
 
   coachCreate:
     handler: src/coaches/create-coach/handler.handler
@@ -246,12 +268,12 @@ functions:
   #     ACCESS_KEY_ID: ${param:access_key_id, ""}
   #     SECRET_ACCESS_KEY: ${param:secret_access, ""}
   #   events:
-  #     # NOTA: esta rota NÃO existe no API Gateway (qht6965nv9), o coach é cadastrado como ativo.
+  #     # NOTA: esta rota NÃO existe no API Gateway, o coach é cadastrado como ativo.
   #     - httpApi:
   #         path: /coach/me/submit-for-review
   #         method: POST
   #         authorizer:
-  #           name: cognitoAuthorizer
+  #           name: coachAuthorizer
 
   studentCreate:
     handler: src/students/create-student/handler.handler
@@ -279,7 +301,8 @@ functions:
       - httpApi:
           path: /student/me
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   studentUpdateProfile:
     handler: src/students/update-student-profile/handler.handler
@@ -293,7 +316,8 @@ functions:
       - httpApi:
           path: /student/me/profile
           method: POST
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   studentUpdateHealth:
     handler: src/students/update-student-health/handler.handler
@@ -307,7 +331,8 @@ functions:
       - httpApi:
           path: /student/me/health
           method: POST
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   studentGetCoaches:
     handler: src/students/get-coaches/handler.handler
@@ -321,7 +346,8 @@ functions:
       - httpApi:
           path: /student/coaches
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   studentGetCoachDetail:
     handler: src/students/get-coach-detail/handler.handler
@@ -335,7 +361,8 @@ functions:
       - httpApi:
           path: /student/coaches/{coachId}
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   coachGetStudentDetail:
     handler: src/coaches/get-student-detail/handler.handler
@@ -349,7 +376,8 @@ functions:
       - httpApi:
           path: /coach/students/{studentId}
           method: GET
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
 
   # ─── Pagamentos ────────────────────────────────────────────────────────────
 
@@ -366,7 +394,8 @@ functions:
       - httpApi:
           path: /payments
           method: POST
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   paymentGet:
     handler: src/payments/get-payment/handler.handler
@@ -380,7 +409,8 @@ functions:
       - httpApi:
           path: /payments/{transactionId}
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   paymentGetByCoach:
     handler: src/payments/get-coach-payments/handler.handler
@@ -394,7 +424,8 @@ functions:
       - httpApi:
           path: /payments/coach/{coachId}
           method: GET
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
 
   paymentGetByStudent:
     handler: src/payments/get-student-payments/handler.handler
@@ -408,7 +439,8 @@ functions:
       - httpApi:
           path: /payments/student/{studentId}
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   paymentGetBySession:
     handler: src/payments/get-session-payments/handler.handler
@@ -422,7 +454,8 @@ functions:
       - httpApi:
           path: /payments/session/{sessionId}
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   paymentRefund:
     handler: src/payments/refund-payment/handler.handler
@@ -436,7 +469,8 @@ functions:
       - httpApi:
           path: /payments/{transactionId}/refund
           method: POST
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
   # --- Chat (Stream) -------------------------------------------------------
   chatToken:
     handler: src/api-chat/token.handler
@@ -452,11 +486,13 @@ functions:
       - httpApi:
           path: /coach/chat/token
           method: POST
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/chat/token
           method: POST
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   chatConversationCreate:
     handler: src/api-chat/conversations.create
@@ -472,11 +508,13 @@ functions:
       - httpApi:
           path: /coach/chat/conversations
           method: POST
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/chat/conversations
           method: POST
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   chatConversationList:
     handler: src/api-chat/conversations.list
@@ -492,11 +530,13 @@ functions:
       - httpApi:
           path: /coach/chat/conversations
           method: GET
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/chat/conversations
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   chatConversationUpdate:
     handler: src/api-chat/conversations.update
@@ -512,11 +552,13 @@ functions:
       - httpApi:
           path: /coach/chat/conversations/{id}
           method: PATCH
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/chat/conversations/{id}
           method: PATCH
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   chatConversationDelete:
     handler: src/api-chat/conversations.remove
@@ -532,11 +574,13 @@ functions:
       - httpApi:
           path: /coach/chat/conversations/{id}
           method: DELETE
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/chat/conversations/{id}
           method: DELETE
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   chatMessageSend:
     handler: src/api-chat/messages.send
@@ -552,11 +596,13 @@ functions:
       - httpApi:
           path: /coach/chat/conversations/{id}/messages
           method: POST
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/chat/conversations/{id}/messages
           method: POST
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   chatMessageList:
     handler: src/api-chat/messages.list
@@ -572,11 +618,13 @@ functions:
       - httpApi:
           path: /coach/chat/conversations/{id}/messages
           method: GET
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/chat/conversations/{id}/messages
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   chatMessageUpdate:
     handler: src/api-chat/messages.update
@@ -592,11 +640,13 @@ functions:
       - httpApi:
           path: /coach/chat/messages/{id}
           method: PATCH
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/chat/messages/{id}
           method: PATCH
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   chatMessageDelete:
     environment:
@@ -612,11 +662,13 @@ functions:
       - httpApi:
           path: /coach/chat/messages/{id}
           method: DELETE
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/chat/messages/{id}
           method: DELETE
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
 
   # ─── Integração Pagamento → Agendamento ─────────────────────────────────────
@@ -642,11 +694,13 @@ functions:
       - httpApi:
           path: /coach/specialties
           method: GET
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/specialties
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   uploadCreateUrl:
     handler: src/uploads/create-upload-url/handler.handler
@@ -657,11 +711,13 @@ functions:
       - httpApi:
           path: /coach/upload-url
           method: POST
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
       - httpApi:
           path: /student/upload-url
           method: POST
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   coachGetSchedule:
     handler: src/schedule/get-own-schedule/handler.handler
@@ -669,7 +725,8 @@ functions:
       - httpApi:
           path: /coach/schedule
           method: GET
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
 
   studentGetCoachSchedule:
     handler: src/schedule/get-availability/handler.coach
@@ -677,7 +734,8 @@ functions:
       - httpApi:
           path: /student/coach/schedules
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   studentGetGymSchedule:
     handler: src/schedule/get-availability/handler.gym
@@ -685,7 +743,8 @@ functions:
       - httpApi:
           path: /student/gyms/schedule
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   coachGetScheduleRequests:
     handler: src/schedule/get-schedule-requests/handler.handler
@@ -693,7 +752,8 @@ functions:
       - httpApi:
           path: /coach/schedule/requests
           method: GET
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
 
   studentGetScheduleRequests:
     handler: src/schedule/get-student-requests/handler.handler
@@ -701,7 +761,8 @@ functions:
       - httpApi:
           path: /student/coach/schedules/request
           method: GET
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   coachCreateSchedule:
     handler: src/schedule/create-schedule/handler.handler
@@ -709,7 +770,8 @@ functions:
       - httpApi:
           path: /coach/schedule
           method: POST
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
 
   studentCreateScheduleRequest:
     handler: src/schedule/create-schedule-request/handler.handler
@@ -717,7 +779,8 @@ functions:
       - httpApi:
           path: /student/coach/schedules/request
           method: POST
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   coachApproveSchedule:
     handler: src/schedule/approve-schedule-request/handler.handler
@@ -725,7 +788,8 @@ functions:
       - httpApi:
           path: /coach/schedule/approve
           method: POST
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
 
   coachCancelSchedule:
     handler: src/schedule/cancel-schedule/handler.handler
@@ -733,7 +797,8 @@ functions:
       - httpApi:
           path: /coach/schedule/cancel
           method: POST
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
 
   studentCancelSchedule:
     handler: src/schedule/cancel-booked-schedule/handler.handler
@@ -741,7 +806,8 @@ functions:
       - httpApi:
           path: /student/coach/schedules/cancel
           method: POST
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   studentCancelScheduleRequest:
     handler: src/schedule/cancel-schedule-request/handler.handler
@@ -749,7 +815,8 @@ functions:
       - httpApi:
           path: /student/coach/schedules/request
           method: DELETE
-          authorizer: ${self:custom.studentAuthorizer.${sls:stage}}
+          authorizer:
+            name: studentAuthorizer
 
   coachUpdateClassStatus:
     handler: src/schedule/update-class-status/handler.handler
@@ -757,11 +824,13 @@ functions:
       - httpApi:
           path: /coach/schedule/class/status
           method: POST
-          authorizer: ${self:custom.coachAuthorizer.${sls:stage}}
+          authorizer:
+            name: coachAuthorizer
 
 resources:
   Conditions:
     IsLocal: !Equals [ "${param:stage}", "local" ]
+    IsDev: !Equals [ "${param:stage}", "dev" ]
   Resources:
     gymsTable:
       Type: AWS::DynamoDB::Table
@@ -960,6 +1029,17 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
 
+    # Liga o domínio à API deste stack. O domínio e o certificado são manuais, fora do
+    # stack; só o dev é servido por ele. O API Gateway aceita um único mapping com
+    # chave vazia por domínio, então um mapping manual existente impede a criação.
+    ApiDomainMapping:
+      Type: AWS::ApiGatewayV2::ApiMapping
+      Condition: IsDev
+      Properties:
+        DomainName: api.coachmatch.com.br
+        ApiId: !Ref HttpApi
+        Stage: !Ref HttpApiStage
+
     # Fila do evento payment.succeeded (gerenciada pelo stack, todos os stages)
     PaymentSucceededQueue:
       Type: AWS::SQS::Queue
@@ -977,42 +1057,6 @@ resources:
 
 custom:
   config: ${file(./config.yml)}
-
-  # httpApi por stage — ver comentário no provider.httpApi.
-  httpApiByStage:
-    local:
-      id: ""
-      authorizers:
-        # Pool CoachAccess (sa-east-1_2DDuPPtc0) — rotas /coach/*
-        cognitoAuthorizer:
-          type: jwt
-          identitySource: $request.header.Authorization
-          issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
-          audience:
-            - 76hul7797npfkmpoju0mbghti7
-        # Pool StudentAccess (sa-east-1_2DSfT6kmB) — rotas /student/*
-        cognitoStudentAuthorizer:
-          type: jwt
-          identitySource: $request.header.Authorization
-          issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DSfT6kmB
-          audience:
-            - 3rjn45koljliioocd5usijdv9s
-    dev:
-      id: ${self:custom.config.dev.apiGatewayId}
-
-  # Referência do authorizer por stage:
-  #   • local → por nome (authorizer gerenciado pelo offline)
-  #   • dev   → por id do authorizer já existente no API GATEWAY
-  coachAuthorizer:
-    local:
-      name: cognitoAuthorizer
-    dev:
-      id: bg0uj6
-  studentAuthorizer:
-    local:
-      name: cognitoStudentAuthorizer
-    dev:
-      id: ahu157
 
   dynamodb:
     stages:

@@ -3,6 +3,10 @@
 # da Lambda Python. Deletar rota NÃO deleta a integração, então os ids abaixo
 # continuam válidos enquanto as Lambdas Python existirem.
 #
+# Só vale enquanto o domínio serve a API externa qht6965nv9. Depois da virada para a
+# API gerenciada pelo stack (DEPLOY.md), rota manual conflita com a do stack: o
+# rollback de uma rota passa a ser redeploy da versão anterior.
+#
 # Uso: veja as opções no bloco case abaixo.
 set -e
 PROFILE=${AWS_PROFILE:-CoachMatch}

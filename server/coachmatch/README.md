@@ -75,41 +75,41 @@ src/
 ## Rotas implementadas
 
 Mesma Lambda atende coach e aluno quando o caminho difere só pelo papel; o authorizer
-é escolhido por rota (ver [Arquitetura do API Gateway](#arquitetura-do-api-gateway-compartilhado)).
+é escolhido por rota (ver [Arquitetura do API Gateway](#arquitetura-do-api-gateway)).
 
 | Método | Rota | Lambda | Auth |
-|--------|------|--------|------|
-| `GET`  | `/coach/me` | `coachGetMe` | Cognito JWT (CoachAccess) |
-| `PUT`  | `/coach/me` | `coachUpdateMe` | Cognito JWT (CoachAccess) |
-| `GET`  | `/coach/gyms` | `gymGet` | Cognito JWT (CoachAccess) |
+| -------- | ------ | -------- | ------ |
+| `GET` | `/coach/me` | `coachGetMe` | Cognito JWT (CoachAccess) |
+| `PUT` | `/coach/me` | `coachUpdateMe` | Cognito JWT (CoachAccess) |
+| `GET` | `/coach/gyms` | `gymGet` | Cognito JWT (CoachAccess) |
 | `POST` | `/coach/gyms/suggest` | `gymSuggest` | Cognito JWT (CoachAccess) |
-| `GET`  | `/student/me` | `studentGetProfile` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/me` | `studentGetProfile` | Cognito JWT (StudentAccess) |
 | `POST` | `/student/me/profile` | `studentUpdateProfile` | Cognito JWT (StudentAccess) |
 | `POST` | `/student/me/health` | `studentUpdateHealth` | Cognito JWT (StudentAccess) |
-| `GET`  | `/student/gyms` | `gymGet` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/gyms` | `gymGet` | Cognito JWT (StudentAccess) |
 | `POST` | `/student/gyms/suggest` | `gymSuggest` | Cognito JWT (StudentAccess) |
-| `GET`  | `/student/coaches` | `studentGetCoaches` | Cognito JWT (StudentAccess) |
-| `GET`  | `/coach/specialties` | `specialtiesGet` | Cognito JWT (CoachAccess) |
-| `GET`  | `/student/specialties` | `specialtiesGet` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/coaches` | `studentGetCoaches` | Cognito JWT (StudentAccess) |
+| `GET` | `/coach/specialties` | `specialtiesGet` | Cognito JWT (CoachAccess) |
+| `GET` | `/student/specialties` | `specialtiesGet` | Cognito JWT (StudentAccess) |
 | `POST` | `/coach/upload-url` | `uploadCreateUrl` | Cognito JWT (CoachAccess) |
 | `POST` | `/student/upload-url` | `uploadCreateUrl` | Cognito JWT (StudentAccess) |
-| `GET`  | `/coach/schedule` | `coachGetSchedule` | Cognito JWT (CoachAccess) |
-| `GET`  | `/coach/schedule/requests` | `coachGetScheduleRequests` | Cognito JWT (CoachAccess) |
+| `GET` | `/coach/schedule` | `coachGetSchedule` | Cognito JWT (CoachAccess) |
+| `GET` | `/coach/schedule/requests` | `coachGetScheduleRequests` | Cognito JWT (CoachAccess) |
 | `POST` | `/coach/schedule` | `coachCreateSchedule` | Cognito JWT (CoachAccess) |
 | `POST` | `/coach/schedule/approve` | `coachApproveSchedule` | Cognito JWT (CoachAccess) |
 | `POST` | `/coach/schedule/cancel` | `coachCancelSchedule` | Cognito JWT (CoachAccess) |
 | `POST` | `/coach/schedule/class/status` | `coachUpdateClassStatus` | Cognito JWT (CoachAccess) |
-| `GET`  | `/student/coach/schedules` | `studentGetCoachSchedule` | Cognito JWT (StudentAccess) |
-| `GET`  | `/student/gyms/schedule` | `studentGetGymSchedule` | Cognito JWT (StudentAccess) |
-| `GET`  | `/student/coach/schedules/request` | `studentGetScheduleRequests` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/coach/schedules` | `studentGetCoachSchedule` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/gyms/schedule` | `studentGetGymSchedule` | Cognito JWT (StudentAccess) |
+| `GET` | `/student/coach/schedules/request` | `studentGetScheduleRequests` | Cognito JWT (StudentAccess) |
 | `POST` | `/student/coach/schedules/request` | `studentCreateScheduleRequest` | Cognito JWT (StudentAccess) |
 | `DELETE` | `/student/coach/schedules/request` | `studentCancelScheduleRequest` | Cognito JWT (StudentAccess) |
 | `POST` | `/student/coach/schedules/cancel` | `studentCancelSchedule` | Cognito JWT (StudentAccess) |
 | `POST` | `/payments` | `paymentCreate` | Cognito JWT (StudentAccess) |
-| `GET`  | `/payments/{transactionId}` | `paymentGet` | Cognito JWT (StudentAccess) |
-| `GET`  | `/payments/coach/{coachId}` | `paymentGetByCoach` | Cognito JWT (StudentAccess) |
-| `GET`  | `/payments/student/{studentId}` | `paymentGetByStudent` | Cognito JWT (StudentAccess) |
-| `GET`  | `/payments/session/{sessionId}` | `paymentGetBySession` | Cognito JWT (StudentAccess) |
+| `GET` | `/payments/{transactionId}` | `paymentGet` | Cognito JWT (StudentAccess) |
+| `GET` | `/payments/coach/{coachId}` | `paymentGetByCoach` | Cognito JWT (StudentAccess) |
+| `GET` | `/payments/student/{studentId}` | `paymentGetByStudent` | Cognito JWT (StudentAccess) |
+| `GET` | `/payments/session/{sessionId}` | `paymentGetBySession` | Cognito JWT (StudentAccess) |
 | `POST` | `/payments/{transactionId}/refund` | `paymentRefund` | Cognito JWT (StudentAccess) |
 
 Triggers Cognito (não HTTP):
@@ -128,15 +128,15 @@ Cada rota existe sob `/coach/chat/*` (authorizer CoachAccess) e `/student/chat/*
 canal (conversa) ou da mensagem, conforme a rota.
 
 | Método | Rota | Lambda | Descrição |
-|--------|------|--------|-----------|
-| `POST`   | `/{role}/chat/token` | `chatToken` | Emite token de acesso do Stream (TTL 24h) |
-| `POST`   | `/{role}/chat/conversations` | `chatConversationCreate` | Cria/recupera a conversa direta com um par (`peerId`) |
-| `GET`    | `/{role}/chat/conversations` | `chatConversationList` | Lista as conversas do usuário (`?limit`) |
-| `PATCH`  | `/{role}/chat/conversations/{id}` | `chatConversationUpdate` | Edita nome/`frozen` da conversa |
+| -------- | ------ | -------- | ----------- |
+| `POST` | `/{role}/chat/token` | `chatToken` | Emite token de acesso do Stream (TTL 24h) |
+| `POST` | `/{role}/chat/conversations` | `chatConversationCreate` | Cria/recupera a conversa direta com um par (`peerId`) |
+| `GET` | `/{role}/chat/conversations` | `chatConversationList` | Lista as conversas do usuário (`?limit`) |
+| `PATCH` | `/{role}/chat/conversations/{id}` | `chatConversationUpdate` | Edita nome/`frozen` da conversa |
 | `DELETE` | `/{role}/chat/conversations/{id}` | `chatConversationDelete` | Oculta a conversa para o usuário |
-| `POST`   | `/{role}/chat/conversations/{id}/messages` | `chatMessageSend` | Envia mensagem na conversa |
-| `GET`    | `/{role}/chat/conversations/{id}/messages` | `chatMessageList` | Lista mensagens (`?limit`, `?before`) |
-| `PATCH`  | `/{role}/chat/messages/{id}` | `chatMessageUpdate` | Edita mensagem do próprio autor |
+| `POST` | `/{role}/chat/conversations/{id}/messages` | `chatMessageSend` | Envia mensagem na conversa |
+| `GET` | `/{role}/chat/conversations/{id}/messages` | `chatMessageList` | Lista mensagens (`?limit`, `?before`) |
+| `PATCH` | `/{role}/chat/messages/{id}` | `chatMessageUpdate` | Edita mensagem do próprio autor |
 | `DELETE` | `/{role}/chat/messages/{id}` | `chatMessageDelete` | Apaga (soft delete) mensagem do próprio autor |
 
 ## Status de coach (fluxo)
@@ -151,35 +151,41 @@ PENDING_REVIEW
 APPROVED   /   REJECTED
 ```
 
-## Arquitetura do API Gateway compartilhado
+## Arquitetura do API Gateway
 
-O serviço usa um **HTTP API externo** ao stack (`qht6965nv9`, `sa-east-1`, domínio
-`api.coachmatch.com.br`). A propriedade dos recursos é dividida:
+O HTTP API é **criado por este stack** (`coachmatch-<stage>`, `sa-east-1`), junto com
+as rotas, as integrações Lambda, os authorizers JWT e o CORS. Nada disso depende do
+console.
 
-- **Gerenciado por este stack** (`coachmatch-dev`): todas as rotas da tabela acima,
-  suas integrações Lambda e os triggers Cognito.
-- **Manual, fora do stack**: apenas os **authorizers JWT**.
+No `dev`, o stack também cria o **API mapping** (`$default`) de
+`api.coachmatch.com.br` para a sua API. Ficam **fora do stack**, como recursos
+manuais, só o custom domain e o certificado ACM. O DNS aponta para o endpoint regional
+do custom domain, que não muda ao trocar de API (ver [`DEPLOY.md`](DEPLOY.md)).
 
-### Authorizers numa API externa (ponto-chave)
+Clientes (front, Postman, OpenAPI) usam sempre `https://api.coachmatch.com.br`, nunca a
+URL `execute-api`.
 
-Como a API é externa (`httpApi.id` setado), o Serverless **não pode gerenciar
-authorizers** nela — declarar `provider.httpApi.authorizers` gerenciado quebra com
-`Cannot setup authorizers for externally configured HTTP API`. Por isso o
-`serverless.yml` resolve `httpApi` por stage (`custom.httpApiByStage`):
+### Authorizers e CORS
 
-- **dev** → só `{ id: qht6965nv9 }`. Cada rota referencia o authorizer **existente
-  por id** (`custom.coachAuthorizer` = `bg0uj6`, `custom.studentAuthorizer` = `ahu157`).
-- **local** → `{ id: "", authorizers: {…} }`. O serverless-offline sobe a própria API
-  e valida o JWT por nome (`ignoreJWTSignature: true`).
+Declarados em `provider.httpApi`, iguais em todos os stages. Cada rota referencia o
+authorizer por nome; `src/__tests__/route-authorizers.test.js` garante o perfil de cada
+rota. No `local`, o serverless-offline valida o JWT pelos mesmos nomes
+(`ignoreJWTSignature: true`).
 
-Os authorizers continuam recursos **manuais** na AWS. O stack apenas os referencia;
-não os cria nem deleta. Por isso eles precisam
-seguir declarados por nome no bloco `local`, mesmo o `dev` referenciando por id.
+| Authorizer          | Pool Cognito                          | Rotas                       |
+|---------------------|---------------------------------------|-----------------------------|
+| `coachAuthorizer`   | `sa-east-1_2DDuPPtc0` (CoachAccess)   | `/coach/*`                  |
+| `studentAuthorizer` | `sa-east-1_2DSfT6kmB` (StudentAccess) | `/student/*`, `/payments/*` |
 
-| Authorizer | ID       | Pool Cognito                          | Rotas                       |
-|------------|----------|---------------------------------------|-----------------------------|
-| coach      | `bg0uj6` | `sa-east-1_2DDuPPtc0` (CoachAccess)   | `/coach/*`                  |
-| student    | `ahu157` | `sa-east-1_2DSfT6kmB` (StudentAccess) | `/student/*`, `/payments/*` |
+O CORS libera só `https://coachmatch.com.br`, `https://www.coachmatch.com.br` e
+`http://localhost:5173` (o front local chama a API real quando o MSW está desligado).
+
+### Stages
+
+| Stage     | API                   | Observação                                                   |
+|-----------|-----------------------|--------------------------------------------------------------|
+| `local`   | serverless-offline    | DynamoDB Local                                               |
+| `dev`     | mapeada no domínio    | É produção                                                   |
 
 ## Setup local
 
@@ -187,6 +193,7 @@ seguir declarados por nome no bloco `local`, mesmo o `dev` referenciando por id.
 
 ```bash
 node >= 22
+java         # qualquer JDK/JRE no PATH; ver "DynamoDB Local" abaixo
 ```
 
 ### Instalar dependências
@@ -196,6 +203,41 @@ monorepo); instale a partir da raiz:
 
 ```bash
 cd ../.. && pnpm install
+```
+
+### DynamoDB Local
+
+`pnpm dev` sobe dois processos:
+
+- **serverless-offline** (porta 3000): serve as rotas HTTP e valida o JWT pelos mesmos
+  authorizers do stack;
+- **DynamoDB Local** (porta 8000): banco em memória, criado a cada start a partir dos
+  `resources` com `Condition: IsLocal` e populado com os seeds de `seed/`.
+
+O DynamoDB Local é um **programa Java** (`DynamoDBLocal.jar`), não um container: o
+plugin `serverless-dynamodb` roda `java` direto, com o diretório de trabalho em
+`.dynamodb/`. Por isso é preciso Java no `PATH` e o jar baixado nessa pasta.
+
+O jar não vem com o `pnpm install`. Baixe uma vez por clone (a pasta é ignorada pelo
+git):
+
+```bash
+pnpm exec serverless dynamodb install --stage local
+```
+
+Sem esse passo, `pnpm dev` falha com:
+
+```
+Error: spawn java ENOENT
+```
+
+A mensagem engana: o Java pode estar instalado. O Node dá esse mesmo erro quando o
+diretório de trabalho do processo não existe — aqui, o `.dynamodb/`. Confira as duas
+causas:
+
+```bash
+java -version      # Java no PATH?
+ls .dynamodb       # jar baixado?
 ```
 
 ### Configuração
@@ -214,7 +256,6 @@ local:
 dev:
   stage: dev
   region: sa-east-1
-  apiGatewayId: qht6965nv9
 ```
 
 ### Iniciar servidor local
@@ -258,7 +299,7 @@ pnpm test:coverage      # com relatório de cobertura (coverage/)
 ## Variáveis de ambiente (runtime)
 
 | Variável | Descrição |
-|----------|-----------|
+| ---------- | ----------- |
 | `STAGE` | `local` habilita DynamoDB Local; qualquer outro valor usa AWS |
 | `REGION` | Região AWS (ex: `sa-east-1`) |
 | `ENDPOINT` | URL do DynamoDB Local (somente em `STAGE=local`) |
@@ -271,7 +312,7 @@ pnpm test:coverage      # com relatório de cobertura (coverage/)
 ## Tabelas DynamoDB
 
 | Tabela | Chave | Observação |
-|--------|-------|------------|
+| -------- | ------- | ------------ |
 | `coaches` | `coachId` (HASH) | |
 | `student` | `studentId` (HASH) | |
 | `gyms` | `gymId` (HASH) | |

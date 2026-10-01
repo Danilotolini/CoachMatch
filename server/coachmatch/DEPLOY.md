@@ -1,7 +1,7 @@
 # Deploy — `coachmatch` (Serverless Framework)
 
 > Runbook de **deploy** do serviço. Para rodar localmente (`pnpm dev`), a
-> arquitetura do API Gateway compartilhado e as rotas, veja [`README.md`](README.md).
+> arquitetura do API Gateway e as rotas, veja [`README.md`](README.md).
 
 ## TL;DR
 
@@ -80,18 +80,83 @@ authorizers. **Só funciona para funções que já existem** no stack.
 pnpm deploy:dev
 ```
 
-O stack é dono de todas as rotas que declara e não tenta criar authorizers — estes
-seguem sendo recursos manuais, apenas referenciados por id.
+O stack é dono do HTTP API inteiro: rotas, integrações, authorizers, CORS e, no `dev`,
+o API mapping de `api.coachmatch.com.br`. Ficam fora só o custom domain e o
+certificado.
+
+## Virada para a API gerenciada pelo stack (SCRUM-26)
+
+Até a virada, o domínio serve a API externa `qht6965nv9` por um mapping manual
+(`mmwcm1`), com authorizers manuais. O primeiro deploy desta versão cria a API nova e
+o mapping para ela, e remove as rotas da API antiga no cleanup do CloudFormation.
+
+O API Gateway aceita um único mapping com chave vazia por domínio, então o manual sai
+**antes** do deploy. O domínio fica fora do ar (sem mapping) até o CloudFormation criar
+o novo, no meio do deploy — de um a dois minutos. Faça em horário de pouco uso.
+
+1. Conferir o mapping atual:
+
+   ```bash
+   aws apigatewayv2 get-api-mappings --domain-name api.coachmatch.com.br --region sa-east-1
+   ```
+
+2. Apagar o mapping manual e fazer o deploy, em sequência:
+
+   ```bash
+   aws apigatewayv2 delete-api-mapping --domain-name api.coachmatch.com.br \
+     --region sa-east-1 --api-mapping-id mmwcm1 && pnpm deploy:dev
+   ```
+
+   Se o deploy for pelo pipeline (`workflow_dispatch` na `main`), apague o mapping
+   logo antes de disparar o job.
+
+3. Checar contra `https://api.coachmatch.com.br`, com um token de cada perfil:
+
+   - rota de coach com token de coach → 2xx; com token de aluno → 401;
+   - rota de aluno com token de aluno → 2xx; com token de coach → 401;
+   - sem token → 401;
+   - preflight de `https://coachmatch.com.br` devolve `access-control-allow-origin`;
+     de uma origem qualquer, não.
+
+   ```bash
+   curl -si -X OPTIONS https://api.coachmatch.com.br/coach/me \
+     -H 'Origin: https://coachmatch.com.br' -H 'Access-Control-Request-Method: GET' \
+     | grep -i access-control-allow-origin
+   ```
+
+Se o deploy falhar, o CloudFormation desfaz tudo: a API antiga mantém as rotas, mas o
+domínio fica sem mapping. Restaure com `scripts/point-api-domain.sh qht6965nv9`.
+
+A API antiga (`qht6965nv9`) e seus authorizers ficam intactos, sem rotas, durante a
+observação. Apagá-los é da story de recursos órfãos.
+
+### Rollback
+
+Na maioria dos problemas, corrigir e rodar `pnpm deploy:dev` de novo é mais rápido. O
+rollback serve para o que não dá para diagnosticar logo.
+
+A versão anterior do stack recria as rotas na API antiga (authorizers por id) e apaga a
+API nova e o mapping. O domínio fica sem mapping até o último passo:
+
+```bash
+git switch --detach <commit anterior à virada>
+pnpm deploy:dev
+scripts/point-api-domain.sh qht6965nv9
+```
 
 ## Inspecionar o estado real (read-only)
 
 ```bash
+# API servida pelo domínio
+API_ID=$(aws apigatewayv2 get-api-mappings --domain-name api.coachmatch.com.br \
+  --region sa-east-1 --query "Items[?ApiMappingKey==''].ApiId | [0]" --output text)
+
 # Rotas e para onde apontam
-aws apigatewayv2 get-routes --api-id qht6965nv9 --region sa-east-1 \
+aws apigatewayv2 get-routes --api-id "$API_ID" --region sa-east-1 \
   --query 'Items[].{Route:RouteKey,Target:Target,Auth:AuthorizerId}' --output table
 
 # Integrações → Lambda
-aws apigatewayv2 get-integrations --api-id qht6965nv9 --region sa-east-1 \
+aws apigatewayv2 get-integrations --api-id "$API_ID" --region sa-east-1 \
   --query 'Items[].{Id:IntegrationId,Uri:IntegrationUri}' --output table
 
 # O que ESTE stack possui

@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { parse } from 'yaml';
 
-const COACH = '${self:custom.coachAuthorizer.${sls:stage}}';
-const STUDENT = '${self:custom.studentAuthorizer.${sls:stage}}';
+const COACH = { name: 'coachAuthorizer' };
+const STUDENT = { name: 'studentAuthorizer' };
 
 // Rotas fora de /coach e /student não indicam o perfil pelo path. Rota nova fora desses
 // prefixos falha até entrar aqui, para que quem a cria decida o perfil explicitamente.
@@ -50,5 +50,16 @@ describe('autorização das rotas do HTTP API', () => {
       Object.keys(declared).map((route) => [route, expectedAuthorizer(route)]),
     );
     expect(declared).toEqual(expected);
+  });
+
+  it('os authorizers usados pelas rotas são declarados no stack', () => {
+    const config = loadServerlessConfig();
+    const declared = Object.keys(config.provider.httpApi.authorizers);
+    expect(declared.sort()).toEqual([COACH.name, STUDENT.name].sort());
+  });
+
+  it('o CORS não libera qualquer origem', () => {
+    const { allowedOrigins } = loadServerlessConfig().provider.httpApi.cors;
+    expect(allowedOrigins).not.toContain('*');
   });
 });
