@@ -38,6 +38,8 @@ pnpm cy:run    # terminal 2: headless, grava vídeo em cypress/videos
 
 Para escolher o navegador no modo headless: `pnpm cy:run --browser chrome`.
 
+Para acompanhar os testes na tela, `pnpm cy:open:lento` espera 800 ms antes de cada comando. Outro valor: `pnpm cy:open --expose commandDelay=1500`. O mesmo `--expose` funciona no `cy:run`. Sem ele, os testes rodam na velocidade normal.
+
 Comandos de apoio em [`cypress/support/commands.ts`](cypress/support/commands.ts):
 
 - `cy.loginAs('client' | 'coach')` entra com o perfil já completo. Sem ele, o perfil padrão dos mocks está pendente e o app redireciona para o onboarding.
