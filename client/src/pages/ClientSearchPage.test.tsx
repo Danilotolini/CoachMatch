@@ -1,12 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useNavigate } from 'react-router'
 import { http, HttpResponse } from 'msw'
 import ClientSearchPage from './ClientSearchPage'
 import { server } from '@/mocks/server'
 import { createWrapper } from '@/test/createWrapper'
 import { loginAs } from '@/test/session'
+
+function HistoryBackButton() {
+  const navigate = useNavigate()
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigate(-1)
+      }}
+    >
+      Voltar no histórico
+    </button>
+  )
+}
 
 function renderClientSearch(initialEntries = ['/client/search']) {
   loginAs('client')
@@ -15,6 +29,7 @@ function renderClientSearch(initialEntries = ['/client/search']) {
     <MemoryRouter initialEntries={initialEntries}>
       <QueryWrapper>
         <ClientSearchPage />
+        <HistoryBackButton />
       </QueryWrapper>
     </MemoryRouter>,
   )
@@ -74,6 +89,22 @@ describe('ClientSearchPage', () => {
     await waitFor(() => {
       expect(input).toHaveValue('')
     })
+  })
+
+  it('mostra a busca anterior ao voltar no histórico depois de digitar e apagar', async () => {
+    renderClientSearch()
+    const input = screen.getByLabelText('Nome ou bairro')
+
+    // As duas teclas no mesmo act fazem o roteador aplicar as navegações num só
+    // render, e a URL termina igual à inicial.
+    act(() => {
+      fireEvent.change(input, { target: { value: 'a' } })
+      fireEvent.change(input, { target: { value: '' } })
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'Voltar no histórico' }))
+
+    expect(await screen.findByText('Busca: a')).toBeInTheDocument()
+    expect(input).toHaveValue('a')
   })
 
   it('aplica modalidade pelo sheet de filtros', async () => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { ActiveFiltersBar } from '@/components/search/ActiveFiltersBar'
 import { FilterSheet } from '@/components/search/FilterSheet'
 import { SearchEmptyState } from '@/components/search/SearchEmptyState'
@@ -44,19 +44,33 @@ function paramsFromFilters(filters: CoachSearchFilters): URLSearchParams {
 // e perde caracteres, por isso o texto vive em estado local. Mudanças na URL que
 // não vieram da digitação (limpar filtros, voltar no histórico) sobrescrevem o
 // texto; ecos da própria digitação são ignorados.
-function useSearchQuery(urlQuery: string, onChange: (query: string) => void) {
+//
+// O efeito roda a cada navegação, e não só quando o texto muda: o roteador pode
+// aplicar várias teclas num render só e terminar no valor inicial (digitar e
+// apagar). Sem isso, as teclas ficariam pendentes e um "voltar" para elas seria
+// tomado por eco.
+function useSearchQuery(
+  urlQuery: string,
+  navigationKey: string,
+  onChange: (query: string) => void,
+) {
   const [query, setQuery] = useState(urlQuery)
   const pendingWrites = useRef<string[]>([])
 
   useEffect(() => {
-    const echoIndex = pendingWrites.current.indexOf(urlQuery)
+    const pending = pendingWrites.current
+    if (pending.at(-1) === urlQuery) {
+      pendingWrites.current = []
+      return
+    }
+    const echoIndex = pending.indexOf(urlQuery)
     if (echoIndex >= 0) {
-      pendingWrites.current = pendingWrites.current.slice(echoIndex + 1)
+      pendingWrites.current = pending.slice(echoIndex + 1)
       return
     }
     pendingWrites.current = []
     setQuery(urlQuery)
-  }, [urlQuery])
+  }, [urlQuery, navigationKey])
 
   function changeQuery(next: string) {
     pendingWrites.current.push(next)
@@ -69,6 +83,7 @@ function useSearchQuery(urlQuery: string, onChange: (query: string) => void) {
 
 export default function ClientSearchPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filtersOpen, setFiltersOpen] = useState(false)
   const filters = useMemo(() => filtersFromParams(searchParams), [searchParams])
@@ -84,7 +99,7 @@ export default function ClientSearchPage() {
   } = useCoachSearch(filters)
   const coaches = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data])
 
-  const [query, changeQuery] = useSearchQuery(filters.q ?? '', (q) => {
+  const [query, changeQuery] = useSearchQuery(filters.q ?? '', location.key, (q) => {
     updateFilters({ q: q || undefined })
   })
 
