@@ -88,7 +88,32 @@ jobs:
         run: pnpm audit --audit-level=moderate
         continue-on-error: true
 
-  # ── 3. BACKEND TESTS ────────────────────────────────────────────────────────
+  # ── 3. DOCS CHECK ───────────────────────────────────────────────────────────
+  docs-check:
+    name: Docs Link Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check markdown links
+        uses: lychee-url-checker/lychee-action@v2
+        id: lychee
+        with:
+          args: --config .lychee.toml '**/*.md'
+          output: lychee-results.json
+          format: json
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: lychee-broken-links
+          path: lychee-results.json
+          retention-days: 5
+
+  # ── 4. BACKEND TESTS ────────────────────────────────────────────────────────
   test-backend:
     name: Backend Tests
     runs-on: ubuntu-latest
@@ -134,7 +159,7 @@ jobs:
           path: server/coachmatch/coverage/lcov.info
           retention-days: 1
 
-  # ── 4. FRONTEND TESTS ───────────────────────────────────────────────────────
+  # ── 5. FRONTEND TESTS ───────────────────────────────────────────────────────
   test-frontend:
     name: Frontend Tests
     runs-on: ubuntu-latest
@@ -176,7 +201,7 @@ jobs:
           path: client/coverage/lcov.info
           retention-days: 1
 
-  # ── 5. BUILD ────────────────────────────────────────────────────────────────
+  # ── 6. BUILD ────────────────────────────────────────────────────────────────
   build:
     name: Build Check
     needs: [lint, test-backend, test-frontend]
@@ -222,7 +247,7 @@ jobs:
           path: client/dist
           retention-days: 7
 
-  # ── 6. E2E ──────────────────────────────────────────────────────────────────
+  # ── 7. E2E ──────────────────────────────────────────────────────────────────
   e2e:
     name: E2E Tests
     needs: build
@@ -261,7 +286,7 @@ jobs:
           path: playwright-report/
           retention-days: 5
 
-  # ── 7. SONARCLOUD ───────────────────────────────────────────────────────────
+  # ── 8. SONARCLOUD ───────────────────────────────────────────────────────────
   sonarcloud:
     name: SonarCloud Analysis
     needs: [test-backend, test-frontend]
@@ -295,10 +320,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  # ── 8. QUALITY GATE ─────────────────────────────────────────────────────────
+  # ── 9. QUALITY GATE ─────────────────────────────────────────────────────────
   quality-gate:
     name: Quality Gate
-    needs: [lint, test-backend, test-frontend, build, security, sonarcloud]
+    needs: [lint, test-backend, test-frontend, build, security, sonarcloud, docs-check]
     runs-on: ubuntu-latest
     if: always()
 
@@ -316,13 +341,15 @@ jobs:
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| SonarCloud | ${{ needs.sonarcloud.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docs Check | ${{ needs.docs-check.result }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Fail if build, tests or lint broke
         if: |
           needs.lint.result == 'failure' ||
           needs.build.result == 'failure' ||
           needs.test-backend.result == 'failure' ||
-          needs.test-frontend.result == 'failure'
+          needs.test-frontend.result == 'failure' ||
+          needs.docs-check.result == 'failure'
         run: |
           echo "❌ Pipeline bloqueado por falha em um ou mais jobs críticos." >> $GITHUB_STEP_SUMMARY
           exit 1
@@ -330,7 +357,7 @@ jobs:
       - name: All checks passed
         run: echo "✅ Pipeline passou por todos os quality gates"
 
-  # ── 8. DEPLOY (manual, via workflow_dispatch) ────────────────────────────────
+  # ── 10. DEPLOY (manual, via workflow_dispatch) ───────────────────────────────
   deploy:
     name: Deploy Manual
     needs: quality-gate
