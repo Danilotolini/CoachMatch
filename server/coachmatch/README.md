@@ -72,6 +72,10 @@ src/
 > claims do Cognito e mapeia erros → status), a regra fica em `service/` e a posse de
 > canal/mensagem é checada em `lib/membership.js`.
 
+**Documentação de domínio:**
+- [Fluxo de pagamentos](../../docs/architecture/payments-workflow.md) — atores, estados, modelo da tabela, evento SQS, cartões de teste
+- [Fluxo de chat](../../docs/architecture/chat-workflow.md) — emissão de token, criação de canal, checagem de membro, integração frontend
+
 ## Rotas implementadas
 
 Mesma Lambda atende coach e aluno quando o caminho difere só pelo papel; o authorizer
@@ -350,8 +354,6 @@ Backup pré-deploy em `server/coachmatch/apigw-backup-20260616/`.
 
 - `POST /coach/me/submit-for-review` (`coachSubmitForReview`) está **comentada** no
   `serverless.yml` e não existe no API Gateway.
-- Os **authorizers JWT** continuam manuais. Trazê-los para o stack exigiria a API
-  deixar de ser externa.
 - **Status de pagamento é filtrado só no frontend.** O treinador não deve ver o
   `paymentStatus` da sessão, mas hoje a API de `schedule` devolve o campo
   igual para os dois papéis; o cliente apenas o omite na visão do coach
