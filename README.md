@@ -63,7 +63,7 @@ docker run --rm -it -p 8080:8080 \
 | [client/CLAUDE.md](client/CLAUDE.md) | Convenções do frontend (React, Vite, MSW, React Query, testes) |
 | [server/coachmatch/README.md](server/coachmatch/README.md) | Estrutura do backend, rotas, tabelas DynamoDB, desenvolvimento local |
 | [docs/setup/GETTING_STARTED.md](docs/setup/GETTING_STARTED.md) | Setup completo do zero (frontend + backend + testes) |
-| [docs/git-workflow.md](docs/git-workflow.md) | Fluxo de branches, commits e PRs |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Fluxo de branches, commits e PRs |
 
 ### Deploy e operação
 
