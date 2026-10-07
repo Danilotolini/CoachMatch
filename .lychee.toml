@@ -1,7 +1,0 @@
-# Verifica apenas links locais (relativos e âncoras). URLs externas são ignoradas
-# para evitar falsos positivos por indisponibilidade de rede no CI.
-offline = true
-exclude_mail = true
-
-# Não verificar markdown dentro de dependências ou artefatos de build
-exclude_path = ["node_modules", ".pnpm-store", "client/dist"]
