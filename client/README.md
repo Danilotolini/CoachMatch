@@ -54,13 +54,13 @@ O site é hospedado em S3 e servido via CloudFront.
 pnpm build
 
 # 2. enviar artefatos pro bucket S3
-aws s3 sync ./dist s3://coachmatch/coachmatch_site/ --delete --profile <profile>
+aws s3 sync ./dist s3://coachmatch/coachmatch_site/ --delete --profile <seu-perfil>
 
 # 3. invalidar cache do CloudFront para servir a nova versão
 aws cloudfront create-invalidation \
   --distribution-id <distribution-id> \
   --paths "/*" \
-  --profile coachmatch
+  --profile <seu-perfil>
 ```
 
-Substitua `<profile>` pelo profile AWS local e `<distribution-id>` pelo ID da distribuição CloudFront.
+Substitua `<seu-perfil>` pelo profile AWS local e `<distribution-id>` pelo ID da distribuição CloudFront.
