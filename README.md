@@ -1,148 +1,104 @@
-# 🏋️ CoachMatch
+# CoachMatch
 
-> **Seu personal, sem adivinhação.**  
-> Conectando pessoas aos melhores profissionais de educação física com transparência, confiança e performance.
+Marketplace que conecta alunos a treinadores esportivos qualificados no Brasil — busca, agendamento, pagamento e chat em um único lugar. Acesse em [coachmatch.com.br](https://coachmatch.com.br).
 
-🌐 **Acesse o web app:** https://coachmatch.com.br
+## Quickstart
 
----
+Pré-requisitos: Node.js ≥ 22, pnpm ≥ 10.
 
-## 📖 Sobre o Projeto
+```bash
+git clone https://github.com/Danilotolini/CoachMatch.git
+cd CoachMatch
+pnpm install
+```
 
-O **CoachMatch** é uma plataforma de marketplace que conecta alunos a treinadores qualificados, facilitando a busca, comparação, contratação e acompanhamento de treinos — tudo em um único lugar.
+### Frontend com MSW (sem backend rodando)
 
-A proposta nasce para resolver um problema real: hoje, escolher um treinador ainda é um processo pouco transparente, baseado em tentativa e erro, com alta taxa de abandono.
+```bash
+cp client/.env.example client/.env
+# Abra client/.env e defina:
+#   VITE_API_MOCKING=enabled
+cd client
+pnpm dev
+# → http://localhost:5173
+```
 
----
+Com `VITE_API_MOCKING=enabled` todas as chamadas de API são interceptadas pelo MSW — não é necessário ter credenciais AWS nem o backend rodando.
 
-## 🚀 Proposta de Valor
+### Backend local
 
-- 🔍 **Busca inteligente** por localização, modalidade e objetivo  
-- 📊 **Transparência total** (avaliações, preços, histórico)  
-- 📅 **Agendamento simplificado**  
-- 💳 **Pagamentos integrados e seguros**  
-- ⭐ **Sistema de avaliação confiável**  
-- 📱 Experiência **mobile-first (PWA)**  
+```bash
+cp server/coachmatch/.env.example server/coachmatch/.env
+# Preencha STREAM_API_KEY e AWS_PROFILE (ver server/coachmatch/DEPLOY.md)
+cd server/coachmatch
+pnpm dev
+# → http://localhost:3000
+```
 
----
+Para o setup completo (DynamoDB local, seed, variáveis de ambiente) veja [docs/setup/GETTING_STARTED.md](docs/setup/GETTING_STARTED.md).
 
-## 🧠 Problema Resolvido
+## Arquitetura
 
-- Dificuldade de encontrar treinadores confiáveis  
-- Falta de padronização e transparência  
-- Informações descentralizadas (Instagram, WhatsApp, etc.)  
-- Alta taxa de evasão em treinos (~50%)
+O sistema é serverless na AWS: frontend PWA servido pelo CloudFront + S3, API via API Gateway + Lambda, DynamoDB como banco de dados, Cognito para autenticação e SQS para comunicação assíncrona entre domínios. Chat é delegado ao Stream Chat.
 
----
+A arquitetura está documentada em [C4 model](https://c4model.com/) com Structurizr DSL em [`docs/c4/workspace.dsl`](docs/c4/workspace.dsl).
 
-## 💡 Solução
-
-O CoachMatch conecta alunos e treinadores com:
-
-- Filtros inteligentes e recomendações
-- Perfis completos com credenciais verificadas
-- Sistema de contratação e pagamento integrado
-- Experiência online e presencial em um único ambiente
-
----
-
-## 👥 Perfis de Usuário
-
-### 🧑‍💻 Aluno
-
-- Busca treinadores
-- Agenda sessões
-- Avalia treinadores
-- Acompanha histórico
-
-### 🏆 Treinador
-
-- Cria e gerencia serviços
-- Define agenda e disponibilidade
-- Gerencia alunos e ganhos
-- Constrói portfólio digital
-
----
-
-## 🔄 Principais Fluxos
-
-- Cadastro e autenticação (aluno e treinador)
-- Busca e recomendação de treinadores
-- Agendamento de sessões
-- Pagamento
-- Avaliação pós-treino
-- Comunicação via plataforma
-
----
-
-## 🧩 Funcionalidades
-
-- 🔎 Busca por localização, preço e modalidade  
-- 📍 Resultados próximos ao usuário  
-- 📅 Agenda com disponibilidade em tempo real  
-- 💬 Chat / integração com WhatsApp  
-- ⭐ Avaliações e reputação  
-- 📊 Histórico de sessões  
-- 🧾 Perfis com certificações (CREF validado)  
-
----
-
-## 🏗️ Arquitetura (Visão Geral)
-
-- Frontend: **PWA (Progressive Web App)**
-- Backend: API de marketplace
-- Banco de dados: estruturado para usuários, sessões e serviços
-- Integrações:
-  - Pagamentos
-  - WhatsApp
-  - Sistema de validação de credenciais (CREF)
-
----
-
-## 📱 Experiência do Usuário
-
-A interface foi projetada para ser:
-
-- Simples e intuitiva  
-- Mobile-first  
-- Focada em performance e conversão  
-
----
-
-## 📊 Modelo de Negócio
-
-- 💸 Comissão sobre transações  
-- 📈 Planos premium para treinadores  
-- 🤝 Parcerias com academias e marcas fitness  
-- 📣 Monetização via visibilidade e destaque  
-
----
-
-## 🎯 Mercado
-
-- Brasil é o **2º maior mercado fitness do mundo**  
-- Crescimento acelerado de serviços online  
-- Forte tendência de “uberização” de serviços  
-- Alta demanda por personalização e performance  
-
----
-
-## Modelo C4
-
-A arquitetura do CoachMatch está documentada no formato [C4 model](https://c4model.com/) usando a linguagem [Structurizr DSL](https://docs.structurizr.com/dsl). O arquivo fonte fica em [`docs/c4/workspace.dsl`](docs/c4/workspace.dsl).
-
-### Visualizar localmente com Docker
-
-Com [Docker](https://docs.docker.com/get-docker/) instalado, rode o [Structurizr local](https://docs.structurizr.com/local) montando a pasta `docs/c4` (que contém o `workspace.dsl`):
+**Visualizar localmente:**
 
 ```bash
 docker run --rm -it -p 8080:8080 \
   -v "$(pwd)/docs/c4:/usr/local/structurizr" \
   structurizr/structurizr local
+# → http://localhost:8080
 ```
 
-Depois acesse **http://localhost:8080** no navegador. O Structurizr recarrega automaticamente ao salvar alterações no `workspace.dsl`.
+**Visualizar online:** cole o conteúdo de `docs/c4/workspace.dsl` no [playground do Structurizr](https://playground.structurizr.com/).
 
-### Visualizar no editor online
+## Mapa da documentação
 
-Também é possível visualizar/editar sem instalar nada, colando o conteúdo de [`docs/c4/workspace.dsl`](docs/c4/workspace.dsl) no [playground oficial do Structurizr](https://playground.structurizr.com/).
+### Desenvolvimento
+
+| Documento | Conteúdo |
+| --- | --- |
+| [client/CLAUDE.md](client/CLAUDE.md) | Convenções do frontend (React, Vite, MSW, React Query, testes) |
+| [server/coachmatch/README.md](server/coachmatch/README.md) | Estrutura do backend, rotas, tabelas DynamoDB, desenvolvimento local |
+| [docs/setup/GETTING_STARTED.md](docs/setup/GETTING_STARTED.md) | Setup completo do zero (frontend + backend + testes) |
+| [docs/git-workflow.md](docs/git-workflow.md) | Fluxo de branches, commits e PRs |
+
+### Deploy e operação
+
+| Documento | Conteúdo |
+| --- | --- |
+| [server/coachmatch/DEPLOY.md](server/coachmatch/DEPLOY.md) | Deploy manual para AWS (Serverless Framework) |
+| [.github/RUNBOOK.md](.github/RUNBOOK.md) | CI/CD, secrets, ambientes, troubleshooting |
+
+### Contratos de API
+
+| Documento | Conteúdo |
+| --- | --- |
+| [docs/openapi.yaml](docs/openapi.yaml) | Especificação OpenAPI |
+| [docs/postman_collection/](docs/postman_collection/) | Coleção Postman + ambientes local e produção |
+
+### Fluxos de domínio
+
+| Documento | Conteúdo |
+| --- | --- |
+| [docs/architecture/schedule-workflow.md](docs/architecture/schedule-workflow.md) | Agendamento: atores, estados, cancelamentos, concorrência |
+| [docs/architecture/payments-workflow.md](docs/architecture/payments-workflow.md) | Pagamentos: estados, modelo da tabela, evento SQS, cartões de teste |
+| [docs/architecture/chat-workflow.md](docs/architecture/chat-workflow.md) | Chat: token Stream, criação de canal, realtime vs polling |
+
+### Decisões de arquitetura (ADRs)
+
+| Documento | Decisão |
+| --- | --- |
+| [docs/ADRs/0001-adocao-de-arquitetura-serverless-na-aws.md](docs/ADRs/0001-adocao-de-arquitetura-serverless-na-aws.md) | Adoção de arquitetura serverless na AWS |
+
+### Produto
+
+| Documento | Conteúdo |
+| --- | --- |
+| [docs/Apresentacao CoachMatch.pdf](docs/Apresentacao%20CoachMatch.pdf) | Apresentação do projeto (MBA PUC-SP) |
+| [docs/ERS_CoachMatch.pdf](docs/ERS_CoachMatch.pdf) | Especificação de requisitos |
+| [docs/BMC - CoatchMatch.pdf](docs/BMC%20-%20CoatchMatch.pdf) | Business Model Canvas |
+| [docs/CASOS DE USO - COACHMATCH.pdf](docs/CASOS%20DE%20USO%20-%20COACHMATCH.pdf) | Casos de uso |
+| [docs/CoachMatchMockups.pdf](docs/CoachMatchMockups.pdf) | Mockups de interface |
