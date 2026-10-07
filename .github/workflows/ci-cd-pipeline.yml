@@ -98,20 +98,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check markdown links
-        uses: lychee-url-checker/lychee-action@v2
-        id: lychee
-        with:
-          args: --config .lychee.toml '**/*.md'
-          output: lychee-results.json
-          format: json
+      - name: Install markdown-link-check
+        run: npm install -g markdown-link-check@3.12.2
 
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: lychee-broken-links
-          path: lychee-results.json
-          retention-days: 5
+      - name: Check links in markdown files
+        run: |
+          EXIT_CODE=0
+          while IFS= read -r -d '' file; do
+            markdown-link-check --config .markdown-link-check.json --quiet "$file" || EXIT_CODE=1
+          done < <(find . -name "*.md" \
+            -not -path "*/node_modules/*" \
+            -not -path "*/.git/*" \
+            -not -path "*/.pnpm-store/*" \
+            -not -path "*/client/dist/*" \
+            -print0)
+          exit $EXIT_CODE
 
   # ── 4. BACKEND TESTS ────────────────────────────────────────────────────────
   test-backend:
