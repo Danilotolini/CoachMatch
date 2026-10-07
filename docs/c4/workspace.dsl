@@ -179,6 +179,12 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
             pagamento = container "Pagamento" {
                 description "Implementa as regras de negócio de cobrança e processamento dos pagamentos das sessões contratadas."
                 technology "AWS Lambda (Node.js)"
+
+                filaPaymentSucceeded = component "Fila payment.succeeded" {
+                    description "Evento emitido após pagamento aprovado. Consumido pelo domínio de agendamento para marcar a sessão como paga."
+                    technology "Amazon SQS"
+                    tags "Armazenamento" "Fila"
+                }
             }
 
             chat = container "Chat" {
@@ -208,8 +214,9 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
             }
 
             validadorCrefSp = container "Validador CREF-SP" {
-                description "Consulta a autenticidade e situação do registro CREF dos profissionais, contornando o captcha via 2Captcha."
+                description "Consulta a autenticidade e situação do registro CREF dos profissionais, contornando o captcha via 2Captcha. NÃO IMPLANTADO — ver SCRUM-5."
                 technology "AWS Lambda (Node.js)"
+                tags "Não Implantado"
 
                 crefUnload = component "cref-unload" {
                     description "Lê os registros de profissionais pendentes de validação na tabela Coaches e os envia para a fila CREF-SP-INPUT."
@@ -245,14 +252,20 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
                 tags "Armazenamento" "BancoDados"
             }
 
+            hosting = container "CloudFront + S3 (site)" {
+                description "Hospeda o build estático do PWA e o serve globalmente via CDN."
+                technology "Amazon CloudFront, Amazon S3"
+            }
+
             autenticacao = container "Provedor de Identidade" {
-                description "Gerencia cadastro, login (e-mail/senha e federado), verificação de e-mail, recuperação de senha (incluindo o envio dos respectivos e-mails) e emissão de tokens JWT."
-                technology "Amazon Cognito"
+                description "Dois User Pools independentes — CoachAccess (treinadores) e StudentAccess (alunos): cadastro, login, JWT e recuperação de senha. Login social via Google federado."
+                technology "Amazon Cognito (2 User Pools)"
             }
 
             agendadorCref = container "Agendador de Verificação CREF" {
-                description "Aciona periodicamente a verificação do registro CREF dos profissionais."
+                description "Aciona periodicamente a verificação do registro CREF dos profissionais. NÃO IMPLANTADO — dependente do Validador CREF-SP (SCRUM-5)."
                 technology "Amazon EventBridge Scheduler"
+                tags "Não Implantado"
             }
 
         }
@@ -293,9 +306,10 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
         coachMatch -> twoCaptcha "Resolve o captcha do site do CREF durante a verificação automatizada do registro" "HTTPS / API"
         coachMatch -> getStream "Provê a infraestrutura de chat entre aluno e profissional" "HTTPS / API"
 
-        # Relacionamentos C2: atores -> PWA (ponto de entrada da plataforma)
-        aluno -> coachMatch.pwa "Acessa a plataforma" "HTTPS"
-        profissional -> coachMatch.pwa "Acessa a plataforma" "HTTPS"
+        # Relacionamentos C2: atores -> CloudFront (ponto de entrada da plataforma)
+        aluno -> coachMatch.hosting "Acessa a plataforma via browser" "HTTPS"
+        profissional -> coachMatch.hosting "Acessa a plataforma via browser" "HTTPS"
+        coachMatch.hosting -> coachMatch.pwa "Serve o build estático do PWA" "CloudFront CDN"
 
         # Relacionamentos C2: atores -> Provedor de Identidade (login hospedado)
         aluno -> coachMatch.autenticacao "Faz cadastro, login e recuperação de senha" "HTTPS / OIDC"
@@ -313,7 +327,8 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
         coachMatch.apiRest -> coachMatch.especialidades "Roteia requisições relacionadas a especialidades" "Invoke"
         coachMatch.apiRest -> coachMatch.agendamentos "Roteia requisições relacionadas a agendamentos" "Invoke"
         coachMatch.apiRest -> coachMatch.pagamento "Roteia requisições relacionadas a pagamentos" "Invoke"
-        coachMatch.agendamentos -> coachMatch.pagamento "Aciona a cobrança da sessão agendada" "Invoke"
+        coachMatch.pagamento -> coachMatch.pagamento.filaPaymentSucceeded "Emite evento após pagamento aprovado" "AWS SDK / SQS"
+        coachMatch.agendamentos -> coachMatch.pagamento.filaPaymentSucceeded "Consome eventos payment.succeeded para marcar sessão como paga" "AWS SDK / SQS"
         coachMatch.apiRest -> coachMatch.chat "Roteia requisições relacionadas ao chat" "Invoke"
         coachMatch.apiRest -> coachMatch.uploadMidia "Roteia requisições de upload de mídia" "Invoke"
         coachMatch.agendadorCref -> coachMatch.validadorCrefSp "Aciona periodicamente a verificação do registro CREF" "Invoke"
@@ -325,7 +340,7 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
         coachMatch.especialidades -> coachMatch.banco "Lê e escreve dados de especialidades" "AWS SDK"
         coachMatch.agendamentos -> coachMatch.banco "Lê e escreve dados de sessões agendadas e avaliações" "AWS SDK"
         coachMatch.pagamento -> coachMatch.banco "Lê e escreve dados de cobranças e transações" "AWS SDK"
-        coachMatch.chat -> coachMatch.banco "Lê e escreve metadados das conversas" "AWS SDK"
+        # chat não persiste localmente — toda a persistência fica no Stream Chat
         coachMatch.validadorCrefSp -> coachMatch.banco "Atualiza o status de verificação do registro CREF" "AWS SDK"
 
         # Relacionamentos C2: PWA -> Sistema de Upload de Mídia
@@ -431,7 +446,7 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
         coachMatch.alunos.studentCreate -> coachMatch.banco "Cria o registro inicial do aluno" "AWS SDK"
 
         # Relacionamentos C3: componente -> banco de dados e GetStream (Chat)
-        coachMatch.chat.apiChat -> coachMatch.banco "Lê e escreve metadados das conversas" "AWS SDK"
+        # coachMatch.chat.apiChat não persiste localmente (ver docs/architecture/chat-workflow.md)
         coachMatch.chat.apiChat -> getStream "Gera tokens de acesso e gerencia canais/mensagens via Server SDK" "HTTPS / API"
 
         # Relacionamentos C3: fluxo de validação CREF-SP
@@ -545,6 +560,7 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
             include coachMatch.validadorCrefSp.filaCrefOutput
             include coachMatch.apiRest
             include coachMatch.pwa
+            include coachMatch.hosting
             include coachMatch.banco
             include coachMatch.autenticacao
             include coachMatch.agendadorCref
@@ -629,6 +645,14 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
             }
             element "Fila" {
                 shape pipe
+            }
+
+            # Contêineres não implantados — aparência esmaecida
+            element "Não Implantado" {
+                background #2A2A2A
+                color #666666
+                stroke #444444
+                opacity 50
             }
 
             # Relacionamentos — visíveis sobre fundo preto

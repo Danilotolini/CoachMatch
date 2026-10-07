@@ -41,7 +41,7 @@ Para o setup completo (DynamoDB local, seed, variáveis de ambiente) veja [docs/
 
 O sistema é serverless na AWS: frontend PWA servido pelo CloudFront + S3, API via API Gateway + Lambda, DynamoDB como banco de dados, Cognito para autenticação e SQS para comunicação assíncrona entre domínios. Chat é delegado ao Stream Chat.
 
-A arquitetura está documentada em [C4 model](https://c4model.com/) com Structurizr DSL em [`docs/c4/workspace.dsl`](docs/c4/workspace.dsl).
+A arquitetura está documentada em [C4 model](https://c4model.com/) com Structurizr DSL em [`docs/c4/workspace.dsl`](docs/c4/workspace.dsl). Para ver os diagramas diretamente no browser, abra [docs/architecture/README.md](docs/architecture/README.md).
 
 **Visualizar localmente:**
 
