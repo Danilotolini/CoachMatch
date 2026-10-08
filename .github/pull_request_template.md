@@ -1,3 +1,5 @@
+<!-- Título: tipo(escopo): SCRUM-N — descrição curta  →  ex.: feat(server): SCRUM-42 — busca de coaches com filtro -->
+
 ## Issue
 
 <!-- Link do card no Jira: https://... -->

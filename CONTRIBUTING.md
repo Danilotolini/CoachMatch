@@ -16,15 +16,17 @@ main  ←  release/vX.Y.Z  ←  develop  ←  <tipo>/scrum-<n>-<slug>
 
 | Situação | Padrão | Exemplo |
 | --- | --- | --- |
-| Card no Jira | `<tipo>/scrum-<n>-<slug>` | `feat/scrum-42-busca-coaches` |
+| Card no Jira | `<tipo>/SCRUM-<N>-<slug>` | `feat/SCRUM-42-busca-coaches` |
 | Trabalho avulso | `<tipo>/<slug>` | `docs/atualiza-readme` |
 
 Tipos válidos: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`.
 
+> **Por que maiúsculo?** O app [GitHub for Jira](https://marketplace.atlassian.com/apps/1219592/github-for-jira) detecta a chave da issue pelo padrão `[A-Z]+-[0-9]+` no nome da branch e no título do PR. Com `SCRUM-42` em maiúsculo, a branch, os commits, o PR e o status do CI aparecem automaticamente no painel **Development** da issue no Jira.
+
 ```bash
 git checkout develop
 git pull origin develop
-git checkout -b feat/scrum-42-busca-coaches
+git checkout -b feat/SCRUM-42-busca-coaches
 ```
 
 ## Convenções de commit
@@ -56,8 +58,8 @@ Regras de código: [CLAUDE.md](CLAUDE.md).
 Faça push da branch e abra o PR **para `develop`**:
 
 ```bash
-git push -u origin feat/scrum-42-busca-coaches
-gh pr create --base develop
+git push -u origin feat/SCRUM-42-busca-coaches
+gh pr create --base develop --title "feat(server): SCRUM-42 — busca de coaches com filtro"
 ```
 
 > **`feat/**` tem PR automático:** o CI (`auto-pr.yml`) abre um PR rascunho para `develop` quando você faz push de uma branch `feat/*`. Para os outros tipos (`fix/`, `docs/`, `chore/` etc.) o PR é manual.
