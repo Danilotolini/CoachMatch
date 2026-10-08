@@ -333,8 +333,9 @@ Em `local` as tabelas são criadas pelo `serverless-dynamodb` (condição `IsLoc
 
 As rotas de `*/schedule*`, `*/specialties` e `*/upload-url`, antes servidas por
 Lambdas Python manuais, foram reescritas em Node e passaram a ser gerenciadas por
-este stack. As Lambdas Python permanecem temporariamente disponíveis apenas para
-rollback durante o período de observação.
+este stack. Em 01/10/2026 o domínio passou a servir o HTTP API criado pelo stack; a API
+externa `qht6965nv9`, as Lambdas Python e a `api-chat` manual foram apagadas depois
+do período de observação.
 
 ### Migração 2026-06-16
 
