@@ -21,9 +21,7 @@ export const parseJsonBody = (event) => {
  *
  * Em GET o navegador manda os dados pela query string; o body JSON fica como
  * fallback para clientes que suportam corpo em GET, como o Postman — paridade
- * com as lambdas Python originais, que faziam exatamente isso (ver
- * `get-coach-schedule-from-jwt.py`, `get-schedule-requests.py`,
- * `get-coach-schedule-from-parm.py` e `get-gym-schedule-from-parm.py`).
+ * com as lambdas Python originais, que faziam exatamente isso.
  *
  * @param {object} event - evento do API Gateway.
  * @returns {object} parâmetros lidos da query string ou do body.
