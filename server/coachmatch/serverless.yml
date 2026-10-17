@@ -10,6 +10,22 @@ app: coachmatchapp
 service: coachmatch
 
 stages:
+  default:
+    params:
+      coachesTable: ${self:custom.config.${sls:stage}.coachesTable}
+      gymsTable: ${self:custom.config.${sls:stage}.gymsTable}
+      paymentsTable: ${self:custom.config.${sls:stage}.paymentsTable}
+      scheduleTable: ${self:custom.config.${sls:stage}.scheduleTable}
+      specialtiesTable: ${self:custom.config.${sls:stage}.specialtiesTable}
+      studentsTable: ${self:custom.config.${sls:stage}.studentsTable}
+      coachUserPoolName: ${self:custom.config.${sls:stage}.coachUserPoolName}
+      coachUserPoolId: ${self:custom.config.${sls:stage}.coachUserPoolId}
+      coachUserPoolClientId: ${self:custom.config.${sls:stage}.coachUserPoolClientId}
+      studentUserPoolName: ${self:custom.config.${sls:stage}.studentUserPoolName}
+      studentUserPoolId: ${self:custom.config.${sls:stage}.studentUserPoolId}
+      studentUserPoolClientId: ${self:custom.config.${sls:stage}.studentUserPoolClientId}
+      mediaBucketName: ${self:custom.config.${sls:stage}.mediaBucketName}
+      corsAllowedOrigins: ${self:custom.config.${sls:stage}.corsAllowedOrigins}
   # Stage para deploy real na AWS (CI/CD e deploys manuais do dev)
   dev:
     params:
@@ -65,14 +81,19 @@ provider:
 
   # Bucket privado de mídias (foto/vídeo). Os endpoints de leitura assinam URLs de GET.
   # Fica em provider.environment para valer em todas as funções que chamam shared/s3.js.
-  # É o mesmo bucket usado pela lambda Python de upload (generate-profile-video-upload-url).
   environment:
     STAGE: ${param:stage}
     REGION: ${param:region}
     ENDPOINT: ${param:endpoint, ""}
     ACCESS_KEY_ID: ${param:access_key_id, ""}
     SECRET_ACCESS_KEY: ${param:secret_access, ""}
-    BUCKET_NAME: ${param:bucketName, "coachmatch-profile-videos-138413505977-sa-east-1-an"}
+    COACHES_TABLE: ${param:coachesTable}
+    GYMS_TABLE: ${param:gymsTable}
+    PAYMENTS_TABLE: ${param:paymentsTable}
+    SCHEDULE_TABLE: ${param:scheduleTable}
+    SPECIALTIES_TABLE: ${param:specialtiesTable}
+    STUDENTS_TABLE: ${param:studentsTable}
+    BUCKET_NAME: ${param:mediaBucketName}
     SIGNED_URL_EXPIRES: ${param:signedUrlExpires, "3600"}
     MAIL_SENDER_QUEUE_URL: ${param:mailSenderQueueUrl, ""}
     OTEL_SERVICE_NAME: coachmatch-${param:stage}
@@ -85,11 +106,8 @@ provider:
   httpApi:
     name: coachmatch-${param:stage}
     cors:
-      # Sem `*`: só o front publicado e o Vite local, que em dev aponta para esta API.
-      allowedOrigins:
-        - https://coachmatch.com.br
-        - https://www.coachmatch.com.br
-        - http://localhost:5173
+      # Sem `*`: só os fronts que chamam a API deste stage.
+      allowedOrigins: ${param:corsAllowedOrigins}
       allowedHeaders:
         - '*'
       allowedMethods:
@@ -97,20 +115,20 @@ provider:
       exposedResponseHeaders:
         - '*'
     authorizers:
-      # Pool CoachAccess — rotas /coach/*
+      # Pool de coaches — rotas /coach/*
       coachAuthorizer:
         type: jwt
         identitySource: $request.header.Authorization
-        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
+        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/${param:coachUserPoolId}
         audience:
-          - 76hul7797npfkmpoju0mbghti7
-      # Pool StudentAccess — rotas /student/* e /payments/*
+          - ${param:coachUserPoolClientId}
+      # Pool de alunos — rotas /student/* e /payments/*
       studentAuthorizer:
         type: jwt
         identitySource: $request.header.Authorization
-        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DSfT6kmB
+        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/${param:studentUserPoolId}
         audience:
-          - 3rjn45koljliioocd5usijdv9s
+          - ${param:studentUserPoolClientId}
 
   iam:
     role:
@@ -124,13 +142,13 @@ provider:
             - dynamodb:Query
             - dynamodb:Scan
           Resource:
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches/index/*
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/student
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/gyms
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/payments
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/payments/index/*
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/specialties
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:coachesTable}
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:coachesTable}/index/*
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:studentsTable}
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:gymsTable}
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:paymentsTable}
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:paymentsTable}/index/*
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:specialtiesTable}
         # onPaymentSucceeded e as funções de agendamento compartilham a tabela.
         - Effect: Allow
           Action:
@@ -141,8 +159,8 @@ provider:
             - dynamodb:Query
             - dynamodb:Scan
           Resource:
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule/index/*
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:scheduleTable}
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:scheduleTable}/index/*
         # paymentCreate emite o evento payment.succeeded
         - Effect: Allow
           Action:
@@ -159,12 +177,12 @@ provider:
           Action:
             - s3:GetObject
           Resource:
-            - arn:aws:s3:::coachmatch-profile-videos-138413505977-sa-east-1-an/*
+            - arn:aws:s3:::${param:mediaBucketName}/*
         - Effect: Allow
           Action:
             - s3:PutObject
           Resource:
-            - arn:aws:s3:::coachmatch-profile-videos-138413505977-sa-east-1-an/*
+            - arn:aws:s3:::${param:mediaBucketName}/*
         # Grafana Lambda Extension lê o API key do Secrets Manager na inicialização
         - Effect: Allow
           Action:
@@ -254,7 +272,7 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - cognitoUserPool:
-          pool: CoachAccess
+          pool: ${param:coachUserPoolName}
           trigger: PostConfirmation
           existing: true
 
@@ -285,7 +303,7 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - cognitoUserPool:
-          pool: StudentAccess
+          pool: ${param:studentUserPoolName}
           trigger: PostConfirmation
           existing: true
 
@@ -836,7 +854,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: gyms
+        TableName: ${param:gymsTable}
         AttributeDefinitions:
           - AttributeName: gymId
             AttributeType: S
@@ -850,7 +868,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: coaches
+        TableName: ${param:coachesTable}
         AttributeDefinitions:
           - AttributeName: coachId
             AttributeType: S
@@ -878,7 +896,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: student
+        TableName: ${param:studentsTable}
         AttributeDefinitions:
           - AttributeName: studentId
             AttributeType: S
@@ -893,7 +911,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: payments
+        TableName: ${param:paymentsTable}
         AttributeDefinitions:
           - AttributeName: PK
             AttributeType: S
@@ -958,7 +976,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: specialties
+        TableName: ${param:specialtiesTable}
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -973,7 +991,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: schedule
+        TableName: ${param:scheduleTable}
         AttributeDefinitions:
           - AttributeName: scheduleId
             AttributeType: S
@@ -1069,9 +1087,9 @@ custom:
     seed:
       local:
         sources:
-          - table: gyms
+          - table: ${param:gymsTable}
             sources: [./seed/gyms.json]
-          - table: specialties
+          - table: ${param:specialtiesTable}
             sources: [./seed/specialties.json]
   serverless-offline:
     ignoreJWTSignature: true

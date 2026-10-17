@@ -1,11 +1,12 @@
 import { QueryCommand, BatchGetCommand } from "@aws-sdk/lib-dynamodb";
 import { createClient } from "../../shared/config.js";
 import { signGetUrl } from "../../shared/s3.js";
+import { tableName } from "../../shared/tables.js";
 
 const dynamo = createClient();
 
-const TABLE_NAME = process.env.COACHES_TABLE ?? "coaches";
-const GYMS_TABLE = process.env.GYMS_TABLE ?? "gyms";
+const TABLE_NAME = tableName("coaches");
+const GYMS_TABLE = tableName("gyms");
 const STATUS_INDEX = process.env.COACHES_STATUS_INDEX ?? "status-coachId-index";
 const SEARCHABLE_STATUS = "APPROVED";
 

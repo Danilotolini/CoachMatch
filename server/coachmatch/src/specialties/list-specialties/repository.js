@@ -1,7 +1,8 @@
 import { createClient } from '../../shared/config.js';
 import { scanAll } from '../../shared/paginate.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'specialties';
+const TABLE = tableName('specialties');
 
 /**
  * Scan completo da tabela. Aceitável aqui porque a tabela de specialties é

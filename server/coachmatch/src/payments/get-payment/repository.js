@@ -1,7 +1,8 @@
 import { GetCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'payments';
+const TABLE = tableName('payments');
 
 /**
  * Busca uma transação pelo ID.

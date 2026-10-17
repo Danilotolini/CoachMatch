@@ -1,7 +1,8 @@
 import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'coaches';
+const TABLE = tableName('coaches');
 
 /**
  * Lê o coach do DynamoDB para validação de pré-condições antes da atualização.
