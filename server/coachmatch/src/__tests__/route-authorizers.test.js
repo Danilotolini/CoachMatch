@@ -21,6 +21,7 @@ const CLOUDFORMATION_TAGS = [
   { tag: '!Ref', resolve: (value) => value },
   { tag: '!GetAtt', resolve: (value) => value },
   { tag: '!Equals', collection: 'seq', resolve: (value) => value },
+  { tag: '!Not', collection: 'seq', resolve: (value) => value },
 ];
 
 function loadServerlessConfig() {

@@ -1,9 +1,9 @@
 # HTTP API
 # ─────────────────────────────────────────────────────────────────────────────
 # A API, os authorizers JWT e o CORS são criados por este stack em todos os
-# stages; no dev, também o API mapping de `api.coachmatch.com.br`. Ficam fora
-# apenas o custom domain e o certificado. O DNS aponta para o custom domain, não
-# para a API, então trocar a API servida não muda DNS (ver DEPLOY.md).
+# stages; também o API mapping do domínio, quando o stage declara `apiDomainName`.
+# Ficam fora apenas o custom domain e o certificado. O DNS aponta para o custom
+# domain, não para a API, então trocar a API servida não muda DNS (ver DEPLOY.md).
 # ─────────────────────────────────────────────────────────────────────────────
 org: coachmatch
 app: coachmatchapp
@@ -26,7 +26,16 @@ stages:
       studentUserPoolClientId: ${self:custom.config.${sls:stage}.studentUserPoolClientId}
       mediaBucketName: ${self:custom.config.${sls:stage}.mediaBucketName}
       corsAllowedOrigins: ${self:custom.config.${sls:stage}.corsAllowedOrigins}
-  # Stage para deploy real na AWS (CI/CD e deploys manuais do dev)
+      apiDomainName: ${self:custom.config.${sls:stage}.apiDomainName, ""}
+  # Produção — deploy só via `pnpm deploy:prod`, que exige confirmação (ver DEPLOY.md)
+  prod:
+    params:
+      stage: ${self:custom.config.prod.stage}
+      region: ${self:custom.config.prod.region}
+      apiKey: ${self:custom.config.prod.apiKey}
+      apiSecret: ${self:custom.config.prod.apiSecret}
+      mailSenderQueueUrl: ${self:custom.config.prod.mailSenderQueueUrl}
+  # Desenvolvimento — `pnpm deploy:dev`
   dev:
     params:
       stage: ${self:custom.config.dev.stage}
@@ -848,7 +857,7 @@ functions:
 resources:
   Conditions:
     IsLocal: !Equals [ "${param:stage}", "local" ]
-    IsDev: !Equals [ "${param:stage}", "dev" ]
+    HasApiDomain: !Not [ !Equals [ "${param:apiDomainName}", "" ] ]
   Resources:
     gymsTable:
       Type: AWS::DynamoDB::Table
@@ -1047,14 +1056,14 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
 
-    # Liga o domínio à API deste stack. O domínio e o certificado são manuais, fora do
-    # stack; só o dev é servido por ele. O API Gateway aceita um único mapping com
-    # chave vazia por domínio, então um mapping manual existente impede a criação.
+    # Liga o domínio à API deste stack. O domínio e o certificado ficam fora do stack.
+    # O API Gateway aceita um único mapping com chave vazia por domínio: para mover o
+    # domínio de stage, o stage antigo precisa liberá-lo antes do novo criar o seu.
     ApiDomainMapping:
       Type: AWS::ApiGatewayV2::ApiMapping
-      Condition: IsDev
+      Condition: HasApiDomain
       Properties:
-        DomainName: api.coachmatch.com.br
+        DomainName: ${param:apiDomainName}
         ApiId: !Ref HttpApi
         Stage: !Ref HttpApiStage
 
@@ -1101,6 +1110,8 @@ custom:
   # --layer-name arn:aws:lambda:sa-east-1:901920570463:layer:aws-otel-nodejs-amd64
   # --region sa-east-1` e atualizar otelLayers.dev abaixo.
   otelLayers:
+    prod:
+      - "arn:aws:lambda:sa-east-1:050451360540:layer:opentelemetry-collector-grafana-amd64-v0_138_0:2"
     dev:
       - "arn:aws:lambda:sa-east-1:050451360540:layer:opentelemetry-collector-grafana-amd64-v0_138_0:2"
     local: []
