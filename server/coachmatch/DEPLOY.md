@@ -7,10 +7,27 @@
 
 Rode tudo de dentro de `server/coachmatch/`:
 
-| Objetivo                       | Comando                       | Toca rotas/integrações? |
-| ------------------------------ | ----------------------------- | ----------------------- |
-| Atualizar código de uma função | `pnpm deploy:fn <fn>`         | **Não**                 |
-| Deploy completo                | `pnpm deploy:dev`             | **Sim**                 |
+| Objetivo                               | Comando                                     | Toca rotas/integrações? |
+| -------------------------------------- | ------------------------------------------- | ----------------------- |
+| Atualizar código de uma função (dev)   | `pnpm deploy:fn <fn>`                       | **Não**                 |
+| Deploy completo em dev                 | `pnpm deploy:dev`                           | **Sim**                 |
+| Deploy completo em prod                | `CONFIRM_PROD_DEPLOY=prod pnpm deploy:prod` | **Sim**                 |
+
+## Stages
+
+Os stages ficam na mesma conta AWS; cada um tem seu stack e aponta para os recursos
+declarados no seu bloco do [`config.yml`](config.yml).
+
+| Stage   | Stack             | Domínio da API             | Recursos (tabelas, pools, bucket)    |
+| ------- | ----------------- | -------------------------- | ------------------------------------ |
+| `prod`  | `coachmatch-prod` | `api.coachmatch.com.br`    | os de produção                       |
+| `dev`   | `coachmatch-dev`  | nenhum (URL `execute-api`) | por enquanto **os mesmos de prod**   |
+| `local` | —                 | `localhost:3000`           | DynamoDB Local; pools e bucket reais |
+
+Enquanto o `dev` usa os recursos de prod, um deploy de dev não muda a API que os
+usuários chamam, mas as Lambdas dele leem e escrevem nas tabelas de produção.
+
+A URL da API de dev sai em `pnpm exec serverless info --stage dev` (campo `endpoints`).
 
 ## Instalação do CLI
 
@@ -74,15 +91,44 @@ pnpm deploy:fn coachGetMe
 Atualiza apenas o código/config da Lambda. Não mexe em rotas, integrações nem
 authorizers. **Só funciona para funções que já existem** no stack.
 
-### Deploy completo
+Em prod, use o deploy completo.
+
+### Deploy completo em dev
 
 ```bash
 pnpm deploy:dev
 ```
 
-O stack é dono do HTTP API inteiro: rotas, integrações, authorizers, CORS e, no `dev`,
-o API mapping de `api.coachmatch.com.br`. Ficam fora só o custom domain e o
-certificado.
+O stack é dono do HTTP API inteiro: rotas, integrações, authorizers, CORS e, no stage
+que declara `apiDomainName` no `config.yml`, o API mapping do domínio. Ficam fora só o
+custom domain e o certificado.
+
+### Deploy em prod
+
+O caminho normal é a CI: **Actions → CI/CD Pipeline → Run workflow**, a partir da
+`main`, com `environment: prod` e `confirm: CONFIRMAR`. O job publica o backend e o
+front.
+
+Para publicar o backend da sua máquina:
+
+```bash
+CONFIRM_PROD_DEPLOY=prod pnpm deploy:prod
+```
+
+Sem a variável, o script para antes de chamar o Serverless: `deploy:prod` difere de
+`deploy:dev` por uma palavra, e um deploy em prod publica para os usuários.
+
+### Mover o domínio para outro stage
+
+O API Gateway aceita um único mapping de chave vazia por domínio, então o stage que
+recebe o domínio não consegue criar o seu enquanto o outro não liberar:
+
+1. Tire `apiDomainName` do stage atual no `config.yml` e faça o deploy dele. A partir
+   daqui o domínio não responde.
+2. Ponha `apiDomainName` no stage novo e faça o deploy dele.
+
+A API fica fora do ar entre o fim do passo 1 e o fim do passo 2 (alguns minutos). Faça
+os dois deploys em sequência, em horário de pouco uso.
 
 ### Verificar depois do deploy
 
@@ -102,17 +148,17 @@ curl -si -X OPTIONS https://api.coachmatch.com.br/coach/me \
 
 ### Rollback
 
-Na maioria dos problemas, corrigir e rodar `pnpm deploy:dev` de novo é mais rápido. O
-rollback serve para o que não dá para diagnosticar logo: redeploy de um commit anterior.
-O mapping do domínio pertence ao stack, então não há passo manual.
+Na maioria dos problemas, corrigir e fazer o deploy de novo é mais rápido. O rollback
+serve para o que não dá para diagnosticar logo: redeploy de um commit anterior. O
+mapping do domínio pertence ao stack, então não há passo manual.
 
 ```bash
 git switch --detach <commit anterior>
-pnpm deploy:dev
+CONFIRM_PROD_DEPLOY=prod pnpm deploy:prod
 ```
 
-O commit precisa ser posterior à virada para a API do stack (01/10/2026). Os anteriores
-penduram as rotas na API externa `qht6965nv9`, que não existe mais.
+O commit precisa ser posterior à criação do stage `prod` (SCRUM-44, 10/2026). Nos
+anteriores o stage não existe e o domínio pertence ao `dev`.
 
 ## Inspecionar o estado real (read-only)
 
@@ -130,7 +176,7 @@ aws apigatewayv2 get-integrations --api-id "$API_ID" --region sa-east-1 \
   --query 'Items[].{Id:IntegrationId,Uri:IntegrationUri}' --output table
 
 # O que ESTE stack possui
-aws cloudformation describe-stack-resources --stack-name coachmatch-dev \
+aws cloudformation describe-stack-resources --stack-name coachmatch-prod \
   --region sa-east-1 \
   --query 'StackResources[?contains(ResourceType,`ApiGatewayV2`)].{Type:ResourceType,Logical:LogicalResourceId}' \
   --output table

@@ -2,9 +2,11 @@
 
 ## Ambientes & Infraestrutura real
 
-Conta AWS `138413505977`, região `sa-east-1`. Hoje existe **um único ambiente**
-(produção). O frontend é servido a partir do prefixo `coachmatch_site/` dentro do
-bucket — por isso o `s3 sync` aponta para `s3://<bucket>/coachmatch_site`.
+Conta AWS `138413505977`, região `sa-east-1`. O backend tem dois stages na mesma
+conta, `prod` e `dev` (ver [`server/coachmatch/DEPLOY.md`](../server/coachmatch/DEPLOY.md));
+o deploy de prod da CI roda `pnpm deploy:prod`. O frontend só existe em produção e é
+servido a partir do prefixo `coachmatch_site/` dentro do bucket — por isso o `s3 sync`
+aponta para `s3://<bucket>/coachmatch_site`.
 
 | Recurso | Valor |
 | --- | --- |

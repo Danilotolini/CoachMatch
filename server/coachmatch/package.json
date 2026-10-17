@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "serverless offline start --stage local",
     "deploy:dev": "serverless deploy --stage dev",
+    "deploy:prod": "node scripts/require-prod-confirmation.js && serverless deploy --stage prod",
     "deploy:fn": "serverless deploy function --stage dev --function",
     "test": "vitest run",
     "test:watch": "vitest",
