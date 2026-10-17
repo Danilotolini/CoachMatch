@@ -8,6 +8,7 @@
     "dev": "serverless offline start --stage local",
     "deploy:dev": "serverless deploy --stage dev",
     "deploy:prod": "node scripts/require-prod-confirmation.js && serverless deploy --stage prod",
+    "deploy:dev-resources": "aws cloudformation deploy --template-file infra/dev-resources.yml --stack-name coachmatch-dev-resources --region sa-east-1 --no-fail-on-empty-changeset",
     "deploy:fn": "serverless deploy function --stage dev --function",
     "test": "vitest run",
     "test:watch": "vitest",

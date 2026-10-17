@@ -12,22 +12,57 @@ Rode tudo de dentro de `server/coachmatch/`:
 | Atualizar código de uma função (dev)   | `pnpm deploy:fn <fn>`                       | **Não**                 |
 | Deploy completo em dev                 | `pnpm deploy:dev`                           | **Sim**                 |
 | Deploy completo em prod                | `CONFIRM_PROD_DEPLOY=prod pnpm deploy:prod` | **Sim**                 |
+| Recursos do stage dev                  | `pnpm deploy:dev-resources`                 | **Não**                 |
+
+O push em `develop` publica o dev (backend e front) pela CI; prod continua manual.
 
 ## Stages
 
 Os stages ficam na mesma conta AWS; cada um tem seu stack e aponta para os recursos
 declarados no seu bloco do [`config.yml`](config.yml).
 
-| Stage   | Stack             | Domínio da API             | Recursos (tabelas, pools, bucket)    |
-| ------- | ----------------- | -------------------------- | ------------------------------------ |
-| `prod`  | `coachmatch-prod` | `api.coachmatch.com.br`    | os de produção                       |
-| `dev`   | `coachmatch-dev`  | nenhum (URL `execute-api`) | por enquanto **os mesmos de prod**   |
-| `local` | —                 | `localhost:3000`           | DynamoDB Local; pools e bucket reais |
+| Stage   | Stack do Serverless | Domínio da API              | Front                   | Recursos (tabelas, pools, bucket)          |
+| ------- | ------------------- | --------------------------- | ----------------------- | ------------------------------------------ |
+| `prod`  | `coachmatch-prod`   | `api.coachmatch.com.br`     | `coachmatch.com.br`     | os de produção, criados à mão              |
+| `dev`   | `coachmatch-dev`    | `api.dev.coachmatch.com.br` | `dev.coachmatch.com.br` | stack `coachmatch-dev-resources`           |
+| `local` | —                   | `localhost:3000`            | `localhost:5173`        | DynamoDB Local; pools e bucket do dev      |
 
-Enquanto o `dev` usa os recursos de prod, um deploy de dev não muda a API que os
-usuários chamam, mas as Lambdas dele leem e escrevem nas tabelas de produção.
+Diferenças do dev em relação a prod:
 
-A URL da API de dev sai em `pnpm exec serverless info --stage dev` (campo `endpoints`).
+- login só por e-mail e senha (sem Google) e app clients sem secret;
+- sem fila de e-mail: as notificações de agendamento não saem;
+- app próprio no Stream (chat), com as chaves no Parameter Store
+  (`/coachmatch/dev/stream-api-key` e `/coachmatch/dev/stream-api-secret`). O deploy as
+  lê na hora, então quem faz o deploy de dev precisa de `ssm:GetParameter` nesses
+  parâmetros. No stage local, as chaves vêm do `.env` (ver [`.env.example`](.env.example)).
+
+### Recursos do stage dev
+
+Tabelas, pools e app clients do Cognito, bucket de mídia, o front em
+`dev.coachmatch.com.br` e o domínio `api.dev.coachmatch.com.br` ficam em
+[`infra/dev-resources.yml`](infra/dev-resources.yml), num stack CloudFormation próprio.
+Assim, remover ou recriar o stack das Lambdas não apaga dados nem usuários de dev.
+
+```bash
+pnpm deploy:dev-resources
+```
+
+Os IDs que o `config.yml` (stages `dev` e `local`) e o `client/.env.dev` usam saem nos
+outputs do stack:
+
+```bash
+aws cloudformation describe-stacks --stack-name coachmatch-dev-resources \
+  --region sa-east-1 --query 'Stacks[0].Outputs' --output table
+```
+
+Academias e especialidades vêm de prod (o `seed/` do local tem só uma amostra). Para
+copiar de novo, por exemplo depois de recriar as tabelas:
+
+```bash
+node scripts/copy-reference-data.js gyms:gyms-dev specialties:specialties-dev
+```
+
+O script só aceita destinos terminados em `-dev`.
 
 ## Instalação do CLI
 
@@ -94,6 +129,9 @@ authorizers. **Só funciona para funções que já existem** no stack.
 Em prod, use o deploy completo.
 
 ### Deploy completo em dev
+
+O caminho normal é o push em `develop`: o job `deploy-dev` da CI publica o backend e o
+front (`pnpm build:dev` em `client/`). Para publicar só o backend da sua máquina:
 
 ```bash
 pnpm deploy:dev

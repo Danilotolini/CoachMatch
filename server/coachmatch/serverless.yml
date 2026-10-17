@@ -27,6 +27,7 @@ stages:
       mediaBucketName: ${self:custom.config.${sls:stage}.mediaBucketName}
       corsAllowedOrigins: ${self:custom.config.${sls:stage}.corsAllowedOrigins}
       apiDomainName: ${self:custom.config.${sls:stage}.apiDomainName, ""}
+      mailSenderQueueArn: ${self:custom.config.${sls:stage}.mailSenderQueueArn, ""}
   # Produção — deploy só via `pnpm deploy:prod`, que exige confirmação (ver DEPLOY.md)
   prod:
     params:
@@ -40,8 +41,9 @@ stages:
     params:
       stage: ${self:custom.config.dev.stage}
       region: ${self:custom.config.dev.region}
-      apiKey: ${self:custom.config.dev.apiKey}
-      apiSecret: ${self:custom.config.dev.apiSecret}
+      # App do Stream de dev; o secret fica no Parameter Store, não no repositório
+      apiKey: ${ssm:/coachmatch/dev/stream-api-key}
+      apiSecret: ${ssm:/coachmatch/dev/stream-api-secret}
       mailSenderQueueUrl: ${self:custom.config.dev.mailSenderQueueUrl}
   # Stage local — serverless-offline + DynamoDB Local (nunca faz deploy na AWS)
   local:
@@ -51,8 +53,10 @@ stages:
       endpoint: ${self:custom.config.local.endpoint}
       access_key_id: ${self:custom.config.local.accessKeyId}
       secret_access: ${self:custom.config.local.secretAccessKey}
-      apiKey: ${self:custom.config.dev.apiKey}
-      apiSecret: ${self:custom.config.dev.apiSecret}
+      # Do .env local (ver .env.example): ler do Parameter Store exigiria login na AWS
+      # só para subir o serverless-offline. Sem as chaves, só o chat fica indisponível.
+      apiKey: ${env:STREAM_API_KEY, ""}
+      apiSecret: ${env:STREAM_API_SECRET, ""}
       mailSenderQueueUrl: ""
 
 plugins:
@@ -176,11 +180,7 @@ provider:
             - sqs:SendMessage
           Resource:
             - !GetAtt PaymentSucceededQueue.Arn
-        - Effect: Allow
-          Action:
-            - sqs:SendMessage
-          Resource:
-            - arn:aws:sqs:sa-east-1:138413505977:MailSender
+        # Envio para a fila de e-mail: MailSenderPolicy, só nos stages que declaram a fila.
         # Endpoints de leitura assinam URLs de GET das mídias (foto/vídeo) no bucket privado
         - Effect: Allow
           Action:
@@ -858,6 +858,7 @@ resources:
   Conditions:
     IsLocal: !Equals [ "${param:stage}", "local" ]
     HasApiDomain: !Not [ !Equals [ "${param:apiDomainName}", "" ] ]
+    HasMailSender: !Not [ !Equals [ "${param:mailSenderQueueArn}", "" ] ]
   Resources:
     gymsTable:
       Type: AWS::DynamoDB::Table
@@ -1066,6 +1067,21 @@ resources:
         DomainName: ${param:apiDomainName}
         ApiId: !Ref HttpApi
         Stage: !Ref HttpApiStage
+
+    # Fora do role principal porque um statement do IAM não aceita Resource vazio, e
+    # o stage sem fila de e-mail não deve receber permissão na fila de outro stage.
+    MailSenderPolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Condition: HasMailSender
+      Properties:
+        Roles:
+          - !Ref IamRoleLambdaExecution
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: sqs:SendMessage
+              Resource: ${param:mailSenderQueueArn}
 
     # Fila do evento payment.succeeded (gerenciada pelo stack, todos os stages)
     PaymentSucceededQueue:
