@@ -41,8 +41,9 @@ stages:
     params:
       stage: ${self:custom.config.dev.stage}
       region: ${self:custom.config.dev.region}
-      apiKey: ${self:custom.config.dev.apiKey}
-      apiSecret: ${self:custom.config.dev.apiSecret}
+      # App do Stream de dev; o secret fica no Parameter Store, não no repositório
+      apiKey: ${ssm:/coachmatch/dev/stream-api-key}
+      apiSecret: ${ssm:/coachmatch/dev/stream-api-secret}
       mailSenderQueueUrl: ${self:custom.config.dev.mailSenderQueueUrl}
   # Stage local — serverless-offline + DynamoDB Local (nunca faz deploy na AWS)
   local:
@@ -52,8 +53,10 @@ stages:
       endpoint: ${self:custom.config.local.endpoint}
       access_key_id: ${self:custom.config.local.accessKeyId}
       secret_access: ${self:custom.config.local.secretAccessKey}
-      apiKey: ${self:custom.config.dev.apiKey}
-      apiSecret: ${self:custom.config.dev.apiSecret}
+      # Do .env local (ver .env.example): ler do Parameter Store exigiria login na AWS
+      # só para subir o serverless-offline. Sem as chaves, só o chat fica indisponível.
+      apiKey: ${env:STREAM_API_KEY, ""}
+      apiSecret: ${env:STREAM_API_SECRET, ""}
       mailSenderQueueUrl: ""
 
 plugins:

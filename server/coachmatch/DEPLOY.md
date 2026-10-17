@@ -31,7 +31,10 @@ Diferenças do dev em relação a prod:
 
 - login só por e-mail e senha (sem Google) e app clients sem secret;
 - sem fila de e-mail: as notificações de agendamento não saem;
-- o chat ainda usa o mesmo app do Stream de prod.
+- app próprio no Stream (chat), com as chaves no Parameter Store
+  (`/coachmatch/dev/stream-api-key` e `/coachmatch/dev/stream-api-secret`). O deploy as
+  lê na hora, então quem faz o deploy de dev precisa de `ssm:GetParameter` nesses
+  parâmetros. No stage local, as chaves vêm do `.env` (ver [`.env.example`](.env.example)).
 
 ### Recursos do stage dev
 
