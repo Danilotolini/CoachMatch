@@ -1,0 +1,453 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  CoachMatch dev — dados, autenticação, mídia, front e domínios do stage dev.
+  Fica fora do stack do Serverless para que remover ou recriar o stack das Lambdas
+  não apague dados nem usuários.
+
+# Os recursos de prod foram criados à mão e não estão aqui. Os valores copiados deles
+# (schemas dos pools, políticas de senha, CORS, cache) foram lidos da conta em 10/2026.
+
+Mappings:
+  Shared:
+    Zone:
+      # Zona coachmatch.com.br no Route 53 desta conta
+      HostedZoneId: Z10203092XPTNBQCUVV47
+      # *.coachmatch.com.br em us-east-1, a região que o CloudFront exige
+      CloudFrontCertificateArn: arn:aws:acm:us-east-1:138413505977:certificate/fd767975-eca8-4203-a70b-d89001a3bb3c
+    CloudFront:
+      # Hosted zone fixa de todos os aliases para CloudFront
+      AliasHostedZoneId: Z2FDTNDATAQYW2
+      # Política gerenciada CachingOptimized, a mesma da distribuição de prod
+      CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+
+Resources:
+  # ─── DynamoDB ──────────────────────────────────────────────────────────────
+  # Mesmos schemas do serverless.yml (stage local), em on-demand como prod.
+
+  CoachesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: coaches-dev
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: coachId, AttributeType: S }
+        - { AttributeName: status, AttributeType: S }
+      KeySchema:
+        - { AttributeName: coachId, KeyType: HASH }
+      GlobalSecondaryIndexes:
+        - IndexName: status-coachId-index
+          KeySchema:
+            - { AttributeName: status, KeyType: HASH }
+            - { AttributeName: coachId, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+
+  GymsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: gyms-dev
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: gymId, AttributeType: S }
+      KeySchema:
+        - { AttributeName: gymId, KeyType: HASH }
+
+  PaymentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: payments-dev
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: PK, AttributeType: S }
+        - { AttributeName: SK, AttributeType: S }
+        - { AttributeName: GSI1PK, AttributeType: S }
+        - { AttributeName: GSI1SK, AttributeType: S }
+        - { AttributeName: GSI2PK, AttributeType: S }
+        - { AttributeName: GSI2SK, AttributeType: S }
+        - { AttributeName: GSI3PK, AttributeType: S }
+        - { AttributeName: GSI3SK, AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH }
+        - { AttributeName: SK, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - { AttributeName: GSI1PK, KeyType: HASH }
+            - { AttributeName: GSI1SK, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+        - IndexName: GSI2
+          KeySchema:
+            - { AttributeName: GSI2PK, KeyType: HASH }
+            - { AttributeName: GSI2SK, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+        - IndexName: GSI3
+          KeySchema:
+            - { AttributeName: GSI3PK, KeyType: HASH }
+            - { AttributeName: GSI3SK, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+
+  ScheduleTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: schedule-dev
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: scheduleId, AttributeType: S }
+        - { AttributeName: coachId, AttributeType: S }
+        - { AttributeName: gymId, AttributeType: S }
+        - { AttributeName: studentId, AttributeType: S }
+        - { AttributeName: startDateTime, AttributeType: S }
+      KeySchema:
+        - { AttributeName: scheduleId, KeyType: HASH }
+      GlobalSecondaryIndexes:
+        - IndexName: Coach_Date
+          KeySchema:
+            - { AttributeName: coachId, KeyType: HASH }
+            - { AttributeName: startDateTime, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+        # Em prod este índice tem coachId como terceiro atributo de chave; o código
+        # consulta só gymId + startDateTime, então a forma de duas chaves basta.
+        - IndexName: Gym_Date
+          KeySchema:
+            - { AttributeName: gymId, KeyType: HASH }
+            - { AttributeName: startDateTime, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+        - IndexName: Student_Date
+          KeySchema:
+            - { AttributeName: studentId, KeyType: HASH }
+            - { AttributeName: startDateTime, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+
+  SpecialtiesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: specialties-dev
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: id, KeyType: HASH }
+
+  StudentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: student-dev
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: studentId, AttributeType: S }
+      KeySchema:
+        - { AttributeName: studentId, KeyType: HASH }
+
+  # ─── Cognito ───────────────────────────────────────────────────────────────
+  # Login só por e-mail e senha: o Google exigiria outro OAuth client no Google
+  # Cloud. Os app clients não têm secret, então o front de dev usa só PKCE.
+  #
+  # O PostConfirmation é declarado aqui, e não só pelo Serverless: um update deste
+  # stack reescreve o LambdaConfig do pool e apagaria um trigger que só o Serverless
+  # conhecesse. A permissão também fica aqui porque o Serverless só a cria quando o
+  # recurso dele nasce, não quando o pool de um stack existente muda.
+
+  CoachUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: CoachAccess-dev
+      UserPoolTier: ESSENTIALS
+      UsernameAttributes: [email]
+      UsernameConfiguration: { CaseSensitive: false }
+      AutoVerifiedAttributes: [email]
+      MfaConfiguration: 'OFF'
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          TemporaryPasswordValidityDays: 7
+        SignInPolicy:
+          AllowedFirstAuthFactors: [PASSWORD]
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - { Name: verified_email, Priority: 1 }
+      Schema:
+        - { Name: name, AttributeDataType: String, Required: true, Mutable: true }
+      LambdaConfig:
+        PostConfirmation: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:coachmatch-dev-coachCreate
+
+  CoachUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CoachUserPool
+      ClientName: coachmatch-dev-coach
+      GenerateSecret: false
+      SupportedIdentityProviders: [COGNITO]
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [email, openid, profile]
+      CallbackURLs:
+        - http://localhost:5173/auth/cognito/callback
+        - https://dev.coachmatch.com.br/auth/cognito/callback
+      LogoutURLs:
+        - http://localhost:5173
+        - https://dev.coachmatch.com.br
+      ExplicitAuthFlows: [ALLOW_REFRESH_TOKEN_AUTH, ALLOW_USER_AUTH, ALLOW_USER_PASSWORD_AUTH, ALLOW_USER_SRP_AUTH]
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+
+  CoachUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref CoachUserPool
+      Domain: coachmatch-dev-coach
+      ManagedLoginVersion: 2
+
+  # Managed login v2 só renderiza o login com um estilo associado ao app client.
+  CoachManagedLoginBranding:
+    Type: AWS::Cognito::ManagedLoginBranding
+    Properties:
+      UserPoolId: !Ref CoachUserPool
+      ClientId: !Ref CoachUserPoolClient
+      UseCognitoProvidedValues: true
+
+  CoachPostConfirmationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: coachmatch-dev-coachCreate
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CoachUserPool.Arn
+
+  StudentUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: StudentAccess-dev
+      UserPoolTier: ESSENTIALS
+      AliasAttributes: [email]
+      UsernameConfiguration: { CaseSensitive: false }
+      AutoVerifiedAttributes: [email]
+      MfaConfiguration: 'OFF'
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          TemporaryPasswordValidityDays: 7
+        SignInPolicy:
+          AllowedFirstAuthFactors: [PASSWORD]
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - { Name: verified_email, Priority: 1 }
+      Schema:
+        - { Name: email, AttributeDataType: String, Required: true, Mutable: true }
+        - { Name: name, AttributeDataType: String, Required: true, Mutable: true }
+        - { Name: profile, AttributeDataType: String, Required: true, Mutable: true }
+      LambdaConfig:
+        PostConfirmation: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:coachmatch-dev-studentCreate
+
+  StudentUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref StudentUserPool
+      ClientName: coachmatch-dev-student
+      GenerateSecret: false
+      SupportedIdentityProviders: [COGNITO]
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [email, openid, profile]
+      CallbackURLs:
+        - http://localhost:5173/auth/cognito/student/callback
+        - https://dev.coachmatch.com.br/auth/cognito/student/callback
+      LogoutURLs:
+        - http://localhost:5173
+        - https://dev.coachmatch.com.br
+      ExplicitAuthFlows: [ALLOW_REFRESH_TOKEN_AUTH, ALLOW_USER_AUTH, ALLOW_USER_PASSWORD_AUTH, ALLOW_USER_SRP_AUTH]
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+
+  StudentUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref StudentUserPool
+      Domain: coachmatch-dev-student
+      ManagedLoginVersion: 2
+
+  StudentManagedLoginBranding:
+    Type: AWS::Cognito::ManagedLoginBranding
+    Properties:
+      UserPoolId: !Ref StudentUserPool
+      ClientId: !Ref StudentUserPoolClient
+      UseCognitoProvidedValues: true
+
+  StudentPostConfirmationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: coachmatch-dev-studentCreate
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt StudentUserPool.Arn
+
+  # ─── Mídia ─────────────────────────────────────────────────────────────────
+
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub coachmatch-media-dev-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      # O navegador envia o upload direto ao bucket (POST pré-assinado) e lê as
+      # mídias por URL assinada.
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: [https://dev.coachmatch.com.br, http://localhost:5173]
+            AllowedMethods: [GET, HEAD, PUT, POST]
+            AllowedHeaders: ['*']
+            ExposedHeaders: [ETag, x-amz-request-id]
+            MaxAge: 3000
+
+  # ─── Front (dev.coachmatch.com.br) ─────────────────────────────────────────
+
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub coachmatch-site-dev-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+
+  SiteOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: coachmatch-site-dev
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  SiteDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: CoachMatch dev
+        Enabled: true
+        Aliases: [dev.coachmatch.com.br]
+        HttpVersion: http2
+        IPV6Enabled: true
+        PriceClass: PriceClass_All
+        DefaultRootObject: index.html
+        Origins:
+          - Id: site
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt SiteOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: site
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: !FindInMap [Shared, CloudFront, CachePolicyId]
+        # SPA: o bucket responde 403/404 para rotas do React Router; devolver o
+        # index.html deixa o roteamento para o front.
+        CustomErrorResponses:
+          - { ErrorCode: 403, ResponseCode: 200, ResponsePagePath: /index.html }
+          - { ErrorCode: 404, ResponseCode: 200, ResponsePagePath: /index.html }
+        ViewerCertificate:
+          AcmCertificateArn: !FindInMap [Shared, Zone, CloudFrontCertificateArn]
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub ${SiteBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${SiteDistribution}
+
+  SiteDnsRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !FindInMap [Shared, Zone, HostedZoneId]
+      RecordSets:
+        - Name: dev.coachmatch.com.br
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt SiteDistribution.DomainName
+            HostedZoneId: !FindInMap [Shared, CloudFront, AliasHostedZoneId]
+        - Name: dev.coachmatch.com.br
+          Type: AAAA
+          AliasTarget:
+            DNSName: !GetAtt SiteDistribution.DomainName
+            HostedZoneId: !FindInMap [Shared, CloudFront, AliasHostedZoneId]
+
+  # ─── API (api.dev.coachmatch.com.br) ───────────────────────────────────────
+  # O API Gateway regional só aceita certificado da própria região, e o wildcard de
+  # us-east-1 não cobre um segundo nível. O mapping para a API fica no stack do
+  # Serverless, como em prod.
+
+  DevWildcardCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: '*.dev.coachmatch.com.br'
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: '*.dev.coachmatch.com.br'
+          HostedZoneId: !FindInMap [Shared, Zone, HostedZoneId]
+
+  ApiDomain:
+    Type: AWS::ApiGatewayV2::DomainName
+    Properties:
+      DomainName: api.dev.coachmatch.com.br
+      DomainNameConfigurations:
+        - CertificateArn: !Ref DevWildcardCertificate
+          EndpointType: REGIONAL
+          SecurityPolicy: TLS_1_2
+
+  ApiDnsRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !FindInMap [Shared, Zone, HostedZoneId]
+      Name: api.dev.coachmatch.com.br
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ApiDomain.RegionalDomainName
+        HostedZoneId: !GetAtt ApiDomain.RegionalHostedZoneId
+
+Outputs:
+  CoachUserPoolId:
+    Value: !Ref CoachUserPool
+  CoachUserPoolClientId:
+    Value: !Ref CoachUserPoolClient
+  CoachLoginDomain:
+    Value: !Sub https://${CoachUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com
+  StudentUserPoolId:
+    Value: !Ref StudentUserPool
+  StudentUserPoolClientId:
+    Value: !Ref StudentUserPoolClient
+  StudentLoginDomain:
+    Value: !Sub https://${StudentUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com
+  MediaBucketName:
+    Value: !Ref MediaBucket
+  SiteBucketName:
+    Value: !Ref SiteBucket
+  SiteDistributionId:
+    Value: !Ref SiteDistribution
