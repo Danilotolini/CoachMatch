@@ -436,7 +436,7 @@ jobs:
       - name: Deploy para prod
         if: github.event.inputs.environment == 'prod' && github.ref == 'refs/heads/main'
         run: |
-          (cd server/coachmatch && pnpm run deploy:dev)
+          (cd server/coachmatch && pnpm run deploy:prod)
           aws s3 sync client/dist s3://${{ vars.S3_BUCKET_PRODUCTION }}/coachmatch_site --delete
           aws cloudfront create-invalidation \
             --distribution-id ${{ vars.CLOUDFRONT_PRODUCTION_ID }} \
@@ -444,6 +444,8 @@ jobs:
           echo "✅ Deploy realizado em prod" >> $GITHUB_STEP_SUMMARY
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+          # A confirmação do deploy de prod já é o input CONFIRMAR do workflow_dispatch.
+          CONFIRM_PROD_DEPLOY: prod
 
       - name: Bloquear prod fora da main
         if: github.event.inputs.environment == 'prod' && github.ref != 'refs/heads/main'

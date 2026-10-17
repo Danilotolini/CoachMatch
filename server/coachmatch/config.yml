@@ -29,6 +29,7 @@ local:
     - http://localhost:5173
 
 # Ambiente dev
+# Até ganhar recursos próprios, usa os mesmos de prod; só não serve o domínio.
 dev:
   stage: dev
   region: sa-east-1
@@ -37,9 +38,6 @@ dev:
   # Fila externa (pré-existente, fora deste stack) usada pelas lambdas de agendamento
   # para notificação por e-mail.
   mailSenderQueueUrl: https://sqs.sa-east-1.amazonaws.com/138413505977/MailSender
-
-  # Custom domain (fora do stack) ao qual este stage liga a API. Vazio = sem domínio.
-  apiDomainName: api.coachmatch.com.br
 
   # Recursos que existem fora deste stack. Cada stage aponta para os seus; sem nomes
   # default no código, um stage nunca cai nos recursos de outro por omissão.
@@ -70,6 +68,9 @@ prod:
   # Fila externa (pré-existente, fora deste stack) usada pelas lambdas de agendamento
   # para notificação por e-mail.
   mailSenderQueueUrl: https://sqs.sa-east-1.amazonaws.com/138413505977/MailSender
+
+  # Custom domain (fora do stack) ao qual este stage liga a API. Vazio = sem domínio.
+  apiDomainName: api.coachmatch.com.br
 
   # Recursos que existem fora deste stack. Cada stage aponta para os seus; sem nomes
   # default no código, um stage nunca cai nos recursos de outro por omissão.
