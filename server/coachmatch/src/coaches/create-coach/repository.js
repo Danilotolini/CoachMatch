@@ -1,7 +1,8 @@
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'coaches';
+const TABLE = tableName('coaches');
 
 /**
  * Persiste um novo coach na tabela DynamoDB.

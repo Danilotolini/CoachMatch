@@ -1,8 +1,9 @@
 import { createClient } from '../../shared/config.js';
 import { ScheduleInternalException } from '../shared/exceptions.js';
 import { queryAll, scanAll } from '../../shared/paginate.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'schedule';
+const TABLE = tableName('schedule');
 const INDEX = 'Student_Date';
 
 /** GSI Student_Date — cobre apenas schedules onde o aluno está BOOKED. */

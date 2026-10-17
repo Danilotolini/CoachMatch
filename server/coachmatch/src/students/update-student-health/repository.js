@@ -1,7 +1,8 @@
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'student';
+const TABLE = tableName('students');
 
 /**
  * Persiste os dados do questionário de saúde (PAR-Q) e avança o status para ACTIVE.

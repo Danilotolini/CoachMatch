@@ -1,8 +1,9 @@
 import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
+import { tableName } from '../../shared/tables.js';
 
-const SCHEDULE_TABLE = process.env.SCHEDULE_TABLE ?? 'schedule';
-const STUDENTS_TABLE = process.env.STUDENTS_TABLE ?? 'student';
+const SCHEDULE_TABLE = tableName('schedule');
+const STUDENTS_TABLE = tableName('students');
 const STUDENT_DATE_INDEX = 'Student_Date';
 const COACH_DATE_INDEX = 'Coach_Date';
 

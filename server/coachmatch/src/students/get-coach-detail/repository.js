@@ -1,10 +1,11 @@
 import { GetCommand, BatchGetCommand } from "@aws-sdk/lib-dynamodb";
 import { createClient } from "../../shared/config.js";
+import { tableName } from "../../shared/tables.js";
 
 const dynamo = createClient();
 
-const COACHES_TABLE = process.env.COACHES_TABLE ?? "coaches";
-const GYMS_TABLE = process.env.GYMS_TABLE ?? "gyms";
+const COACHES_TABLE = tableName("coaches");
+const GYMS_TABLE = tableName("gyms");
 
 export async function findCoachById(coachId) {
   const result = await dynamo.send(

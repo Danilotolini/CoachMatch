@@ -2,8 +2,9 @@ import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
 import { ScheduleInternalException } from '../shared/exceptions.js';
 import { requestsUnchanged, conditionFailureToException } from '../shared/concurrency.js';
+import { tableName } from '../../shared/tables.js';
 
-const SCHEDULE_TABLE = 'schedule';
+const SCHEDULE_TABLE = tableName('schedule');
 
 /**
  * Além da guarda de `requests`, exige que o schedule ainda esteja em

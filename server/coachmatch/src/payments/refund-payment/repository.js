@@ -1,8 +1,9 @@
 import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
 import { PaymentAlreadyRefundedException } from '../shared/exceptions.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'payments';
+const TABLE = tableName('payments');
 
 export const findPaymentById = async (transactionId) => {
   const docClient = createClient();
