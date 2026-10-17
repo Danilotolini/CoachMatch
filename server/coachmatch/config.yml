@@ -8,55 +8,52 @@ local:
   apiKey: xnxquux7rewk
   apiSecret: 5r6k2r89855m464pvm9mx9c886s5mfx4nyts8vygyxy4sjzqzm8vcwbq743fzub3
 
-  # As tabelas são criadas no DynamoDB Local com estes nomes; pools e bucket são os
-  # reais, porque não têm equivalente local.
+  # As tabelas são criadas no DynamoDB Local com estes nomes. Pools e bucket não têm
+  # equivalente local, então usam os do stage dev.
   coachesTable: coaches
   gymsTable: gyms
   paymentsTable: payments
   scheduleTable: schedule
   specialtiesTable: specialties
   studentsTable: student
-  coachUserPoolName: CoachAccess
-  coachUserPoolId: sa-east-1_2DDuPPtc0
-  coachUserPoolClientId: 76hul7797npfkmpoju0mbghti7
-  studentUserPoolName: StudentAccess
-  studentUserPoolId: sa-east-1_2DSfT6kmB
-  studentUserPoolClientId: 3rjn45koljliioocd5usijdv9s
-  mediaBucketName: coachmatch-profile-videos-138413505977-sa-east-1-an
+  coachUserPoolName: CoachAccess-dev
+  coachUserPoolId: sa-east-1_4hL0nE2lD
+  coachUserPoolClientId: 6njhl4h15jujbsi5unvklsm4o8
+  studentUserPoolName: StudentAccess-dev
+  studentUserPoolId: sa-east-1_SEdEvAIgy
+  studentUserPoolClientId: 69lit0ejucncpbdk34qcsalpl0
+  mediaBucketName: coachmatch-media-dev-138413505977
   corsAllowedOrigins:
-    - https://coachmatch.com.br
-    - https://www.coachmatch.com.br
     - http://localhost:5173
 
 # Ambiente dev
-# Até ganhar recursos próprios, usa os mesmos de prod; só não serve o domínio.
 dev:
   stage: dev
   region: sa-east-1
   apiKey: xnxquux7rewk
   apiSecret: 5r6k2r89855m464pvm9mx9c886s5mfx4nyts8vygyxy4sjzqzm8vcwbq743fzub3
-  # Fila externa (pré-existente, fora deste stack) usada pelas lambdas de agendamento
-  # para notificação por e-mail.
-  mailSenderQueueUrl: https://sqs.sa-east-1.amazonaws.com/138413505977/MailSender
+  # Sem fila de e-mail: as notificações viram no-op (shared/notify.js).
+  mailSenderQueueUrl: ""
 
-  # Recursos que existem fora deste stack. Cada stage aponta para os seus; sem nomes
-  # default no código, um stage nunca cai nos recursos de outro por omissão.
-  coachesTable: coaches
-  gymsTable: gyms
-  paymentsTable: payments
-  scheduleTable: schedule
-  specialtiesTable: specialties
-  studentsTable: student
-  coachUserPoolName: CoachAccess
-  coachUserPoolId: sa-east-1_2DDuPPtc0
-  coachUserPoolClientId: 76hul7797npfkmpoju0mbghti7
-  studentUserPoolName: StudentAccess
-  studentUserPoolId: sa-east-1_2DSfT6kmB
-  studentUserPoolClientId: 3rjn45koljliioocd5usijdv9s
-  mediaBucketName: coachmatch-profile-videos-138413505977-sa-east-1-an
+  apiDomainName: api.dev.coachmatch.com.br
+
+  # Criados pelo stack coachmatch-dev-resources (infra/dev-resources.yml). Os IDs
+  # saem nos outputs: aws cloudformation describe-stacks --stack-name coachmatch-dev-resources
+  coachesTable: coaches-dev
+  gymsTable: gyms-dev
+  paymentsTable: payments-dev
+  scheduleTable: schedule-dev
+  specialtiesTable: specialties-dev
+  studentsTable: student-dev
+  coachUserPoolName: CoachAccess-dev
+  coachUserPoolId: sa-east-1_4hL0nE2lD
+  coachUserPoolClientId: 6njhl4h15jujbsi5unvklsm4o8
+  studentUserPoolName: StudentAccess-dev
+  studentUserPoolId: sa-east-1_SEdEvAIgy
+  studentUserPoolClientId: 69lit0ejucncpbdk34qcsalpl0
+  mediaBucketName: coachmatch-media-dev-138413505977
   corsAllowedOrigins:
-    - https://coachmatch.com.br
-    - https://www.coachmatch.com.br
+    - https://dev.coachmatch.com.br
     - http://localhost:5173
 
 # Ambiente prod
@@ -68,6 +65,7 @@ prod:
   # Fila externa (pré-existente, fora deste stack) usada pelas lambdas de agendamento
   # para notificação por e-mail.
   mailSenderQueueUrl: https://sqs.sa-east-1.amazonaws.com/138413505977/MailSender
+  mailSenderQueueArn: arn:aws:sqs:sa-east-1:138413505977:MailSender
 
   # Custom domain (fora do stack) ao qual este stage liga a API. Vazio = sem domínio.
   apiDomainName: api.coachmatch.com.br
