@@ -1,7 +1,8 @@
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'gyms';
+const TABLE = tableName('gyms');
 
 /**
  * Scan completo da tabela. Aceitável aqui porque a lista de academias é

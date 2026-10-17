@@ -436,7 +436,7 @@ jobs:
       - name: Deploy para prod
         if: github.event.inputs.environment == 'prod' && github.ref == 'refs/heads/main'
         run: |
-          (cd server/coachmatch && pnpm run deploy:dev)
+          (cd server/coachmatch && pnpm run deploy:prod)
           aws s3 sync client/dist s3://${{ vars.S3_BUCKET_PRODUCTION }}/coachmatch_site --delete
           aws cloudfront create-invalidation \
             --distribution-id ${{ vars.CLOUDFRONT_PRODUCTION_ID }} \
@@ -444,9 +444,70 @@ jobs:
           echo "✅ Deploy realizado em prod" >> $GITHUB_STEP_SUMMARY
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+          # A confirmação do deploy de prod já é o input CONFIRMAR do workflow_dispatch.
+          CONFIRM_PROD_DEPLOY: prod
 
       - name: Bloquear prod fora da main
         if: github.event.inputs.environment == 'prod' && github.ref != 'refs/heads/main'
         run: |
           echo "❌ Deploy de prod só é permitido a partir da branch main."
           exit 1
+
+  # ── 11. DEPLOY DEV (automático no push em develop) ──────────────────────────
+  # Backend e front de dev: dev.coachmatch.com.br e api.dev.coachmatch.com.br.
+  # Bucket e distribuição vêm do stack coachmatch-dev-resources; não são segredo.
+  deploy-dev:
+    name: Deploy dev
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    permissions:
+      contents: read
+      deployments: write
+    environment:
+      name: develop
+      url: https://dev.coachmatch.com.br
+    # Um push novo não pode cancelar um deploy no meio: espera o anterior terminar.
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+    env:
+      SITE_BUCKET: coachmatch-site-dev-138413505977
+      SITE_DISTRIBUTION_ID: E2UPTG1FXHJSAJ
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: sa-east-1
+
+      # As VITE_* de dev estão em client/.env.dev, versionado.
+      - name: Build frontend (dev)
+        run: cd client && pnpm run build:dev
+
+      - name: Deploy backend (dev)
+        run: cd server/coachmatch && pnpm run deploy:dev
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+
+      - name: Deploy frontend (dev)
+        run: |
+          aws s3 sync client/dist s3://$SITE_BUCKET --delete
+          aws cloudfront create-invalidation --distribution-id $SITE_DISTRIBUTION_ID --paths "/*"
+          echo "✅ Deploy realizado em dev: https://dev.coachmatch.com.br" >> $GITHUB_STEP_SUMMARY

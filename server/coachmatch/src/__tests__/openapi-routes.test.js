@@ -8,6 +8,7 @@ const CLOUDFORMATION_TAGS = [
   { tag: '!Ref', resolve: (v) => v },
   { tag: '!GetAtt', resolve: (v) => v },
   { tag: '!Equals', collection: 'seq', resolve: (v) => v },
+  { tag: '!Not', collection: 'seq', resolve: (v) => v },
 ];
 
 function loadServerlessRoutes() {

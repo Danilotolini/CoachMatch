@@ -1,22 +1,49 @@
 # HTTP API
 # ─────────────────────────────────────────────────────────────────────────────
 # A API, os authorizers JWT e o CORS são criados por este stack em todos os
-# stages; no dev, também o API mapping de `api.coachmatch.com.br`. Ficam fora
-# apenas o custom domain e o certificado. O DNS aponta para o custom domain, não
-# para a API, então trocar a API servida não muda DNS (ver DEPLOY.md).
+# stages; também o API mapping do domínio, quando o stage declara `apiDomainName`.
+# Ficam fora apenas o custom domain e o certificado. O DNS aponta para o custom
+# domain, não para a API, então trocar a API servida não muda DNS (ver DEPLOY.md).
 # ─────────────────────────────────────────────────────────────────────────────
 org: coachmatch
 app: coachmatchapp
 service: coachmatch
 
 stages:
-  # Stage para deploy real na AWS (CI/CD e deploys manuais do dev)
+  default:
+    params:
+      coachesTable: ${self:custom.config.${sls:stage}.coachesTable}
+      gymsTable: ${self:custom.config.${sls:stage}.gymsTable}
+      paymentsTable: ${self:custom.config.${sls:stage}.paymentsTable}
+      scheduleTable: ${self:custom.config.${sls:stage}.scheduleTable}
+      specialtiesTable: ${self:custom.config.${sls:stage}.specialtiesTable}
+      studentsTable: ${self:custom.config.${sls:stage}.studentsTable}
+      coachUserPoolName: ${self:custom.config.${sls:stage}.coachUserPoolName}
+      coachUserPoolId: ${self:custom.config.${sls:stage}.coachUserPoolId}
+      coachUserPoolClientId: ${self:custom.config.${sls:stage}.coachUserPoolClientId}
+      studentUserPoolName: ${self:custom.config.${sls:stage}.studentUserPoolName}
+      studentUserPoolId: ${self:custom.config.${sls:stage}.studentUserPoolId}
+      studentUserPoolClientId: ${self:custom.config.${sls:stage}.studentUserPoolClientId}
+      mediaBucketName: ${self:custom.config.${sls:stage}.mediaBucketName}
+      corsAllowedOrigins: ${self:custom.config.${sls:stage}.corsAllowedOrigins}
+      apiDomainName: ${self:custom.config.${sls:stage}.apiDomainName, ""}
+      mailSenderQueueArn: ${self:custom.config.${sls:stage}.mailSenderQueueArn, ""}
+  # Produção — deploy só via `pnpm deploy:prod`, que exige confirmação (ver DEPLOY.md)
+  prod:
+    params:
+      stage: ${self:custom.config.prod.stage}
+      region: ${self:custom.config.prod.region}
+      apiKey: ${self:custom.config.prod.apiKey}
+      apiSecret: ${self:custom.config.prod.apiSecret}
+      mailSenderQueueUrl: ${self:custom.config.prod.mailSenderQueueUrl}
+  # Desenvolvimento — `pnpm deploy:dev`
   dev:
     params:
       stage: ${self:custom.config.dev.stage}
       region: ${self:custom.config.dev.region}
-      apiKey: ${self:custom.config.dev.apiKey}
-      apiSecret: ${self:custom.config.dev.apiSecret}
+      # App do Stream de dev; o secret fica no Parameter Store, não no repositório
+      apiKey: ${ssm:/coachmatch/dev/stream-api-key}
+      apiSecret: ${ssm:/coachmatch/dev/stream-api-secret}
       mailSenderQueueUrl: ${self:custom.config.dev.mailSenderQueueUrl}
   # Stage local — serverless-offline + DynamoDB Local (nunca faz deploy na AWS)
   local:
@@ -26,8 +53,10 @@ stages:
       endpoint: ${self:custom.config.local.endpoint}
       access_key_id: ${self:custom.config.local.accessKeyId}
       secret_access: ${self:custom.config.local.secretAccessKey}
-      apiKey: ${self:custom.config.dev.apiKey}
-      apiSecret: ${self:custom.config.dev.apiSecret}
+      # Do .env local (ver .env.example): ler do Parameter Store exigiria login na AWS
+      # só para subir o serverless-offline. Sem as chaves, só o chat fica indisponível.
+      apiKey: ${env:STREAM_API_KEY, ""}
+      apiSecret: ${env:STREAM_API_SECRET, ""}
       mailSenderQueueUrl: ""
 
 plugins:
@@ -65,14 +94,19 @@ provider:
 
   # Bucket privado de mídias (foto/vídeo). Os endpoints de leitura assinam URLs de GET.
   # Fica em provider.environment para valer em todas as funções que chamam shared/s3.js.
-  # É o mesmo bucket usado pela lambda Python de upload (generate-profile-video-upload-url).
   environment:
     STAGE: ${param:stage}
     REGION: ${param:region}
     ENDPOINT: ${param:endpoint, ""}
     ACCESS_KEY_ID: ${param:access_key_id, ""}
     SECRET_ACCESS_KEY: ${param:secret_access, ""}
-    BUCKET_NAME: ${param:bucketName, "coachmatch-profile-videos-138413505977-sa-east-1-an"}
+    COACHES_TABLE: ${param:coachesTable}
+    GYMS_TABLE: ${param:gymsTable}
+    PAYMENTS_TABLE: ${param:paymentsTable}
+    SCHEDULE_TABLE: ${param:scheduleTable}
+    SPECIALTIES_TABLE: ${param:specialtiesTable}
+    STUDENTS_TABLE: ${param:studentsTable}
+    BUCKET_NAME: ${param:mediaBucketName}
     SIGNED_URL_EXPIRES: ${param:signedUrlExpires, "3600"}
     MAIL_SENDER_QUEUE_URL: ${param:mailSenderQueueUrl, ""}
     OTEL_SERVICE_NAME: coachmatch-${param:stage}
@@ -85,11 +119,8 @@ provider:
   httpApi:
     name: coachmatch-${param:stage}
     cors:
-      # Sem `*`: só o front publicado e o Vite local, que em dev aponta para esta API.
-      allowedOrigins:
-        - https://coachmatch.com.br
-        - https://www.coachmatch.com.br
-        - http://localhost:5173
+      # Sem `*`: só os fronts que chamam a API deste stage.
+      allowedOrigins: ${param:corsAllowedOrigins}
       allowedHeaders:
         - '*'
       allowedMethods:
@@ -97,20 +128,20 @@ provider:
       exposedResponseHeaders:
         - '*'
     authorizers:
-      # Pool CoachAccess — rotas /coach/*
+      # Pool de coaches — rotas /coach/*
       coachAuthorizer:
         type: jwt
         identitySource: $request.header.Authorization
-        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DDuPPtc0
+        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/${param:coachUserPoolId}
         audience:
-          - 76hul7797npfkmpoju0mbghti7
-      # Pool StudentAccess — rotas /student/* e /payments/*
+          - ${param:coachUserPoolClientId}
+      # Pool de alunos — rotas /student/* e /payments/*
       studentAuthorizer:
         type: jwt
         identitySource: $request.header.Authorization
-        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/sa-east-1_2DSfT6kmB
+        issuerUrl: https://cognito-idp.sa-east-1.amazonaws.com/${param:studentUserPoolId}
         audience:
-          - 3rjn45koljliioocd5usijdv9s
+          - ${param:studentUserPoolClientId}
 
   iam:
     role:
@@ -124,13 +155,13 @@ provider:
             - dynamodb:Query
             - dynamodb:Scan
           Resource:
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/coaches/index/*
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/student
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/gyms
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/payments
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/payments/index/*
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/specialties
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:coachesTable}
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:coachesTable}/index/*
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:studentsTable}
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:gymsTable}
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:paymentsTable}
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:paymentsTable}/index/*
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:specialtiesTable}
         # onPaymentSucceeded e as funções de agendamento compartilham a tabela.
         - Effect: Allow
           Action:
@@ -141,30 +172,26 @@ provider:
             - dynamodb:Query
             - dynamodb:Scan
           Resource:
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule
-            - arn:aws:dynamodb:sa-east-1:138413505977:table/schedule/index/*
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:scheduleTable}
+            - arn:aws:dynamodb:sa-east-1:138413505977:table/${param:scheduleTable}/index/*
         # paymentCreate emite o evento payment.succeeded
         - Effect: Allow
           Action:
             - sqs:SendMessage
           Resource:
             - !GetAtt PaymentSucceededQueue.Arn
-        - Effect: Allow
-          Action:
-            - sqs:SendMessage
-          Resource:
-            - arn:aws:sqs:sa-east-1:138413505977:MailSender
+        # Envio para a fila de e-mail: MailSenderPolicy, só nos stages que declaram a fila.
         # Endpoints de leitura assinam URLs de GET das mídias (foto/vídeo) no bucket privado
         - Effect: Allow
           Action:
             - s3:GetObject
           Resource:
-            - arn:aws:s3:::coachmatch-profile-videos-138413505977-sa-east-1-an/*
+            - arn:aws:s3:::${param:mediaBucketName}/*
         - Effect: Allow
           Action:
             - s3:PutObject
           Resource:
-            - arn:aws:s3:::coachmatch-profile-videos-138413505977-sa-east-1-an/*
+            - arn:aws:s3:::${param:mediaBucketName}/*
         # Grafana Lambda Extension lê o API key do Secrets Manager na inicialização
         - Effect: Allow
           Action:
@@ -254,7 +281,7 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - cognitoUserPool:
-          pool: CoachAccess
+          pool: ${param:coachUserPoolName}
           trigger: PostConfirmation
           existing: true
 
@@ -285,7 +312,7 @@ functions:
       SECRET_ACCESS_KEY: ${param:secret_access, ""}
     events:
       - cognitoUserPool:
-          pool: StudentAccess
+          pool: ${param:studentUserPoolName}
           trigger: PostConfirmation
           existing: true
 
@@ -830,13 +857,14 @@ functions:
 resources:
   Conditions:
     IsLocal: !Equals [ "${param:stage}", "local" ]
-    IsDev: !Equals [ "${param:stage}", "dev" ]
+    HasApiDomain: !Not [ !Equals [ "${param:apiDomainName}", "" ] ]
+    HasMailSender: !Not [ !Equals [ "${param:mailSenderQueueArn}", "" ] ]
   Resources:
     gymsTable:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: gyms
+        TableName: ${param:gymsTable}
         AttributeDefinitions:
           - AttributeName: gymId
             AttributeType: S
@@ -850,7 +878,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: coaches
+        TableName: ${param:coachesTable}
         AttributeDefinitions:
           - AttributeName: coachId
             AttributeType: S
@@ -878,7 +906,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: student
+        TableName: ${param:studentsTable}
         AttributeDefinitions:
           - AttributeName: studentId
             AttributeType: S
@@ -893,7 +921,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: payments
+        TableName: ${param:paymentsTable}
         AttributeDefinitions:
           - AttributeName: PK
             AttributeType: S
@@ -958,7 +986,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: specialties
+        TableName: ${param:specialtiesTable}
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -973,7 +1001,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Condition: IsLocal
       Properties:
-        TableName: schedule
+        TableName: ${param:scheduleTable}
         AttributeDefinitions:
           - AttributeName: scheduleId
             AttributeType: S
@@ -1029,16 +1057,31 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
 
-    # Liga o domínio à API deste stack. O domínio e o certificado são manuais, fora do
-    # stack; só o dev é servido por ele. O API Gateway aceita um único mapping com
-    # chave vazia por domínio, então um mapping manual existente impede a criação.
+    # Liga o domínio à API deste stack. O domínio e o certificado ficam fora do stack.
+    # O API Gateway aceita um único mapping com chave vazia por domínio: para mover o
+    # domínio de stage, o stage antigo precisa liberá-lo antes do novo criar o seu.
     ApiDomainMapping:
       Type: AWS::ApiGatewayV2::ApiMapping
-      Condition: IsDev
+      Condition: HasApiDomain
       Properties:
-        DomainName: api.coachmatch.com.br
+        DomainName: ${param:apiDomainName}
         ApiId: !Ref HttpApi
         Stage: !Ref HttpApiStage
+
+    # Fora do role principal porque um statement do IAM não aceita Resource vazio, e
+    # o stage sem fila de e-mail não deve receber permissão na fila de outro stage.
+    MailSenderPolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Condition: HasMailSender
+      Properties:
+        Roles:
+          - !Ref IamRoleLambdaExecution
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: sqs:SendMessage
+              Resource: ${param:mailSenderQueueArn}
 
     # Fila do evento payment.succeeded (gerenciada pelo stack, todos os stages)
     PaymentSucceededQueue:
@@ -1069,9 +1112,9 @@ custom:
     seed:
       local:
         sources:
-          - table: gyms
+          - table: ${param:gymsTable}
             sources: [./seed/gyms.json]
-          - table: specialties
+          - table: ${param:specialtiesTable}
             sources: [./seed/specialties.json]
   serverless-offline:
     ignoreJWTSignature: true
@@ -1083,6 +1126,8 @@ custom:
   # --layer-name arn:aws:lambda:sa-east-1:901920570463:layer:aws-otel-nodejs-amd64
   # --region sa-east-1` e atualizar otelLayers.dev abaixo.
   otelLayers:
+    prod:
+      - "arn:aws:lambda:sa-east-1:050451360540:layer:opentelemetry-collector-grafana-amd64-v0_138_0:2"
     dev:
       - "arn:aws:lambda:sa-east-1:050451360540:layer:opentelemetry-collector-grafana-amd64-v0_138_0:2"
     local: []

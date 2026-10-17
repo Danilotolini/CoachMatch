@@ -3,8 +3,9 @@ import { createClient } from '../../shared/config.js';
 import { ScheduleInternalException } from '../shared/exceptions.js';
 import { conditionFailureToException } from '../shared/concurrency.js';
 import { PAYMENT_STATUS } from '../shared/constants.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'schedule';
+const TABLE = tableName('schedule');
 
 /**
  * Grava o status da aula finalizada, preservando um pagamento já confirmado.

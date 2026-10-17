@@ -29,17 +29,17 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
                 description "Implementa as regras de negócio relacionadas aos profissionais: cadastro, perfil público, serviços oferecidos e agenda."
                 technology "AWS Lambda (Node.js)"
 
-                coachGetMe = component "coachmatch-dev-coachGetMe" {
+                coachGetMe = component "coachmatch-prod-coachGetMe" {
                     description "Retorna o perfil do profissional autenticado."
                     technology "AWS Lambda (Node.js)"
                 }
 
-                coachUpdateMe = component "coachmatch-dev-coachUpdateMe" {
+                coachUpdateMe = component "coachmatch-prod-coachUpdateMe" {
                     description "Atualiza o perfil do profissional autenticado."
                     technology "AWS Lambda (Node.js)"
                 }
 
-                coachCreate = component "coachmatch-dev-coachCreate" {
+                coachCreate = component "coachmatch-prod-coachCreate" {
                     description "Cria o perfil do profissional após a confirmação do cadastro."
                     technology "AWS Lambda (Node.js)"
                 }
@@ -49,22 +49,22 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
                 description "Implementa as regras de negócio relacionadas aos alunos: cadastro, perfil e favoritos."
                 technology "AWS Lambda (Node.js)"
 
-                studentGetProfile = component "coachmatch-dev-studentGetProfile" {
+                studentGetProfile = component "coachmatch-prod-studentGetProfile" {
                     description "Retorna o perfil do aluno autenticado."
                     technology "AWS Lambda (Node.js)"
                 }
 
-                studentUpdateProfile = component "coachmatch-dev-studentUpdateProfile" {
+                studentUpdateProfile = component "coachmatch-prod-studentUpdateProfile" {
                     description "Atualiza os dados de perfil do aluno."
                     technology "AWS Lambda (Node.js)"
                 }
 
-                studentUpdateHealth = component "coachmatch-dev-studentUpdateHealth" {
+                studentUpdateHealth = component "coachmatch-prod-studentUpdateHealth" {
                     description "Atualiza as informações de saúde do aluno."
                     technology "AWS Lambda (Node.js)"
                 }
 
-                studentCreate = component "coachmatch-dev-studentCreate" {
+                studentCreate = component "coachmatch-prod-studentCreate" {
                     description "Cria o perfil do aluno após a confirmação do cadastro."
                     technology "AWS Lambda (Node.js)"
                 }
@@ -84,12 +84,12 @@ workspace "CoachMatch" "Plataforma que conecta alunos a personal trainers qualif
                     technology "AWS Lambda (Node.js)"
                 }
 
-                gymGet = component "coachmatch-dev-gymGet" {
+                gymGet = component "coachmatch-prod-gymGet" {
                     description "Retorna a lista de academias disponíveis, para o aluno."
                     technology "AWS Lambda (Node.js)"
                 }
 
-                gymSuggest = component "coachmatch-dev-gymSuggest" {
+                gymSuggest = component "coachmatch-prod-gymSuggest" {
                     description "Recebe sugestões de novas academias enviadas pelo aluno."
                     technology "AWS Lambda (Node.js)"
                 }

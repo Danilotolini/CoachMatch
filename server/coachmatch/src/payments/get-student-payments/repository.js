@@ -1,7 +1,8 @@
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'payments';
+const TABLE = tableName('payments');
 
 /**
  * Retorna todas as transações de um aluno, ordenadas da mais recente para a mais antiga.

@@ -30,6 +30,7 @@ lerna-debug.log*
 .env
 .env.*
 !.env.example
+!client/.env.dev
 
 # Notas de trabalho locais (não versionar)
 PLAN.md

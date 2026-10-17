@@ -22,7 +22,7 @@ describe('env', () => {
     )
   })
 
-  it('exige o client secret do coach', async () => {
+  it('aceita o coach sem client secret (app client PKCE-only)', async () => {
     vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com')
     vi.stubEnv('VITE_COGNITO_CLIENT_ID', 'coach-client')
     vi.stubEnv('VITE_COGNITO_CLIENT_SECRET', '')
@@ -30,9 +30,9 @@ describe('env', () => {
     vi.stubEnv('VITE_COGNITO_STUDENT_CLIENT_ID', 'student-client')
     vi.stubEnv('VITE_COGNITO_STUDENT_DOMAIN', 'student.example.com')
 
-    await expect(import('./env.ts')).rejects.toThrow(
-      'VITE_COGNITO_CLIENT_SECRET is not defined. Check .env.local',
-    )
+    const { env } = await import('./env.ts')
+
+    expect(env.cognitoClientSecret).toBeNull()
   })
 
   it('expõe o domínio do aluno e o secret do coach quando configurados', async () => {

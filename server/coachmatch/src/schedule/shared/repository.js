@@ -2,10 +2,11 @@ import { GetCommand, UpdateCommand, BatchGetCommand } from '@aws-sdk/lib-dynamod
 import { createClient } from '../../shared/config.js';
 import { ScheduleInternalException } from './exceptions.js';
 import { requestsUnchanged, conditionFailureToException } from './concurrency.js';
+import { tableName } from '../../shared/tables.js';
 
-const SCHEDULE_TABLE = 'schedule';
-const COACHES_TABLE = 'coaches';
-const STUDENTS_TABLE = 'student';
+const SCHEDULE_TABLE = tableName('schedule');
+const COACHES_TABLE = tableName('coaches');
+const STUDENTS_TABLE = tableName('students');
 
 export const getScheduleById = async (scheduleId) => {
   const docClient = createClient();

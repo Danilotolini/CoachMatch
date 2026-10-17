@@ -1,11 +1,12 @@
 import { BatchGetCommand } from "@aws-sdk/lib-dynamodb";
 import { createClient } from "../../shared/config.js";
 import { signGetUrl } from "../../shared/s3.js";
+import { tableName } from "../../shared/tables.js";
 
 const dynamo = createClient();
 
-const STUDENT_TABLE = process.env.STUDENT_TABLE ?? "student";
-const COACHES_TABLE = process.env.COACHES_TABLE ?? "coaches";
+const STUDENT_TABLE = tableName("students");
+const COACHES_TABLE = tableName("coaches");
 
 const batchGet = async (table, keys) => {
   if (keys.length === 0) return [];

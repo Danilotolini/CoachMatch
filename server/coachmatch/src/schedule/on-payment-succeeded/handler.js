@@ -1,8 +1,9 @@
 import { withLogger } from '../../shared/logger.js';
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'schedule';
+const TABLE = tableName('schedule');
 
 /**
  * Consome `payment.succeeded` da fila e marca o agendamento como pago.

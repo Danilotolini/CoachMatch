@@ -2,31 +2,27 @@
 
 ## Ambientes & Infraestrutura real
 
-Conta AWS `138413505977`, região `sa-east-1`. Hoje existe **um único ambiente**
-(produção). O frontend é servido a partir do prefixo `coachmatch_site/` dentro do
-bucket — por isso o `s3 sync` aponta para `s3://<bucket>/coachmatch_site`.
+Conta AWS `138413505977`, região `sa-east-1`, com dois ambientes: `prod` e `dev`
+(ver [`server/coachmatch/DEPLOY.md`](../server/coachmatch/DEPLOY.md)).
 
-| Recurso | Valor |
-| --- | --- |
-| Bucket do site | `coachmatch` |
-| Prefixo do site | `coachmatch_site/` |
-| Distribuição CloudFront | `E2FXMRNR2KASRR` (`OriginPath: /coachmatch_site`) |
-| Domínio | `coachmatch.com.br` |
+| | prod | dev |
+| --- | --- | --- |
+| Deploy | manual: `workflow_dispatch` a partir da `main` (job `deploy`) | automático: push em `develop` (job `deploy-dev`) |
+| Backend | `pnpm deploy:prod` | `pnpm deploy:dev` |
+| Build do front | `pnpm build` com as variáveis `VITE_*` do repositório | `pnpm build:dev` com `client/.env.dev` |
+| Bucket do site | `coachmatch`, prefixo `coachmatch_site/` | `coachmatch-site-dev-138413505977`, na raiz |
+| Distribuição CloudFront | `E2FXMRNR2KASRR` (`OriginPath: /coachmatch_site`) | `E2UPTG1FXHJSAJ` |
+| Domínio | `coachmatch.com.br` | `dev.coachmatch.com.br` |
+
+O front de prod é servido a partir do prefixo `coachmatch_site/` — por isso o
+`s3 sync` de prod aponta para `s3://<bucket>/coachmatch_site`.
 
 Secrets de deploy: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
 `SERVERLESS_ACCESS_KEY` (exigido pelo Serverless Framework v4),
 `S3_BUCKET_PRODUCTION` (= `coachmatch`), `CLOUDFRONT_PRODUCTION_ID` (= `E2FXMRNR2KASRR`).
-`apiKey`/`apiSecret`/`apiGatewayId`/região vêm de `server/coachmatch/config.yml`
+Bucket e distribuição de dev ficam no próprio workflow, porque não são segredo.
+`apiKey`/`apiSecret`/região vêm de `server/coachmatch/config.yml`
 (commitado) — não são secrets.
-
-## ⚠️ Pendências
-
-- [ ] **Criar o ambiente de `develop` na AWS antes de habilitar a esteira de develop.**
-  Não existem bucket S3 nem distribuição CloudFront próprios de develop — só o de
-  produção. Por isso o deploy de develop está **comentado** em
-  `workflows/ci-cd-pipeline.yml` (job `deploy` e opção `develop` do
-  `workflow_dispatch`). Ao criar a infra, reativar os blocos comentados e cadastrar
-  os secrets `S3_BUCKET_DEVELOP` e `CLOUDFRONT_DEVELOP_ID`.
 
 ## Quick Commands
 

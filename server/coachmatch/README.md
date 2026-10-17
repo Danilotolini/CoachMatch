@@ -262,6 +262,12 @@ dev:
   region: sa-east-1
 ```
 
+Cada stage também declara os nomes dos recursos que usa: tabelas (`coachesTable`,
+`studentsTable`...), pools e app clients do Cognito, bucket de mídia e origens de CORS.
+O `serverless.yml` repassa as tabelas às Lambdas como `COACHES_TABLE`,
+`STUDENTS_TABLE` etc., e o código não tem nome default: sem a variável, a Lambda falha
+ao iniciar com a variável e o valor esperado na mensagem.
+
 ### Iniciar servidor local
 
 ```bash

@@ -1,7 +1,8 @@
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'student';
+const TABLE = tableName('students');
 
 /**
  * Atualiza os dados de perfil e, condicionalmente, avança o status para
