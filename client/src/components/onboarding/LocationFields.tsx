@@ -48,13 +48,14 @@ export function CityAutocomplete({
 
   return (
     <div>
-      <label className="block font-label text-xs text-on-surface-variant mb-2">Cidade</label>
+      <label htmlFor="city-autocomplete" className="block font-label text-xs text-on-surface-variant mb-2">Cidade</label>
       <div ref={containerRef} className="relative">
         <div className="bg-surface-container-highest rounded-lg border border-outline-variant/15 focus-within:border-primary/50 transition-colors flex items-center px-4">
           <span className="material-symbols-outlined text-on-surface-variant mr-2 text-[20px]">
             search
           </span>
           <input
+            id="city-autocomplete"
             type="text"
             value={query}
             disabled={disabled}

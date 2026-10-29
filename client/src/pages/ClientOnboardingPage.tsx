@@ -290,9 +290,9 @@ export default function ClientOnboardingPage() {
               </div>
 
               <div>
-                <label className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
+                <p className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
                   Gênero
-                </label>
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {GENDERS.map((g) => (
                     <Chip
@@ -339,9 +339,9 @@ export default function ClientOnboardingPage() {
               </div>
 
               <div>
-                <label className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
+                <p className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
                   Raio de busca
-                </label>
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {RADII.map((r) => (
                     <Chip

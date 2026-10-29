@@ -19,12 +19,12 @@ export function getToken(): string | null {
 }
 
 function base64UrlDecode(value: string): string {
-  const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
+  const base64 = value.replaceAll('-', '+').replaceAll('_', '/')
   const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')
   return decodeURIComponent(
     atob(padded)
       .split('')
-      .map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`)
+      .map((char) => `%${(char.codePointAt(0) ?? 0).toString(16).padStart(2, '0')}`)
       .join(''),
   )
 }

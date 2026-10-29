@@ -344,9 +344,9 @@ function ClientProfileEditor({ client }: { client: Client }) {
               </div>
 
               <div className="mt-5">
-                <label className="mb-3 block font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                <p className="mb-3 block font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">
                   Gênero
-                </label>
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {GENDERS.map((gender) => (
                     <Chip
@@ -395,9 +395,9 @@ function ClientProfileEditor({ client }: { client: Client }) {
               </div>
 
               <div className="mt-5">
-                <label className="mb-3 block font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                <p className="mb-3 block font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">
                   Raio de busca
-                </label>
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {RADII.map((radius) => (
                     <Chip

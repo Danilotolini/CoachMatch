@@ -381,7 +381,7 @@ function ScheduleCard({
             scheduleId={schedule.scheduleId}
             coachId={schedule.coachId}
             studentId={studentId}
-            amountCents={Math.round(parseFloat(schedule.price) * 100)}
+            amountCents={Math.round(Number.parseFloat(schedule.price) * 100)}
             amountLabel={formatMoney(schedule.price)}
             coachName={coach?.profile.name ?? undefined}
             specialtyLabel={specialty}

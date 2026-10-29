@@ -81,7 +81,7 @@ const BTN_CTA =
 function maskPrice(input: string): string {
   const digits = input.replace(/\D/g, '')
   if (!digits) return ''
-  const num = parseInt(digits, 10)
+  const num = Number.parseInt(digits, 10)
   const reais = Math.floor(num / 100)
   const cents = num % 100
   return reais.toLocaleString('pt-BR') + ',' + String(cents).padStart(2, '0')
@@ -89,7 +89,7 @@ function maskPrice(input: string): string {
 
 function unmaskPrice(masked: string): string {
   if (!masked) return ''
-  return masked.replace(/\./g, '').replace(',', '.')
+  return masked.replaceAll('.', '').replace(',', '.')
 }
 
 function toDisplayPrice(apiPrice: string): string {

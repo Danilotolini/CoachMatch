@@ -83,8 +83,8 @@ function getWeekStart(date: Date): Date {
 // Reads the local time as written in the ISO string (timezone-offset-aware display)
 // "2024-06-12T08:30:00-03:00" → 510 (minutes since midnight)
 function isoDisplayMinutes(iso: string): number {
-  const h = parseInt(iso.slice(11, 13), 10)
-  const m = parseInt(iso.slice(14, 16), 10)
+  const h = Number.parseInt(iso.slice(11, 13), 10)
+  const m = Number.parseInt(iso.slice(14, 16), 10)
   return h * 60 + m
 }
 
@@ -263,7 +263,13 @@ function DayColumn({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label="Selecionar horário"
       onClick={handleGridClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') handleGridClick(e as unknown as MouseEvent<HTMLDivElement>)
+      }}
       className={`relative flex-1 ${isToday ? 'bg-primary/4' : ''} ${!isLast ? 'border-r border-outline-variant/10' : ''}`}
       style={{ height: GRID_HEIGHT }}
     >

@@ -25,7 +25,7 @@ const _handler = async (event) => {
   const params = {
     q:           qs.q ?? null,
     specialties: parseSpecialties(qs, multiQs),
-    limit:       parseInt(qs.limit ?? "12"),
+    limit:       Number.parseInt(qs.limit ?? "12", 10),
     lastKey,
   };
 
