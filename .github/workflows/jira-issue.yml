@@ -1,0 +1,44 @@
+name: Jira Issue Creation
+on:
+  workflow_dispatch:
+
+jobs:
+  jiraIssueCreation:
+    name: Jira issue Creation Demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: test
+        run: cd server/coachmatch && pnpm run test:coverage
+        env:
+          STAGE: TEST
+          REGION: us-east-1
+
+  notify-jira:
+    needs: jiraIssueCreation
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    env:
+      JIRA_EMAIL: ${{secrets.JIRA_EMAIL}}
+      JIRA_API_TOKEN: ${{secrets.JIRA_API_TOKEN}}
+      JIRA_BASE_URL: ${{secrets.JIRA_BASE_URL}}
+    steps:
+      - name: Create Jira issue
+        run: |
+          curl -X POST \
+            "${JIRA_BASE_URL}/rest/api/2/issue" \
+            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "fields": {
+                "project": {
+                  "key": "PROJ"
+                },
+                "summary": "Issue criada via GitHub Actions",
+                "description": "Esta issue foi gerada automaticamente após um disparo no GitHub Actions.",
+                "issuetype": {
+                  "name": "Task"
+                }
+              }
+            }'
