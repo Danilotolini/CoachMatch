@@ -82,7 +82,7 @@ function validateForm(form: CoachProfileFormState): CoachProfileFormErrors {
 }
 
 function formatSpecialtyLabel(id: string, labelById: Map<string, string>): string {
-  return labelById.get(id) ?? id.replace(/_/g, ' ')
+  return labelById.get(id) ?? id.replaceAll('_', ' ')
 }
 
 function formatWorkLocation(gymCount: number): string {
@@ -498,7 +498,9 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
                   src={videoPreview}
                   controls
                   className="mb-3 w-full rounded-xl border border-outline-variant/10 bg-black"
-                />
+                >
+                  <track kind="captions" srcLang="pt" label="Português" />
+                </video>
               ) : null}
               <VideoUploadCard
                 label={videoPreview ? 'Trocar vídeo' : 'Enviar vídeo'}

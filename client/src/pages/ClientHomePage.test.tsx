@@ -6,7 +6,7 @@ import { createWrapper } from '@/test/createWrapper'
 import { loginAs } from '@/test/session'
 
 function base64Url(value: string) {
-  return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return btoa(value).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
 }
 
 function makeIdToken(payload: Record<string, unknown>) {

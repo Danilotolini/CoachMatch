@@ -308,7 +308,7 @@ function StudentPaymentSection({
         scheduleId={slot.scheduleId}
         coachId={slot.coachId}
         studentId={studentId}
-        amountCents={Math.round(parseFloat(slot.price) * 100)}
+        amountCents={Math.round(Number.parseFloat(slot.price) * 100)}
         amountLabel={formatMoney(slot.price)}
         specialtyLabel={specialtyLabel}
         dateLabel={formatScheduleDateTimeRange(slot)}

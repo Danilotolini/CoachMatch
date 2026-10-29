@@ -7,8 +7,8 @@ const CHANNEL_TYPE = "messaging";
 
 /** Gera um channelId determinístico e estável para o par (independe da ordem). */
 const buildChannelId = (a, b) => {
-  const [first, second] = [a, b].sort();
-  const slug = (id) => id.replace(/-/g, "").slice(0, 8);
+  const [first, second] = [a, b].sort((x, y) => x.localeCompare(y));
+  const slug = (id) => id.replaceAll('-', '').slice(0, 8);
   return `dm_${slug(first)}_${slug(second)}`;
 };
 

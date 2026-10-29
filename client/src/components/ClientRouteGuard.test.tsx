@@ -12,9 +12,9 @@ import type { Client, ClientStatus } from '@/types/api'
 
 function encodeJwt(payload: Record<string, unknown>): string {
   const base64 = btoa(JSON.stringify(payload))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replaceAll('=', '')
   return `header.${base64}.signature`
 }
 
