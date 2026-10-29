@@ -17,10 +17,17 @@ export function Chip({ label, active = false, onRemove, onClick }: ChipProps) {
         {onRemove ? (
           <span
             role="button"
+            tabIndex={0}
             aria-label={`Remover ${label}`}
             onClick={(e) => {
               e.stopPropagation()
               onRemove()
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation()
+                onRemove()
+              }
             }}
             className="material-symbols-outlined text-[14px] cursor-pointer"
           >

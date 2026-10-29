@@ -145,7 +145,8 @@ function NextSessionCard() {
             type="button"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-surface-container-high px-4 py-3 font-headline text-sm font-bold text-on-surface uppercase transition-all hover:bg-surface-container-highest active:scale-[0.98]"
           >
-            WhatsApp
+            {'WhatsApp'}
+            {' '}
             <span className="material-symbols-outlined text-[18px]">open_in_new</span>
           </button>
         </div>

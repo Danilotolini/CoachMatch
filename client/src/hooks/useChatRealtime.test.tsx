@@ -35,7 +35,7 @@ vi.mock('@/lib/streamChat', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/streamChat')>()
   return {
     ...actual,
-    getChatClient: vi.fn(async () => client),
+    getChatClient: vi.fn(() => client),
   }
 })
 

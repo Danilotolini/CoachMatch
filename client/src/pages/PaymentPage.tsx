@@ -309,6 +309,7 @@ function PixPanel({
         ) : (
           <>
             <span className="material-symbols-outlined text-xl">check_circle</span>
+            {' '}
             Já realizei o pagamento
           </>
         )}

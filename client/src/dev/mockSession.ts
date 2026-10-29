@@ -18,7 +18,7 @@ const MOCK_CLAIMS: Record<Role, Record<string, string>> = {
 }
 
 function base64Url(input: string): string {
-  return btoa(input).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return btoa(input).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
 }
 
 export function buildMockIdToken(role: Role): string {
