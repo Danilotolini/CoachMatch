@@ -26,6 +26,9 @@ jobs:
     steps:
       - name: Create Jira issue
         run: |
+          echo "BASE_URL: ${JIRA_BASE_URL}"
+          echo "EMAIL: ${JIRA_EMAIL}"
+          echo "TOKEN length: ${#JIRA_API_TOKEN}"
           curl -X POST \
             "${JIRA_BASE_URL}/rest/api/2/issue" \
             -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
@@ -33,7 +36,7 @@ jobs:
             -d '{
               "fields": {
                 "project": {
-                  "key": "PROJ"
+                  "key": "SCRUM"
                 },
                 "summary": "Issue criada via GitHub Actions",
                 "description": "Esta issue foi gerada automaticamente após um disparo no GitHub Actions.",
