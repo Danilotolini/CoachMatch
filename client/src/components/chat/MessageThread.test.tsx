@@ -69,7 +69,7 @@ describe('MessageThread', () => {
   it('ordena mensagens sem createdAt por último (comparador usa 0)', async () => {
     const messages: ChatMessage[] = [
       { id: 'm2', text: 'Segunda', userId: 'u', createdAt: '2026-08-10T10:05:00Z' },
-      { id: 'm1', text: 'Primeira', userId: 'u', createdAt: null },
+      { id: 'm1', text: 'Primeira', userId: 'u' },
     ]
     server.use(
       http.get('*/student/chat/conversations/:id/messages', () =>
