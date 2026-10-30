@@ -54,7 +54,7 @@ describe('CityAutocomplete', () => {
     expect(screen.queryByRole('button', { name: 'São Paulo' })).not.toBeInTheDocument()
   })
 
-  it('fecha ao clicar fora e permite seleção com mouse', async () => {
+  it('fecha ao clicar fora e permite seleção com mouse', () => {
     const onChange = vi.fn()
 
     render(

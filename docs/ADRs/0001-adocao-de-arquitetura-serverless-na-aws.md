@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposto / Aceito**
+**Aceito**
 
 ---
 

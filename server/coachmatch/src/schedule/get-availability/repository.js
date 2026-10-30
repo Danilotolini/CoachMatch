@@ -1,8 +1,9 @@
 import { createClient } from '../../shared/config.js';
 import { ScheduleInternalException } from '../shared/exceptions.js';
 import { queryAll } from '../../shared/paginate.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'schedule';
+const TABLE = tableName('schedule');
 
 /**
  * Query num GSI `<chave>_Date`, filtrando status AVAILABLE/REQUESTED.

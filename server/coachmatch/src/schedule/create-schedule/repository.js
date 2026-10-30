@@ -2,10 +2,11 @@ import { PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
 import { ScheduleInternalException } from '../shared/exceptions.js';
 import { queryAll } from '../../shared/paginate.js';
+import { tableName } from '../../shared/tables.js';
 
-const SCHEDULE_TABLE = 'schedule';
-const GYMS_TABLE = 'gyms';
-const SPECIALTIES_TABLE = 'specialties';
+const SCHEDULE_TABLE = tableName('schedule');
+const GYMS_TABLE = tableName('gyms');
+const SPECIALTIES_TABLE = tableName('specialties');
 const INDEX = 'Coach_Date';
 
 const DAY_MS = 24 * 60 * 60 * 1000;

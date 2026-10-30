@@ -79,8 +79,7 @@ def main():
     print("-" * 60)
     
     configs = [
-        (".github/CICD_SETUP.md", "Setup Documentation"),
-        (".github/CI_CD_CHECKLIST.md", "Implementation Checklist"),
+        (".github/RUNBOOK.md", "CI/CD Runbook"),
         (".github/lighthouse-config.json", "Lighthouse Config"),
     ]
     
@@ -146,7 +145,7 @@ def main():
         print("2. Setup Branch Protection (Settings → Branches)")
         print("3. Create Environments (Settings → Environments)")
         print("4. Run first PR to test workflows")
-        print("\n📚 See .github/CICD_SETUP.md for detailed setup")
+        print("\n📚 See .github/RUNBOOK.md for detailed setup")
         return 0
     else:
         print("❌ Some checks failed. Please review and fix.")

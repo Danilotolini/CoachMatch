@@ -1,8 +1,9 @@
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
 import { createClient } from '../../shared/config.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'gyms';
+const TABLE = tableName('gyms');
 
 /**
  * Persiste uma nova academia sugerida no DynamoDB, gerando o gymId automaticamente.

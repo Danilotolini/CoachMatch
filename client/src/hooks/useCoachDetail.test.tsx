@@ -15,7 +15,7 @@ vi.mock('@/lib/auth', () => ({
 }))
 
 describe('useCoachDetail', () => {
-  it('não consulta quando falta coachId ou token', async () => {
+  it('não consulta quando falta coachId ou token', () => {
     const { wrapper } = createWrapper()
     getTokenMock.mockReturnValue(null)
 

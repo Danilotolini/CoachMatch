@@ -1,7 +1,8 @@
 import { GetCommand } from '@aws-sdk/lib-dynamodb';
 import { createClient } from '../../shared/config.js';
+import { tableName } from '../../shared/tables.js';
 
-const TABLE = 'student';
+const TABLE = tableName('students');
 
 /**
  * Busca um estudante pelo ID no DynamoDB.

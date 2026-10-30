@@ -371,7 +371,7 @@ function hasScheduleConflict(
 }
 
 function newScheduleId(): string {
-  return `avl_${crypto.randomUUID().replace(/-/g, '')}`
+  return `avl_${crypto.randomUUID().replaceAll('-', '')}`
 }
 
 function paginate<T>(items: T[], page: number, limit: number): PaginatedResponse<T> {
@@ -550,7 +550,7 @@ function chatSelfId(request: Request): string {
 }
 
 function chatConversationId(a: string, b: string): string {
-  return `dm_${[a, b].sort().join('_')}`
+  return `dm_${[a, b].sort((x, y) => x.localeCompare(y)).join('_')}`
 }
 
 function handleChatToken(request: Request): Response {

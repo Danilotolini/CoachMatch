@@ -224,7 +224,9 @@ export default function ClientCoachDetailPage() {
                       src={coach.profile.video_url}
                       controls
                       className="mt-4 max-h-[70vh] w-full rounded-xl border border-outline-variant/10 bg-black object-contain"
-                    />
+                    >
+                      <track kind="captions" srcLang="pt" label="Português" />
+                    </video>
                   </Card>
                 ) : null}
               </div>
