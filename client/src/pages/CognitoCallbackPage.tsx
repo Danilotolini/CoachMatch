@@ -32,17 +32,17 @@ async function navigateAfterTokenExchange(
     if (audience === 'client') {
       const client = await fetchClientMe()
       setQueryData(['clientMe'], client)
-      void navigateFn(clientStatusRoute(client.status), { replace: true })
+      navigateFn(clientStatusRoute(client.status), { replace: true })
     } else {
       const coach = await fetchCoachMe()
       setQueryData(['coachMe'], coach)
-      void navigateFn(coachStatusRoute(coach.status), { replace: true })
+      navigateFn(coachStatusRoute(coach.status), { replace: true })
     }
   } catch (err) {
     const is404 = err instanceof ApiError && err.status === 404
     const isNetwork = err instanceof TypeError
     if (is404 || isNetwork) {
-      void navigateFn(onboardingRoute, { replace: true })
+      navigateFn(onboardingRoute, { replace: true })
     } else {
       throw err
     }

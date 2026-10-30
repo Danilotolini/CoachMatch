@@ -74,11 +74,13 @@ export function ClientRouteGuard({ children, requireOnboarded = false }: ClientR
   if (isError && requireOnboarded) return <Navigate to="/client/onboarding" replace />
   if (isError) return <>{children}</>
 
-  const expectedPath = data ? routeForStatus(data.status) : null
-  if (data && requireOnboarded && data.status !== 'ACTIVE')
-    return <Navigate to={expectedPath!} replace />
-  if (data && !requireOnboarded && location.pathname !== expectedPath)
-    return <Navigate to={expectedPath!} replace />
+  if (data) {
+    const expectedPath = routeForStatus(data.status)
+    if (requireOnboarded && data.status !== 'ACTIVE')
+      return <Navigate to={expectedPath} replace />
+    if (!requireOnboarded && location.pathname !== expectedPath)
+      return <Navigate to={expectedPath} replace />
+  }
 
   return <>{children}</>
 }

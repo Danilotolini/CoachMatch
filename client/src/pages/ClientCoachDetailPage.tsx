@@ -83,7 +83,7 @@ function ScheduleSlots({
           <button
             key={schedule.scheduleId}
             type="button"
-            onClick={() => onSelect(schedule.scheduleId)}
+            onClick={() => { onSelect(schedule.scheduleId) }}
             aria-pressed={selected}
             className={`flex min-h-16 w-full items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left transition-all active:scale-[0.98] ${
               selected

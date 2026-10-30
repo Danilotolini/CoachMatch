@@ -58,7 +58,7 @@ function GymSearchResults({
         <button
           key={gym.gymId}
           type="button"
-          onClick={() => onAdd(gym)}
+          onClick={() => { onAdd(gym) }}
           className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-left transition-colors hover:bg-surface-container-high"
         >
           <span className="block font-body text-sm text-on-surface">{gym.name}</span>
