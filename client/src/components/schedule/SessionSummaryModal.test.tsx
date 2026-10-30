@@ -7,14 +7,19 @@ import type { Schedule } from '@/types/api'
 const BASE_SLOT: Schedule = {
   scheduleId: 's1',
   coachId: 'c1',
+  gymId: 'gym1',
+  specialtyId: 'sp1',
   status: 'BOOKED',
   startDateTime: '2026-08-10T10:00:00-03:00',
   endDateTime: '2026-08-10T11:00:00-03:00',
   price: '150',
   paymentStatus: 'PAID',
+  studentId: null,
+  rating: null,
+  studentComment: null,
   requests: [],
-  specialties: [],
-  gymId: null,
+  createdAt: '2026-08-01T00:00:00Z',
+  updatedAt: '2026-08-01T00:00:00Z',
 }
 
 describe('SessionSummaryModal', () => {
@@ -75,8 +80,8 @@ describe('SessionSummaryModal', () => {
       ...BASE_SLOT,
       status: 'REQUESTED' as const,
       requests: [
-        { requestId: 'r1', studentId: 'st1', status: 'REQUESTED' as const },
-        { requestId: 'r2', studentId: 'st2', status: 'REQUESTED' as const },
+        { requestId: 'r1', studentId: 'st1', status: 'REQUESTED' as const, requestedAt: '2026-08-10T10:00:00Z' },
+        { requestId: 'r2', studentId: 'st2', status: 'REQUESTED' as const, requestedAt: '2026-08-10T10:00:00Z' },
       ],
     }
     render(
