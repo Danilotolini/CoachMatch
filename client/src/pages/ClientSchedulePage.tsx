@@ -318,10 +318,10 @@ function ScheduleCard({
   onSelect,
   onPaymentUpdated,
 }: {
-  item: ScheduleViewItem
-  studentId: string
-  onSelect: (slot: Schedule) => void
-  onPaymentUpdated: () => void
+  readonly item: ScheduleViewItem
+  readonly studentId: string
+  readonly onSelect: (slot: Schedule) => void
+  readonly onPaymentUpdated: () => void
 }) {
   const { schedule, coach } = item
   const specialty = coach?.profile.specialties.find(Boolean) ?? schedule.specialtyId
@@ -394,14 +394,16 @@ function ScheduleCard({
   )
 }
 
-function EmptyState({ filter }: { filter: ScheduleFilter }) {
+function EmptyState({ filter }: { readonly filter: ScheduleFilter }) {
   const navigate = useNavigate()
-  const copy =
-    filter === 'requests'
-      ? 'Nenhum pedido pendente agora.'
-      : filter === 'history'
-        ? 'Seu histórico aparece depois das primeiras sessões.'
-        : 'Você ainda não tem sessão confirmada.'
+  let copy: string
+  if (filter === 'requests') {
+    copy = 'Nenhum pedido pendente agora.'
+  } else if (filter === 'history') {
+    copy = 'Seu histórico aparece depois das primeiras sessões.'
+  } else {
+    copy = 'Você ainda não tem sessão confirmada.'
+  }
 
   return (
     <Card className="p-6 text-center">

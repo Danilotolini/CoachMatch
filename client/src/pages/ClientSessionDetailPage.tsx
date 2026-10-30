@@ -48,7 +48,7 @@ function toSchedule(item: StudentScheduleItem, studentId: string): Schedule {
   }
 }
 
-function CoachSection({ slot }: { slot: Schedule }) {
+function CoachSection({ slot }: { readonly slot: Schedule }) {
   const query = useCoachDetail(slot.coachId)
 
   if (query.isLoading) {
@@ -76,9 +76,9 @@ function CoachDetailView({
   gymId,
   coachId,
 }: {
-  detail: CoachDetail
-  gymId: string
-  coachId: string
+  readonly detail: CoachDetail
+  readonly gymId: string
+  readonly coachId: string
 }) {
   const { profile } = detail
   const gym = useMemo(() => {
@@ -165,7 +165,7 @@ function CoachDetailView({
 
 type ActionKind = 'request' | 'session'
 
-function StudentSessionActions({ slot, onCancelled }: { slot: Schedule; onCancelled: () => void }) {
+function StudentSessionActions({ slot, onCancelled }: { readonly slot: Schedule; readonly onCancelled: () => void }) {
   const cancelRequest = useCancelStudentScheduleRequest()
   const cancelSession = useCancelStudentSchedule()
   const [confirming, setConfirming] = useState<ActionKind | null>(null)
@@ -291,10 +291,10 @@ function StudentPaymentSection({
   specialtyLabel,
   onPaid,
 }: {
-  slot: Schedule
-  studentId: string
-  specialtyLabel: string
-  onPaid: () => void
+  readonly slot: Schedule
+  readonly studentId: string
+  readonly specialtyLabel: string
+  readonly onPaid: () => void
 }) {
   const canPay = slot.status === 'BOOKED' && slot.paymentStatus !== 'PAID'
   if (!canPay) return null
@@ -360,36 +360,42 @@ export default function ClientSessionDetailPage() {
         </header>
 
         <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-4 pb-12 sm:px-6 md:px-10">
-          {scheduleQuery.isLoading ? (
-            <div className="h-40 animate-pulse rounded-xl bg-surface-container-low" />
-          ) : !slot ? (
-            <Card className="p-6 text-center">
-              <Icon name="event_busy" size={34} className="mx-auto mb-3 text-primary" />
-              <h2 className="font-headline text-xl font-semibold">Sessão não encontrada</h2>
-              <p className="mt-2 font-body text-sm text-on-surface-variant">
-                Esta sessão não está mais disponível na sua agenda.
-              </p>
-            </Card>
-          ) : (
-            <>
-              <SessionSummaryCard slot={slot} specialtyLabel={specialtyLabel} />
-              <StudentPaymentSection
-                slot={slot}
-                studentId={studentId}
-                specialtyLabel={specialtyLabel}
-                onPaid={() => {
-                  void scheduleQuery.refetch()
-                }}
-              />
-              <StudentSessionActions
-                slot={slot}
-                onCancelled={() => {
-                  void navigate('/client/schedule')
-                }}
-              />
-              <CoachSection slot={slot} />
-            </>
-          )}
+          {(() => {
+            if (scheduleQuery.isLoading) {
+              return <div className="h-40 animate-pulse rounded-xl bg-surface-container-low" />
+            }
+            if (!slot) {
+              return (
+                <Card className="p-6 text-center">
+                  <Icon name="event_busy" size={34} className="mx-auto mb-3 text-primary" />
+                  <h2 className="font-headline text-xl font-semibold">Sessão não encontrada</h2>
+                  <p className="mt-2 font-body text-sm text-on-surface-variant">
+                    Esta sessão não está mais disponível na sua agenda.
+                  </p>
+                </Card>
+              )
+            }
+            return (
+              <>
+                <SessionSummaryCard slot={slot} specialtyLabel={specialtyLabel} />
+                <StudentPaymentSection
+                  slot={slot}
+                  studentId={studentId}
+                  specialtyLabel={specialtyLabel}
+                  onPaid={() => {
+                    void scheduleQuery.refetch()
+                  }}
+                />
+                <StudentSessionActions
+                  slot={slot}
+                  onCancelled={() => {
+                    void navigate('/client/schedule')
+                  }}
+                />
+                <CoachSection slot={slot} />
+              </>
+            )
+          })()}
         </section>
       </div>
 

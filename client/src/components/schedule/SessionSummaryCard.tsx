@@ -4,7 +4,7 @@ import { formatMoney, paymentLabel } from '@/lib/money'
 import { SCHEDULE_STATUS_CHIP, SCHEDULE_STATUS_LABELS } from '@/lib/scheduleStatus'
 import type { Schedule } from '@/types/api'
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { readonly label: string; readonly value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
       <span className="font-label text-xs text-on-surface-variant">{label}</span>
@@ -21,11 +21,11 @@ export function SessionSummaryCard({
   gymLabel,
   showPayment = true,
 }: {
-  slot: Schedule
-  specialtyLabel: string
-  gymLabel?: string | undefined
+  readonly slot: Schedule
+  readonly specialtyLabel: string
+  readonly gymLabel?: string | undefined
   /** O treinador não vê o status de pagamento. */
-  showPayment?: boolean
+  readonly showPayment?: boolean
 }) {
   const payment = showPayment ? paymentLabel(slot.paymentStatus) : null
 

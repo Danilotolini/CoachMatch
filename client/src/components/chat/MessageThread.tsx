@@ -98,53 +98,64 @@ export function MessageThread({
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {isLoading ? (
-          <div className="flex flex-col gap-3">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-10 w-2/3 animate-pulse rounded-xl bg-surface-container-low"
-              />
-            ))}
-          </div>
-        ) : isError ? (
-          <p className="font-body text-sm text-on-surface-variant">
-            {parseApiErrors(error, 'Não foi possível carregar as mensagens.')}
-          </p>
-        ) : messages.length === 0 ? (
-          <p className="mt-6 text-center font-body text-sm text-on-surface-variant">
-            Nenhuma mensagem ainda. Diga olá!
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {messages.map((message) => {
-              const isMine = !!selfId && message.userId === selfId
-              return (
-                <li
-                  key={message.id}
-                  className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
-                >
+        {(() => {
+          if (isLoading) {
+            return (
+              <div className="flex flex-col gap-3">
+                {[0, 1, 2].map((i) => (
                   <div
-                    className={`max-w-[80%] rounded-2xl px-3.5 py-2 ${
-                      isMine
-                        ? 'bg-primary text-on-primary-fixed'
-                        : 'bg-surface-container-high text-on-surface'
-                    }`}
+                    key={i}
+                    className="h-10 w-2/3 animate-pulse rounded-xl bg-surface-container-low"
+                  />
+                ))}
+              </div>
+            )
+          }
+          if (isError) {
+            return (
+              <p className="font-body text-sm text-on-surface-variant">
+                {parseApiErrors(error, 'Não foi possível carregar as mensagens.')}
+              </p>
+            )
+          }
+          if (messages.length === 0) {
+            return (
+              <p className="mt-6 text-center font-body text-sm text-on-surface-variant">
+                Nenhuma mensagem ainda. Diga olá!
+              </p>
+            )
+          }
+          return (
+            <ul className="flex flex-col gap-2">
+              {messages.map((message) => {
+                const isMine = !!selfId && message.userId === selfId
+                return (
+                  <li
+                    key={message.id}
+                    className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
                   >
-                    <p className="whitespace-pre-wrap wrap-break-word font-body text-sm">
-                      {message.text}
-                    </p>
-                  </div>
-                  {message.createdAt && (
-                    <span className="mt-0.5 px-1 font-label text-[10px] text-on-surface-variant">
-                      {formatBrazilTime(message.createdAt)}
-                    </span>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        )}
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-3.5 py-2 ${
+                        isMine
+                          ? 'bg-primary text-on-primary-fixed'
+                          : 'bg-surface-container-high text-on-surface'
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap wrap-break-word font-body text-sm">
+                        {message.text}
+                      </p>
+                    </div>
+                    {message.createdAt && (
+                      <span className="mt-0.5 px-1 font-label text-[10px] text-on-surface-variant">
+                        {formatBrazilTime(message.createdAt)}
+                      </span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )
+        })()}
         <div ref={bottomRef} />
       </div>
 

@@ -1,11 +1,11 @@
 import { useLayoutEffect, useRef, type ChangeEvent, type InputHTMLAttributes } from 'react'
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix'> {
-  label?: string | undefined
-  error?: string | undefined
-  helpText?: string | undefined
-  icon?: string | undefined
-  prefix?: string | undefined
+  readonly label?: string | undefined
+  readonly error?: string | undefined
+  readonly helpText?: string | undefined
+  readonly icon?: string | undefined
+  readonly prefix?: string | undefined
   /**
    * Sanitizador aplicado ao valor pelo pai (ex.: máscara/uppercase). Quando
    * informado, o caret é preservado após a transformação, evitando que ele
@@ -15,7 +15,7 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix
    * argumento permite que máscaras sensíveis ao contexto (ex.: CREF) ajustem
    * o resultado quando o usuário apaga um separador.
    */
-  transform?: ((value: string, previousMasked: string) => string) | undefined
+  readonly transform?: ((value: string, previousMasked: string) => string) | undefined
 }
 
 /**
@@ -75,11 +75,9 @@ export function Input({
     onChange?.(event)
   }
 
-  const borderColor = error
-    ? 'border-error'
-    : disabled
-      ? 'border-primary/30'
-      : 'border-surface-variant focus-within:border-primary'
+  const enabledBorder = disabled ? 'border-primary/30' : 'border-surface-variant focus-within:border-primary'
+  const borderColor = error ? 'border-error' : enabledBorder
+  const helpContent = helpText ? <p className="font-body text-xs text-on-surface-variant">{helpText}</p> : null
 
   return (
     <div className="space-y-2">
@@ -113,11 +111,7 @@ export function Input({
         />
       </div>
 
-      {error ? (
-        <p className="font-body text-xs text-error">{error}</p>
-      ) : helpText ? (
-        <p className="font-body text-xs text-on-surface-variant">{helpText}</p>
-      ) : null}
+      {error ? <p className="font-body text-xs text-error">{error}</p> : helpContent}
     </div>
   )
 }

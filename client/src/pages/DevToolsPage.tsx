@@ -44,9 +44,9 @@ function Pill({
   dot = false,
   children,
 }: {
-  active: boolean
-  dot?: boolean
-  children: React.ReactNode
+  readonly active: boolean
+  readonly dot?: boolean
+  readonly children: React.ReactNode
 }) {
   return (
     <span
@@ -70,10 +70,10 @@ function StatusGrid<T extends string>({
   onSelect,
   className = '',
 }: {
-  statuses: readonly T[]
-  current?: T | undefined
-  onSelect: (status: T) => void
-  className?: string
+  readonly statuses: readonly T[]
+  readonly current?: T | undefined
+  readonly onSelect: (status: T) => void
+  readonly className?: string
 }) {
   return (
     <div className={`grid grid-cols-3 gap-2 ${className}`}>

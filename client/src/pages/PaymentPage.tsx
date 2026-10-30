@@ -69,7 +69,7 @@ const MOCK_SESSION = {
 
 // ─── Componentes internos ─────────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
   return (
     <section className="space-y-4">
       <h2 className="font-headline text-xl font-semibold text-on-surface border-l-4 border-primary pl-3">
@@ -80,7 +80,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function FieldError({ message }: { message: string }) {
+function FieldError({ message }: { readonly message: string }) {
   return (
     <p className="mt-1 font-body text-xs text-error flex items-center gap-1">
       <span className="material-symbols-outlined text-[14px]">error</span>
@@ -89,7 +89,7 @@ function FieldError({ message }: { message: string }) {
   )
 }
 
-function Label({ children }: { children: React.ReactNode }) {
+function Label({ children }: { readonly children: React.ReactNode }) {
   return (
     <span className="block font-label text-xs text-on-surface-variant uppercase tracking-widest mb-1.5">
       {children}
@@ -97,7 +97,7 @@ function Label({ children }: { children: React.ReactNode }) {
   )
 }
 
-function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement> & { hasError?: boolean }) {
+function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement> & { readonly hasError?: boolean }) {
   const { hasError, className = '', ...rest } = props
   return (
     <input
@@ -120,9 +120,9 @@ function PaymentResult({
   amount,
   onRetry,
 }: {
-  status: 'approved' | 'refused' | 'refunded'
-  amount: number
-  onRetry: () => void
+  readonly status: 'approved' | 'refused' | 'refunded'
+  readonly amount: number
+  readonly onRetry: () => void
 }) {
   const configs = {
     approved: {
@@ -225,9 +225,9 @@ function PixPanel({
   onConfirm,
   loading,
 }: {
-  amount: number
-  onConfirm: () => void
-  loading: boolean
+  readonly amount: number
+  readonly onConfirm: () => void
+  readonly loading: boolean
 }) {
   const mockPixCode = 'pix_mock_00020126580014br.gov.bcb.pix0136mock-uuid'
 
@@ -324,8 +324,8 @@ function CardPanel({
   onSubmit,
   loading,
 }: {
-  onSubmit: (card: CardForm) => void
-  loading: boolean
+  readonly onSubmit: (card: CardForm) => void
+  readonly loading: boolean
 }) {
   const [form, setForm] = useState<CardForm>({
     number: '',

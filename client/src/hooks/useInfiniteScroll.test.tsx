@@ -36,10 +36,10 @@ function Harness({
   onLoadMore,
   rootMargin,
 }: {
-  hasMore: boolean
-  isLoading: boolean
-  onLoadMore: () => void
-  rootMargin?: string
+  readonly hasMore: boolean
+  readonly isLoading: boolean
+  readonly onLoadMore: () => void
+  readonly rootMargin?: string
 }) {
   const { rootRef, sentinelRef } = useInfiniteScroll({
     hasMore,

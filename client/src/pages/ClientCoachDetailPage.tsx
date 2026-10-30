@@ -428,7 +428,7 @@ export default function ClientCoachDetailPage() {
   )
 }
 
-function SectionTitle({ icon, title }: { icon: string; title: string }) {
+function SectionTitle({ icon, title }: { readonly icon: string; readonly title: string }) {
   return (
     <div className="flex items-center gap-2">
       <Icon name={icon} size={20} className="text-primary" />

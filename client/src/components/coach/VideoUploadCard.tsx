@@ -21,13 +21,9 @@ export function VideoUploadCard({
   hint,
   onPick,
 }: VideoUploadCardProps) {
-  const status = uploading
-    ? `Enviando... ${String(progress)}%`
-    : uploaded
-      ? fileName
-        ? `Pronto: ${fileName}`
-        : 'Vídeo de apresentação publicado.'
-      : 'Faça upload de um vídeo curto (até 60s) mostrando sua energia.'
+  const uploadedStatus = fileName ? `Pronto: ${fileName}` : 'Vídeo de apresentação publicado.'
+  const idleStatus = uploaded ? uploadedStatus : 'Faça upload de um vídeo curto (até 60s) mostrando sua energia.'
+  const status = uploading ? `Enviando... ${String(progress)}%` : idleStatus
 
   let icon: string
   if (uploaded) icon = 'check_circle'

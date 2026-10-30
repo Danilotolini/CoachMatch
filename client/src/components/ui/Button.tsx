@@ -2,9 +2,9 @@ import type { ButtonHTMLAttributes } from 'react'
 import { Icon } from '@/components/ui/Icon'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost'
-  loading?: boolean
-  icon?: string
+  readonly variant?: 'primary' | 'secondary' | 'ghost'
+  readonly loading?: boolean
+  readonly icon?: string
 }
 
 export function Button({

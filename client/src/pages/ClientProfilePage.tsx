@@ -171,7 +171,7 @@ export default function ClientProfilePage() {
   )
 }
 
-function ClientProfileEditor({ client }: { client: Client }) {
+function ClientProfileEditor({ client }: { readonly client: Client }) {
   const [form, setForm] = useState<ClientProfileFormState>(() => clientToForm(client))
   const [errors, setErrors] = useState<ClientProfileFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -279,6 +279,28 @@ function ClientProfileEditor({ client }: { client: Client }) {
     }
   }
 
+  let cepHelpText: string | undefined
+  if (cepStatus === 'loading') cepHelpText = 'Buscando endereço...'
+  else if (cepStatus === 'error') cepHelpText = 'Não encontramos esse CEP.'
+
+  const submitStateEl = submitError ? (
+    <span className="inline-flex items-center gap-2 text-error">
+      <Icon name="error" size={18} />
+      {submitError}
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-2 text-on-surface-variant">
+      <Icon name="info" size={18} />
+      Mantenha seus dados em dia para melhorar a busca.
+    </span>
+  )
+  const statusEl = successMessage ? (
+    <span className="inline-flex items-center gap-2 font-semibold text-primary">
+      <Icon name="check_circle" size={18} filled />
+      {successMessage}
+    </span>
+  ) : submitStateEl
+
   return (
     <>
       <ProfileHero
@@ -379,13 +401,7 @@ function ClientProfileEditor({ client }: { client: Client }) {
                   placeholder="00000-000"
                   value={form.cep}
                   error={errors.cep}
-                  helpText={
-                    cepStatus === 'loading'
-                      ? 'Buscando endereço...'
-                      : cepStatus === 'error'
-                        ? 'Não encontramos esse CEP.'
-                        : undefined
-                  }
+                  helpText={cepHelpText}
                   onChange={(event) => {
                     void handleCepChange(event.target.value)
                   }}
@@ -493,24 +509,7 @@ function ClientProfileEditor({ client }: { client: Client }) {
         </div>
 
         <div className="flex flex-col gap-4 rounded-xl border border-outline-variant/10 bg-surface-container-low p-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="min-h-5 font-body text-sm">
-            {successMessage ? (
-              <span className="inline-flex items-center gap-2 font-semibold text-primary">
-                <Icon name="check_circle" size={18} filled />
-                {successMessage}
-              </span>
-            ) : submitError ? (
-              <span className="inline-flex items-center gap-2 text-error">
-                <Icon name="error" size={18} />
-                {submitError}
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-2 text-on-surface-variant">
-                <Icon name="info" size={18} />
-                Mantenha seus dados em dia para melhorar a busca.
-              </span>
-            )}
-          </p>
+          <p className="min-h-5 font-body text-sm">{statusEl}</p>
           <Button
             type="submit"
             loading={submitProfile.isPending}
@@ -526,7 +525,7 @@ function ClientProfileEditor({ client }: { client: Client }) {
   )
 }
 
-function InlineState({ icon, text }: { icon: string; text: string }) {
+function InlineState({ icon, text }: { readonly icon: string; readonly text: string }) {
   return (
     <section className="flex min-h-48 items-center justify-center rounded-xl border border-outline-variant/10 bg-surface-container-low p-8 text-center">
       <div>

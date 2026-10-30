@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode
+  readonly children: React.ReactNode
 }
 
 export function Card({ children, className = '', ...props }: CardProps) {

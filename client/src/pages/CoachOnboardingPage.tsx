@@ -378,7 +378,7 @@ export default function CoachOnboardingPage() {
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
   return (
     <section className="space-y-6">
       <h2 className="font-headline text-2xl font-semibold text-on-surface border-l-4 border-primary pl-3">

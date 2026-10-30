@@ -275,7 +275,7 @@ export default function CoachDashboardPage() {
   )
 }
 
-function InlineState({ icon, text }: { icon: string; text: string }) {
+function InlineState({ icon, text }: { readonly icon: string; readonly text: string }) {
   return (
     <div className="flex min-h-24 items-center gap-3 rounded-xl border border-outline-variant/10 bg-surface-container-low p-4">
       <span className="material-symbols-outlined text-[22px] text-primary">{icon}</span>
@@ -316,7 +316,7 @@ function TopBar({ firstName, profilePhoto, name }: TopBarProps) {
   )
 }
 
-function ApprovedBanner({ className = '' }: { className?: string }) {
+function ApprovedBanner({ className = '' }: { readonly className?: string }) {
   return (
     <div
       className={`flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 ${className}`}
@@ -358,6 +358,15 @@ interface SectionProps {
 }
 
 function Section({ title, action, children, className = '' }: SectionProps) {
+  const actionButton = action ? (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1 font-label text-sm font-medium text-primary transition-colors hover:underline"
+    >
+      {action.label}
+      <span className="material-symbols-outlined text-[16px]">{action.icon}</span>
+    </button>
+  ) : null
   return (
     <section className={`flex flex-col gap-4 ${className}`}>
       <div className="flex items-center justify-between">
@@ -370,15 +379,7 @@ function Section({ title, action, children, className = '' }: SectionProps) {
             {action.label}
             <span className="material-symbols-outlined text-[16px]">{action.icon}</span>
           </Link>
-        ) : action ? (
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 font-label text-sm font-medium text-primary transition-colors hover:underline"
-          >
-            {action.label}
-            <span className="material-symbols-outlined text-[16px]">{action.icon}</span>
-          </button>
-        ) : null}
+        ) : actionButton}
       </div>
       {children}
     </section>
@@ -472,7 +473,7 @@ function ProfileCard({
   )
 }
 
-function ProfileStat({ label, value }: { label: string; value: string }) {
+function ProfileStat({ label, value }: { readonly label: string; readonly value: string }) {
   return (
     <div className="flex flex-col gap-1 rounded-lg bg-surface-container py-3 px-4">
       <span className="font-label text-xs text-on-surface-variant">{label}</span>

@@ -198,7 +198,7 @@ const STATUS_CLASSES: Record<DraftStatus, string> = {
   error: 'bg-error-container text-on-error-container',
 }
 
-function StatusChip({ status }: { status: DraftStatus }) {
+function StatusChip({ status }: { readonly status: DraftStatus }) {
   return (
     <span
       className={`shrink-0 rounded-full px-2 py-0.5 font-label text-[10px] font-semibold ${STATUS_CLASSES[status]}`}
@@ -217,7 +217,7 @@ const SCHEDULE_STATUS_CHIP: Record<ScheduleStatus, { className: string }> = {
   CANCELLED: { className: 'bg-surface-container-high text-on-surface-variant opacity-60' },
 }
 
-function ScheduleStatusChip({ status }: { status: ScheduleStatus }) {
+function ScheduleStatusChip({ status }: { readonly status: ScheduleStatus }) {
   return (
     <span
       className={`shrink-0 rounded-full px-2 py-0.5 font-label text-[10px] font-semibold ${SCHEDULE_STATUS_CHIP[status].className}`}
@@ -234,11 +234,11 @@ function SlotRow({
   allSlots,
   existingSlots,
 }: {
-  slot: DraftSlot
-  patch: (key: string, partial: Partial<Omit<DraftSlot, 'key'>>) => void
-  removeSlot: (key: string) => void
-  allSlots: DraftSlot[]
-  existingSlots: Schedule[]
+  readonly slot: DraftSlot
+  readonly patch: (key: string, partial: Partial<Omit<DraftSlot, 'key'>>) => void
+  readonly removeSlot: (key: string) => void
+  readonly allSlots: DraftSlot[]
+  readonly existingSlots: Schedule[]
 }) {
   const [editing, setEditing] = useState(false)
   const [editStart, setEditStart] = useState(slot.startDateTime.slice(11, 16))
@@ -415,12 +415,12 @@ function QuickSlotForm({
   initialSlot,
   onClose,
 }: {
-  gyms: ScheduleGymOption[]
-  specialties: Specialty[]
-  onCreated: () => Promise<void>
-  mode?: 'collapsible' | 'modal'
-  initialSlot?: CalendarTimeSelection
-  onClose?: () => void
+  readonly gyms: ScheduleGymOption[]
+  readonly specialties: Specialty[]
+  readonly onCreated: () => Promise<void>
+  readonly mode?: 'collapsible' | 'modal'
+  readonly initialSlot?: CalendarTimeSelection
+  readonly onClose?: () => void
 }) {
   const isModal = mode === 'modal'
   const [open, setOpen] = useState(isModal)
@@ -619,11 +619,11 @@ function QuickSlotModal({
   onCreated,
   onClose,
 }: {
-  selection: CalendarTimeSelection
-  gyms: ScheduleGymOption[]
-  specialties: Specialty[]
-  onCreated: () => Promise<void>
-  onClose: () => void
+  readonly selection: CalendarTimeSelection
+  readonly gyms: ScheduleGymOption[]
+  readonly specialties: Specialty[]
+  readonly onCreated: () => Promise<void>
+  readonly onClose: () => void
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-surface/70 px-4 pb-4 pt-safe backdrop-blur-sm sm:items-center sm:justify-center sm:p-6">
@@ -679,8 +679,8 @@ function AddSlotForm({
   config,
   onAdd,
 }: {
-  config: GenerateConfig
-  onAdd: (slot: DraftSlot) => void
+  readonly config: GenerateConfig
+  readonly onAdd: (slot: DraftSlot) => void
 }) {
   const [open, setOpen] = useState(false)
   const [date, setDate] = useState(() => getTodayBrazilYMD())
@@ -798,12 +798,12 @@ function ExistingScheduleRow({
   busy,
   error,
 }: {
-  slot: Schedule
-  specialtyLabel: string
-  gymLabel: string
-  onCancel: (slot: Schedule) => void
-  busy: boolean
-  error?: string
+  readonly slot: Schedule
+  readonly specialtyLabel: string
+  readonly gymLabel: string
+  readonly onCancel: (slot: Schedule) => void
+  readonly busy: boolean
+  readonly error?: string
 }) {
   const canCancel = scheduleCanCancel(slot)
   const approvedRequest = slot.requests?.find((r) => r.status === 'APPROVED')
@@ -811,12 +811,10 @@ function ExistingScheduleRow({
     slot.status === 'REQUESTED'
       ? (slot.requests?.filter((r) => r.status === 'REQUESTED').length ?? 0)
       : 0
-  const paymentLabel =
-    (slot.status === 'COMPLETED' || slot.status === 'NOSHOW') && slot.paymentStatus
-      ? slot.paymentStatus === 'PENDING'
-        ? 'pendente'
-        : slot.paymentStatus.toLowerCase()
-      : null
+  let paymentLabel: string | null = null
+  if ((slot.status === 'COMPLETED' || slot.status === 'NOSHOW') && slot.paymentStatus) {
+    paymentLabel = slot.paymentStatus === 'PENDING' ? 'pendente' : slot.paymentStatus.toLowerCase()
+  }
 
   return (
     <div className="flex flex-col gap-1.5 rounded-lg bg-surface-container-low px-3 py-2.5">
@@ -877,11 +875,11 @@ function DayGroup({
   label,
   children,
 }: {
-  date: string
-  count: number
-  initialOpen: boolean
-  label?: string
-  children: React.ReactNode
+  readonly date: string
+  readonly count: number
+  readonly initialOpen: boolean
+  readonly label?: string
+  readonly children: React.ReactNode
 }) {
   const [open, setOpen] = useState(initialOpen)
 
@@ -920,13 +918,13 @@ function PendingRequestCard({
   onApprove,
   onSelect,
 }: {
-  slot: Schedule
-  details?: ScheduleRequestsResponse
-  specialtyLabel: string
-  busyId: string | null
-  error?: string
-  onApprove: (slot: Schedule, request: ScheduleRequest) => void
-  onSelect: (slot: Schedule) => void
+  readonly slot: Schedule
+  readonly details?: ScheduleRequestsResponse
+  readonly specialtyLabel: string
+  readonly busyId: string | null
+  readonly error?: string
+  readonly onApprove: (slot: Schedule, request: ScheduleRequest) => void
+  readonly onSelect: (slot: Schedule) => void
 }) {
   const requests = (details?.requests ?? slot.requests ?? []).filter(
     (r) => r.status === 'REQUESTED',
@@ -985,11 +983,11 @@ function BookedClassRow({
   error,
   onStatus,
 }: {
-  slot: Schedule
-  specialtyLabel: string
-  busyId: string | null
-  error?: string
-  onStatus: (slot: Schedule, status: ClassStatus) => void
+  readonly slot: Schedule
+  readonly specialtyLabel: string
+  readonly busyId: string | null
+  readonly error?: string
+  readonly onStatus: (slot: Schedule, status: ClassStatus) => void
 }) {
   const approved = slot.requests?.find((r) => r.status === 'APPROVED')
 
@@ -1035,9 +1033,9 @@ function SessionHistoryRow({
   specialtyLabel,
   onView,
 }: {
-  slot: Schedule
-  specialtyLabel: string
-  onView: (slot: Schedule) => void
+  readonly slot: Schedule
+  readonly specialtyLabel: string
+  readonly onView: (slot: Schedule) => void
 }) {
   const approved = slot.requests?.find((r) => r.status === 'APPROVED')
 
@@ -1067,9 +1065,9 @@ function GerarTab({
   config,
   setConfig,
 }: {
-  hidden: boolean
-  config: GenerateConfig
-  setConfig: Dispatch<SetStateAction<GenerateConfig>>
+  readonly hidden: boolean
+  readonly config: GenerateConfig
+  readonly setConfig: Dispatch<SetStateAction<GenerateConfig>>
 }) {
   const queryClient = useQueryClient()
   const { data: coachMe } = useCoachMe()
@@ -1531,9 +1529,9 @@ function AgendaTab({
   startDate,
   endDate,
 }: {
-  hidden: boolean
-  startDate: string
-  endDate: string
+  readonly hidden: boolean
+  readonly startDate: string
+  readonly endDate: string
 }) {
   const {
     data: existingSlots = [],
@@ -1748,35 +1746,43 @@ function AgendaTab({
           initialOpen={false}
           label="Lista de horários"
         >
-          {isAgendaLoading ? (
-            <p className="rounded-lg bg-surface-container-low px-4 py-3 font-label text-sm text-on-surface-variant">
-              Carregando agenda…
-            </p>
-          ) : existingSlotsByDay.length === 0 ? (
-            <p className="rounded-lg bg-surface-container-low px-4 py-3 font-label text-sm text-on-surface-variant">
-              Nenhum horário criado neste intervalo.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3 pt-1">
-              {existingSlotsByDay.map(({ date, slots: daySlots }) => (
-                <DayGroup key={date} date={date} count={daySlots.length} initialOpen={false}>
-                  {daySlots.map((slot) => (
-                    <ExistingScheduleRow
-                      key={slot.scheduleId}
-                      slot={slot}
-                      specialtyLabel={specialtyLabels.get(slot.specialtyId) ?? slot.specialtyId}
-                      gymLabel={gymLabels.get(slot.gymId) ?? slot.gymId}
-                      onCancel={(targetSlot) => {
-                        requestCancelSchedule(targetSlot)
-                      }}
-                      busy={busyScheduleId === slot.scheduleId}
-                      error={scheduleErrors[slot.scheduleId]}
-                    />
-                  ))}
-                </DayGroup>
-              ))}
-            </div>
-          )}
+          {(() => {
+            if (isAgendaLoading) {
+              return (
+                <p className="rounded-lg bg-surface-container-low px-4 py-3 font-label text-sm text-on-surface-variant">
+                  Carregando agenda…
+                </p>
+              )
+            }
+            if (existingSlotsByDay.length === 0) {
+              return (
+                <p className="rounded-lg bg-surface-container-low px-4 py-3 font-label text-sm text-on-surface-variant">
+                  Nenhum horário criado neste intervalo.
+                </p>
+              )
+            }
+            return (
+              <div className="flex flex-col gap-3 pt-1">
+                {existingSlotsByDay.map(({ date, slots: daySlots }) => (
+                  <DayGroup key={date} date={date} count={daySlots.length} initialOpen={false}>
+                    {daySlots.map((slot) => (
+                      <ExistingScheduleRow
+                        key={slot.scheduleId}
+                        slot={slot}
+                        specialtyLabel={specialtyLabels.get(slot.specialtyId) ?? slot.specialtyId}
+                        gymLabel={gymLabels.get(slot.gymId) ?? slot.gymId}
+                        onCancel={(targetSlot) => {
+                          requestCancelSchedule(targetSlot)
+                        }}
+                        busy={busyScheduleId === slot.scheduleId}
+                        error={scheduleErrors[slot.scheduleId]}
+                      />
+                    ))}
+                  </DayGroup>
+                ))}
+              </div>
+            )
+          })()}
         </DayGroup>
       </section>
 

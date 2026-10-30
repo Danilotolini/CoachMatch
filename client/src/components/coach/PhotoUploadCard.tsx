@@ -19,11 +19,8 @@ export function PhotoUploadCard({
   hint,
   onPick,
 }: PhotoUploadCardProps) {
-  const status = uploading
-    ? `Enviando... ${String(progress)}%`
-    : previewUrl
-      ? 'Foto de perfil pronta.'
-      : 'Use uma foto nítida do rosto, boa iluminação e fundo neutro.'
+  const idleStatus = previewUrl ? 'Foto de perfil pronta.' : 'Use uma foto nítida do rosto, boa iluminação e fundo neutro.'
+  const status = uploading ? `Enviando... ${String(progress)}%` : idleStatus
 
   return (
     <div className="flex flex-col gap-2">

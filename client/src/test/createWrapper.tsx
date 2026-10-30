@@ -9,7 +9,7 @@ export function createWrapper() {
     },
   })
 
-  function Wrapper({ children }: { children: ReactNode }) {
+  function Wrapper({ children }: { readonly children: ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   }
 

@@ -66,7 +66,7 @@ function validateCard(form: CardForm): CardErrors {
 
 // ─── Subcomponentes ───────────────────────────────────────────────────────────
 
-function Label({ children }: { children: React.ReactNode }) {
+function Label({ children }: { readonly children: React.ReactNode }) {
   return (
     <span className="mb-1.5 block font-label text-xs uppercase tracking-widest text-on-surface-variant">
       {children}
@@ -74,7 +74,7 @@ function Label({ children }: { children: React.ReactNode }) {
   )
 }
 
-function FieldError({ message }: { message: string }) {
+function FieldError({ message }: { readonly message: string }) {
   return (
     <p className="mt-1 flex items-center gap-1 font-body text-xs text-error">
       <Icon name="error" size={14} />
@@ -83,7 +83,7 @@ function FieldError({ message }: { message: string }) {
   )
 }
 
-function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement> & { hasError?: boolean }) {
+function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement> & { readonly hasError?: boolean }) {
   const { hasError, className = '', ...rest } = props
   return (
     <input
@@ -104,9 +104,9 @@ function PixPanel({
   onConfirm,
   loading,
 }: {
-  amountLabel: string
-  onConfirm: () => void
-  loading: boolean
+  readonly amountLabel: string
+  readonly onConfirm: () => void
+  readonly loading: boolean
 }) {
   const mockPixCode = 'pix_mock_00020126580014br.gov.bcb.pix0136mock-uuid'
 
@@ -186,9 +186,9 @@ function CardPanel({
   onSubmit,
   loading,
 }: {
-  amountLabel: string
-  onSubmit: (card: CardForm) => void
-  loading: boolean
+  readonly amountLabel: string
+  readonly onSubmit: (card: CardForm) => void
+  readonly loading: boolean
 }) {
   const [form, setForm] = useState<CardForm>({
     number: '',
@@ -322,12 +322,12 @@ function PaymentResult({
   onRetry,
   onDone,
 }: {
-  status: 'approved' | 'refused'
-  amountLabel: string
-  coachName?: string | undefined
-  dateLabel?: string | undefined
-  onRetry: () => void
-  onDone: () => void
+  readonly status: 'approved' | 'refused'
+  readonly amountLabel: string
+  readonly coachName?: string | undefined
+  readonly dateLabel?: string | undefined
+  readonly onRetry: () => void
+  readonly onDone: () => void
 }) {
   const config =
     status === 'approved'

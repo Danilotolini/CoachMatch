@@ -1,9 +1,9 @@
 import type { CSSProperties, HTMLAttributes } from 'react'
 
 interface IconProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
-  name: string
-  size?: number
-  filled?: boolean
+  readonly name: string
+  readonly size?: number
+  readonly filled?: boolean
 }
 
 export function Icon({

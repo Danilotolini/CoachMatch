@@ -113,6 +113,8 @@ export function GymSuggestForm({ onSuggested, onCancel }: GymSuggestFormProps) {
     )
   }
 
+  const loadingOrSearchPlaceholder = municipiosQuery.isLoading ? 'Carregando municípios...' : 'Digite para buscar...'
+
   return (
     <div className="bg-surface-container-low/50 border border-dashed border-outline-variant/30 rounded-xl p-4 space-y-4">
       <div className="flex items-center justify-between gap-3">
@@ -183,13 +185,7 @@ export function GymSuggestForm({ onSuggested, onCancel }: GymSuggestFormProps) {
           onChange={handleCityChange}
           options={municipiosQuery.data.map((m) => m.nome)}
           disabled={cityDisabled}
-          placeholder={
-            !uf
-              ? 'Selecione um estado primeiro'
-              : municipiosQuery.isLoading
-                ? 'Carregando municípios...'
-                : 'Digite para buscar...'
-          }
+          placeholder={!uf ? 'Selecione um estado primeiro' : loadingOrSearchPlaceholder}
         />
       </div>
 

@@ -60,7 +60,7 @@ export default function ClientHomePage() {
   )
 }
 
-function ClientTopBar({ firstName }: { firstName: string }) {
+function ClientTopBar({ firstName }: { readonly firstName: string }) {
   return (
     <header className="glass-header sticky top-0 z-20 flex items-center justify-between px-4 py-4 sm:px-6 md:px-10 lg:relative lg:bg-transparent lg:px-10 lg:py-8 lg:backdrop-blur-none">
       <div className="flex min-w-0 flex-col">
@@ -104,7 +104,7 @@ function SearchPanel() {
   )
 }
 
-function FilterPill({ icon, label, to }: { icon: string; label: string; to: string }) {
+function FilterPill({ icon, label, to }: { readonly icon: string; readonly label: string; readonly to: string }) {
   const navigate = useNavigate()
 
   return (
@@ -243,7 +243,7 @@ function ClientSummary() {
   )
 }
 
-function SummaryMetric({ label, value }: { label: string; value: string }) {
+function SummaryMetric({ label, value }: { readonly label: string; readonly value: string }) {
   return (
     <div className="rounded-lg bg-surface-container px-3 py-3">
       <span className="font-label text-xs text-on-surface-variant">{label}</span>
@@ -295,10 +295,10 @@ function SectionHeader({
   icon,
   onAction,
 }: {
-  title: string
-  action?: string
-  icon?: string
-  onAction?: () => void
+  readonly title: string
+  readonly action?: string
+  readonly icon?: string
+  readonly onAction?: () => void
 }) {
   return (
     <div className="flex items-center justify-between gap-4">

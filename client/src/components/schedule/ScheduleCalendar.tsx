@@ -192,9 +192,9 @@ function SlotBlock({
   specialtyLabel,
   onClick,
 }: {
-  slot: Schedule
-  specialtyLabel: string
-  onClick?: () => void
+  readonly slot: Schedule
+  readonly specialtyLabel: string
+  readonly onClick?: () => void
 }) {
   const top = slotTopPx(slot.startDateTime)
   const height = slotHeightPx(slot.startDateTime, slot.endDateTime)
@@ -203,6 +203,22 @@ function SlotBlock({
   const { bg, border, text } = STATUS_BLOCK[slot.status]
   const isShort = height < 40
   const isMedium = height >= 40 && height < 60
+  const mediumOrFull = isMedium ? (
+    <span className="block truncate font-label text-[10px] font-bold leading-tight">
+      {startH}–{endH}
+    </span>
+  ) : (
+    <>
+      <span className="block font-label text-[11px] font-bold leading-tight">
+        {startH}–{endH}
+      </span>
+      {specialtyLabel && (
+        <span className="mt-0.5 block truncate font-label text-[10px] leading-tight opacity-80">
+          {specialtyLabel}
+        </span>
+      )}
+    </>
+  )
 
   return (
     <button
@@ -218,22 +234,7 @@ function SlotBlock({
         <span className="block truncate font-label text-[10px] font-bold leading-none">
           {startH}
         </span>
-      ) : isMedium ? (
-        <span className="block truncate font-label text-[10px] font-bold leading-tight">
-          {startH}–{endH}
-        </span>
-      ) : (
-        <>
-          <span className="block font-label text-[11px] font-bold leading-tight">
-            {startH}–{endH}
-          </span>
-          {specialtyLabel && (
-            <span className="mt-0.5 block truncate font-label text-[10px] leading-tight opacity-80">
-              {specialtyLabel}
-            </span>
-          )}
-        </>
-      )}
+      ) : mediumOrFull}
     </button>
   )
 }
@@ -247,13 +248,13 @@ function DayColumn({
   onSlotClick,
   onTimeClick,
 }: {
-  date: string
-  slots: Schedule[]
-  specialtyLabels: Map<string, string>
-  isToday: boolean
-  isLast: boolean
-  onSlotClick?: (slot: Schedule) => void
-  onTimeClick?: (selection: CalendarTimeSelection) => void
+  readonly date: string
+  readonly slots: Schedule[]
+  readonly specialtyLabels: Map<string, string>
+  readonly isToday: boolean
+  readonly isLast: boolean
+  readonly onSlotClick?: (slot: Schedule) => void
+  readonly onTimeClick?: (selection: CalendarTimeSelection) => void
 }) {
   function handleGridClick(event: MouseEvent<HTMLButtonElement>) {
     if (!onTimeClick) return

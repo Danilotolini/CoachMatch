@@ -249,10 +249,10 @@ function ConsentRow({
   error,
   children,
 }: {
-  checked: boolean
-  onChange: () => void
-  error?: string | undefined
-  children: React.ReactNode
+  readonly checked: boolean
+  readonly onChange: () => void
+  readonly error?: string | undefined
+  readonly children: React.ReactNode
 }) {
   return (
     <div>

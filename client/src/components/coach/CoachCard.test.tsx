@@ -41,9 +41,9 @@ describe('CoachCard', () => {
   })
 
   it('aplica background image quando image é fornecida', () => {
-    const { container } = render(<CoachCard name="x" specialties="y" image="http://test/img.jpg" />)
+    const { container } = render(<CoachCard name="x" specialties="y" image="https://test/img.jpg" />)
     const imageDiv = container.querySelector<HTMLElement>('[style*="background-image"]')
     expect(imageDiv).not.toBeNull()
-    expect(imageDiv?.style.backgroundImage).toContain('http://test/img.jpg')
+    expect(imageDiv?.style.backgroundImage).toContain('https://test/img.jpg')
   })
 })

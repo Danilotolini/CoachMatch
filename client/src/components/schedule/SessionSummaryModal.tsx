@@ -18,7 +18,7 @@ interface SessionSummaryModalProps {
   readonly onClose: () => void
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value }: { readonly label: string; readonly value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
       <span className="font-label text-xs text-on-surface-variant">{label}</span>

@@ -10,7 +10,7 @@ import type { Role } from '@/stores/sessionStore'
 
 const SELECTED_PARAM = 'c'
 
-export function ChatView({ role }: { role: Role }) {
+export function ChatView({ role }: { readonly role: Role }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const selectedId = searchParams.get(SELECTED_PARAM)

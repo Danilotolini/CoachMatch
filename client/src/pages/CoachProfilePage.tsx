@@ -156,7 +156,7 @@ export default function CoachProfilePage() {
   )
 }
 
-function CoachProfileEditor({ coach }: { coach: Coach }) {
+function CoachProfileEditor({ coach }: { readonly coach: Coach }) {
   const [form, setForm] = useState<CoachProfileFormState>(() => profileToForm(coach.profile))
   const [errors, setErrors] = useState<CoachProfileFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -321,6 +321,24 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
       setSubmitError(parseApiErrors(error, 'Não foi possível atualizar seu perfil.'))
     }
   }
+
+  const submitStateEl = submitError ? (
+    <span className="inline-flex items-center gap-2 text-error">
+      <Icon name="error" size={18} />
+      {submitError}
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-2 text-on-surface-variant">
+      <Icon name="info" size={18} />
+      Revise seus dados antes de publicar na vitrine.
+    </span>
+  )
+  const statusEl = successMessage ? (
+    <span className="inline-flex items-center gap-2 font-semibold text-primary">
+      <Icon name="check_circle" size={18} filled />
+      {successMessage}
+    </span>
+  ) : submitStateEl
 
   return (
     <>
@@ -532,24 +550,7 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
         </div>
 
         <div className="flex flex-col gap-4 rounded-xl border border-outline-variant/10 bg-surface-container-low p-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="min-h-5 font-body text-sm">
-            {successMessage ? (
-              <span className="inline-flex items-center gap-2 font-semibold text-primary">
-                <Icon name="check_circle" size={18} filled />
-                {successMessage}
-              </span>
-            ) : submitError ? (
-              <span className="inline-flex items-center gap-2 text-error">
-                <Icon name="error" size={18} />
-                {submitError}
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-2 text-on-surface-variant">
-                <Icon name="info" size={18} />
-                Revise seus dados antes de publicar na vitrine.
-              </span>
-            )}
-          </p>
+          <p className="min-h-5 font-body text-sm">{statusEl}</p>
           <Button
             type="submit"
             loading={updateCoach.isPending}
@@ -565,7 +566,7 @@ function CoachProfileEditor({ coach }: { coach: Coach }) {
   )
 }
 
-function InlineState({ icon, text }: { icon: string; text: string }) {
+function InlineState({ icon, text }: { readonly icon: string; readonly text: string }) {
   return (
     <section className="flex min-h-48 items-center justify-center rounded-xl border border-outline-variant/10 bg-surface-container-low p-8 text-center">
       <div>

@@ -96,7 +96,7 @@ export default function LoginPage({ audience }: LoginPageProps) {
 
     if (!claimLoginRedirect(audience)) return
 
-    getLoginUrl(audience)
+    void getLoginUrl(audience)
       .then((url) => {
         setLoginUrl(url)
         window.location.href = url
@@ -105,7 +105,7 @@ export default function LoginPage({ audience }: LoginPageProps) {
         releaseLoginRedirect(audience)
         setError(err instanceof Error ? err.message : 'Erro ao iniciar login.')
       })
-    return
+    return undefined
   }, [
     audience,
     endSession,

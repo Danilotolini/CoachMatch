@@ -36,10 +36,10 @@ function StudentSection({
   action,
   chatPeerId,
 }: {
-  studentId: string | null
-  hasStudent: boolean
-  fallbackName?: string | null | undefined
-  action?: ReactNode
+  readonly studentId: string | null
+  readonly hasStudent: boolean
+  readonly fallbackName?: string | null | undefined
+  readonly action?: ReactNode
   chatPeerId?: string | undefined
 }) {
   const query = useQuery({
@@ -101,7 +101,7 @@ function StudentSection({
   return <StudentDetail detail={query.data} action={resolvedAction} />
 }
 
-function StudentDetail({ detail, action }: { detail: CoachStudentDetail; action?: ReactNode }) {
+function StudentDetail({ detail, action }: { readonly detail: CoachStudentDetail; readonly action?: ReactNode }) {
   const age = ageFromBirthDate(detail.birthDate)
   const meta = [
     detail.gender ? GENDER_LABELS[detail.gender] : null,
@@ -179,7 +179,7 @@ function StudentDetail({ detail, action }: { detail: CoachStudentDetail; action?
   )
 }
 
-function RequestsSection({ slot }: { slot: Schedule }) {
+function RequestsSection({ slot }: { readonly slot: Schedule }) {
   const approveMutation = useApproveCoachScheduleRequest()
   const [busyStudentId, setBusyStudentId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -261,7 +261,7 @@ function RequestsSection({ slot }: { slot: Schedule }) {
   )
 }
 
-function CancelSessionButton({ slot }: { slot: Schedule }) {
+function CancelSessionButton({ slot }: { readonly slot: Schedule }) {
   const navigate = useNavigate()
   const cancelMutation = useCancelCoachSchedule()
   const [confirming, setConfirming] = useState(false)
@@ -374,36 +374,42 @@ export default function CoachSessionDetailPage() {
         </header>
 
         <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-4 pb-12 sm:px-6 md:px-10">
-          {scheduleQuery.isLoading ? (
-            <div className="h-40 animate-pulse rounded-xl bg-surface-container-low" />
-          ) : !slot ? (
-            <Card className="p-6 text-center">
-              <Icon name="event_busy" size={34} className="mx-auto mb-3 text-primary" />
-              <h2 className="font-headline text-xl font-semibold">Sessão não encontrada</h2>
-              <p className="mt-2 font-body text-sm text-on-surface-variant">
-                Esta sessão não está mais disponível na sua agenda.
-              </p>
-            </Card>
-          ) : (
-            <>
-              <SessionSummaryCard
-                slot={slot}
-                specialtyLabel={specialtyLabel}
-                gymLabel={gymLabel}
-                showPayment={false}
-              />
-              {slot.status === 'REQUESTED' ? (
-                <RequestsSection slot={slot} />
-              ) : (
-                <StudentSection
-                  studentId={slot.studentId}
-                  hasStudent={!!slot.studentId}
-                  chatPeerId={slot.studentId ?? undefined}
+          {(() => {
+            if (scheduleQuery.isLoading) {
+              return <div className="h-40 animate-pulse rounded-xl bg-surface-container-low" />
+            }
+            if (!slot) {
+              return (
+                <Card className="p-6 text-center">
+                  <Icon name="event_busy" size={34} className="mx-auto mb-3 text-primary" />
+                  <h2 className="font-headline text-xl font-semibold">Sessão não encontrada</h2>
+                  <p className="mt-2 font-body text-sm text-on-surface-variant">
+                    Esta sessão não está mais disponível na sua agenda.
+                  </p>
+                </Card>
+              )
+            }
+            return (
+              <>
+                <SessionSummaryCard
+                  slot={slot}
+                  specialtyLabel={specialtyLabel}
+                  gymLabel={gymLabel}
+                  showPayment={false}
                 />
-              )}
-              <CancelSessionButton slot={slot} />
-            </>
-          )}
+                {slot.status === 'REQUESTED' ? (
+                  <RequestsSection slot={slot} />
+                ) : (
+                  <StudentSection
+                    studentId={slot.studentId}
+                    hasStudent={!!slot.studentId}
+                    chatPeerId={slot.studentId ?? undefined}
+                  />
+                )}
+                <CancelSessionButton slot={slot} />
+              </>
+            )
+          })()}
         </section>
       </div>
 

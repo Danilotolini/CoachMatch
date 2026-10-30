@@ -193,6 +193,10 @@ export default function ClientOnboardingPage() {
     )
   }
 
+  let cepHelpText: string | undefined
+  if (cepStatus === 'loading') cepHelpText = 'Buscando endereço...'
+  else if (cepStatus === 'error') cepHelpText = 'Não encontramos esse CEP.'
+
   return (
     <div className="min-h-dvh bg-surface text-on-surface">
       <ProgressHeader
@@ -323,13 +327,7 @@ export default function ClientOnboardingPage() {
                   placeholder="00000-000"
                   value={form.cep}
                   error={errors.cep}
-                  helpText={
-                    cepStatus === 'loading'
-                      ? 'Buscando endereço...'
-                      : cepStatus === 'error'
-                        ? 'Não encontramos esse CEP.'
-                        : undefined
-                  }
+                  helpText={cepHelpText}
                   onChange={(e) => {
                     void handleCepChange(e.target.value)
                   }}
@@ -420,7 +418,7 @@ export default function ClientOnboardingPage() {
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
   return (
     <section className="space-y-4">
       <h2 className="font-headline text-xl font-semibold text-on-surface border-l-4 border-primary pl-3">

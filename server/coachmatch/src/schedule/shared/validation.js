@@ -9,10 +9,12 @@ import { BadRequestException } from './exceptions.js';
 // tarde formatado para as notificações, e o formatador lê os componentes de
 // wall-clock direto da string. Aceitar `2026-05-25` ou `2026-05-25 07:00`
 // deixaria a escrita passar e só quebraria na notificação, depois do commit.
-const ISO_8601 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/;
+const ISO_CORE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+const ISO_TAIL = /^(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/;
 
 const isValidIsoDateTime = (value) => {
-  if (typeof value !== 'string' || !ISO_8601.test(value)) return false;
+  if (typeof value !== 'string' || !ISO_CORE.test(value)) return false;
+  if (!ISO_TAIL.test(value.slice(16))) return false;
   return !Number.isNaN(new Date(value).getTime());
 };
 
