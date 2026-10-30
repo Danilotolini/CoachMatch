@@ -58,37 +58,27 @@ export function ClientRouteGuard({ children, requireOnboarded = false }: ClientR
   }, [expired, isUnauthorized, endSession])
 
   if (!token || expired) {
-    return (
-      <Navigate
-        to="/client/login"
-        replace
-        state={
-          expired ? { reason: 'expired' } : isUnauthorized ? { reason: 'unauthorized' } : undefined
-        }
-      />
-    )
+    let loginState: { reason: string } | undefined
+    if (expired) loginState = { reason: 'expired' }
+    else if (isUnauthorized) loginState = { reason: 'unauthorized' }
+
+    return <Navigate to="/client/login" replace state={loginState} />
   }
 
   if (activeRole !== 'client') return <Spinner />
 
   if (isLoading) return <Spinner />
 
-  if (isError) {
-    if (isUnauthorized)
-      return <Navigate to="/client/login" replace state={{ reason: 'unauthorized' }} />
-    if (requireOnboarded) return <Navigate to="/client/onboarding" replace />
-    return <>{children}</>
-  }
+  if (isError && isUnauthorized)
+    return <Navigate to="/client/login" replace state={{ reason: 'unauthorized' }} />
+  if (isError && requireOnboarded) return <Navigate to="/client/onboarding" replace />
+  if (isError) return <>{children}</>
 
-  if (data) {
-    const expectedPath = routeForStatus(data.status)
-    if (requireOnboarded && data.status !== 'ACTIVE') {
-      return <Navigate to={expectedPath} replace />
-    }
-    if (!requireOnboarded && location.pathname !== expectedPath) {
-      return <Navigate to={expectedPath} replace />
-    }
-  }
+  const expectedPath = data ? routeForStatus(data.status) : null
+  if (data && requireOnboarded && data.status !== 'ACTIVE')
+    return <Navigate to={expectedPath!} replace />
+  if (data && !requireOnboarded && location.pathname !== expectedPath)
+    return <Navigate to={expectedPath!} replace />
 
   return <>{children}</>
 }

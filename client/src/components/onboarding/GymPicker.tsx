@@ -1,3 +1,4 @@
+import type { RefObject } from 'react'
 import { useState } from 'react'
 import { Icon } from '@/components/ui/Icon'
 import { useGymSearch } from '@/hooks/useGyms'
@@ -18,6 +19,64 @@ interface GymPickerProps {
   onAdd: (gym: Gym) => void
   onRemove: (gymId: string) => void
   error?: string | undefined
+}
+
+function GymSearchResults({
+  isLoading,
+  options,
+  hasNextPage,
+  isFetchingNextPage,
+  rootRef,
+  sentinelRef,
+  onAdd,
+}: {
+  isLoading: boolean
+  options: Gym[]
+  hasNextPage: boolean
+  isFetchingNextPage: boolean
+  rootRef: RefObject<HTMLDivElement | null>
+  sentinelRef: RefObject<HTMLDivElement | null>
+  onAdd: (gym: Gym) => void
+}) {
+  if (isLoading)
+    return <p className="px-1 font-body text-xs text-on-surface-variant">Buscando academias...</p>
+
+  if (options.length === 0) {
+    return (
+      <div className="rounded-lg bg-surface-container-low px-4 py-3 text-center">
+        <p className="font-body text-sm text-on-surface">Nenhuma academia encontrada</p>
+        <p className="mt-1 font-body text-xs text-on-surface-variant">
+          Revise o nome ou sugira uma nova academia abaixo.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div ref={rootRef} className="max-h-72 space-y-2 overflow-y-auto pr-1">
+      {options.map((gym) => (
+        <button
+          key={gym.gymId}
+          type="button"
+          onClick={() => onAdd(gym)}
+          className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-left transition-colors hover:bg-surface-container-high"
+        >
+          <span className="block font-body text-sm text-on-surface">{gym.name}</span>
+          <span className="block font-body text-xs text-on-surface-variant">
+            {gym.neighborhood}, {gym.city} - {gym.state}
+          </span>
+        </button>
+      ))}
+      {hasNextPage ? (
+        <div
+          ref={sentinelRef}
+          className="py-2 text-center font-body text-xs text-on-surface-variant"
+        >
+          {isFetchingNextPage ? 'Carregando...' : 'Role para ver mais'}
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 export function GymPicker({ selectedGyms, onAdd, onRemove, error }: GymPickerProps) {
@@ -63,42 +122,15 @@ export function GymPicker({ selectedGyms, onAdd, onRemove, error }: GymPickerPro
       </div>
 
       {search ? (
-        isLoading ? (
-          <p className="px-1 font-body text-xs text-on-surface-variant">Buscando academias...</p>
-        ) : options.length > 0 ? (
-          <div ref={rootRef} className="max-h-72 space-y-2 overflow-y-auto pr-1">
-            {options.map((gym) => (
-              <button
-                key={gym.gymId}
-                type="button"
-                onClick={() => {
-                  handleAdd(gym)
-                }}
-                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-left transition-colors hover:bg-surface-container-high"
-              >
-                <span className="block font-body text-sm text-on-surface">{gym.name}</span>
-                <span className="block font-body text-xs text-on-surface-variant">
-                  {gym.neighborhood}, {gym.city} - {gym.state}
-                </span>
-              </button>
-            ))}
-            {hasNextPage ? (
-              <div
-                ref={sentinelRef}
-                className="py-2 text-center font-body text-xs text-on-surface-variant"
-              >
-                {isFetchingNextPage ? 'Carregando...' : 'Role para ver mais'}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <div className="rounded-lg bg-surface-container-low px-4 py-3 text-center">
-            <p className="font-body text-sm text-on-surface">Nenhuma academia encontrada</p>
-            <p className="mt-1 font-body text-xs text-on-surface-variant">
-              Revise o nome ou sugira uma nova academia abaixo.
-            </p>
-          </div>
-        )
+        <GymSearchResults
+          isLoading={isLoading}
+          options={options}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          rootRef={rootRef}
+          sentinelRef={sentinelRef}
+          onAdd={handleAdd}
+        />
       ) : null}
 
       {selectedGyms.length > 0 ? (

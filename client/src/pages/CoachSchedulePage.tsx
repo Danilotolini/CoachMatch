@@ -1100,7 +1100,7 @@ function GerarTab({
     const groups: { date: string; slots: DraftSlot[] }[] = []
     for (const slot of sorted) {
       const date = slot.startDateTime.slice(0, 10)
-      const last = groups.length > 0 ? groups[groups.length - 1] : null
+      const last = groups.length > 0 ? groups.at(-1) : null
       if (last?.date === date) {
         last.slots.push(slot)
       } else {
@@ -1135,6 +1135,10 @@ function GerarTab({
   const createdCount = slots.filter((s) => s.status === 'created').length
   const errorCount = slots.filter((s) => s.status === 'error').length
   const isRetry = commitTotal > 0 && errorCount > 0 && !slots.some((s) => s.status === 'draft')
+  let commitLabel: string
+  if (isCommitting) commitLabel = 'CRIANDO...'
+  else if (isRetry) commitLabel = 'TENTAR NOVAMENTE'
+  else commitLabel = 'CONFIRMAR SLOTS'
 
   function toggleWeekday(day: number) {
     setConfig((prev) => ({
@@ -1485,7 +1489,7 @@ function GerarTab({
               disabled={!canCommit}
               className={BTN_CTA}
             >
-              {isCommitting ? 'CRIANDO...' : isRetry ? 'TENTAR NOVAMENTE' : 'CONFIRMAR SLOTS'}
+              {commitLabel}
             </button>
 
             {createdCount > 0 && (

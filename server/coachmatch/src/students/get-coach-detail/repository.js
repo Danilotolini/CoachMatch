@@ -20,11 +20,16 @@ export async function loadGyms(gymIds) {
 
   if (unique.length === 0) return gymsById;
 
-  for (let i = 0; i < unique.length; i += 100) {
-    const keys = unique.slice(i, i + 100).map((gymId) => ({ gymId }));
-    const result = await dynamo.send(
-      new BatchGetCommand({ RequestItems: { [GYMS_TABLE]: { Keys: keys } } })
-    );
+  const slices = [];
+  for (let i = 0; i < unique.length; i += 100) slices.push(unique.slice(i, i + 100));
+
+  const results = await Promise.all(
+    slices.map((slice) =>
+      dynamo.send(new BatchGetCommand({ RequestItems: { [GYMS_TABLE]: { Keys: slice.map((gymId) => ({ gymId })) } } }))
+    ),
+  );
+
+  for (const result of results) {
     for (const gym of result.Responses?.[GYMS_TABLE] ?? []) {
       gymsById.set(gym.gymId, gym);
     }

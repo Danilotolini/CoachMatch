@@ -100,13 +100,9 @@ export function useChatRealtime(role: Role, conversationId: string | null) {
         channel.on('message.new', (event) => {
           upsert(event.message)
         }),
-      )
-      subscriptions.push(
         channel.on('message.updated', (event) => {
           upsert(event.message)
         }),
-      )
-      subscriptions.push(
         channel.on('message.deleted', (event) => {
           upsert(event.message)
         }),

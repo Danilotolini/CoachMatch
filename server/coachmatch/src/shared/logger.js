@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 const log = (level, data) => {
   process.stdout.write(JSON.stringify({ level, timestamp: new Date().toISOString(), ...data }) + '\n');
@@ -44,7 +44,10 @@ const _loggedHandler = (fn, { rethrow = false } = {}) => async (event, context) 
   }
 
   const statusCode = response?.statusCode ?? 200;
-  const level = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
+  let level;
+  if (statusCode >= 500) level = 'error';
+  else if (statusCode >= 400) level = 'warn';
+  else level = 'info';
 
   log(level.toUpperCase(), {
     message: 'request_end',

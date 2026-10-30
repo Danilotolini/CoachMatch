@@ -48,9 +48,10 @@ export async function queryCoaches({ q, specialties, limit, lastKey }) {
   let pages  = 0;
 
   do {
-    const result   = await runQuery({ limit, lastKey: cursor });
+    // Each page depends on the previous LastEvaluatedKey — intentionally sequential.
+    const result   = await runQuery({ limit, lastKey: cursor }); // NOSONAR
     const items    = result.Items ?? [];
-    const gymsById = q ? await loadGyms(collectGymIds(items)) : new Map();
+    const gymsById = q ? await loadGyms(collectGymIds(items)) : new Map(); // NOSONAR
 
     matches.push(...filterCoaches(items, { q, specialties, gymsById }));
     cursor = result.LastEvaluatedKey ?? null;
@@ -86,11 +87,18 @@ async function loadGyms(gymIds) {
   const unique = [...new Set(gymIds)];
   const gymsById = new Map();
 
-  for (let i = 0; i < unique.length; i += 100) {
-    const keys = unique.slice(i, i + 100).map((gymId) => ({ gymId }));
-    const result = await dynamo.send(
-      new BatchGetCommand({ RequestItems: { [GYMS_TABLE]: { Keys: keys } } })
-    );
+  if (unique.length === 0) return gymsById;
+
+  const slices = [];
+  for (let i = 0; i < unique.length; i += 100) slices.push(unique.slice(i, i + 100));
+
+  const results = await Promise.all(
+    slices.map((slice) =>
+      dynamo.send(new BatchGetCommand({ RequestItems: { [GYMS_TABLE]: { Keys: slice.map((gymId) => ({ gymId })) } } }))
+    ),
+  );
+
+  for (const result of results) {
     for (const gym of result.Responses?.[GYMS_TABLE] ?? []) {
       gymsById.set(gym.gymId, gym);
     }

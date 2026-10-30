@@ -4,7 +4,7 @@ import { cleanup } from '@testing-library/react'
 
 // happy-dom não expõe localStorage/sessionStorage como globais — polyfill mínimo
 class MemoryStorage implements Storage {
-  private store = new Map<string, string>()
+  private readonly store = new Map<string, string>()
   get length() {
     return this.store.size
   }

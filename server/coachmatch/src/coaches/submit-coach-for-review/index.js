@@ -6,7 +6,7 @@ import { NotFoundException, ConflictException } from '../../shared/exceptions.js
  *   PENDING_PROFILE = coach acabou de se cadastrar e ainda não enviou o perfil
  *   REJECTED        = coach foi rejeitado e pode reenviar após correções
  */
-const SUBMITTABLE_STATUSES = ['PENDING_PROFILE', 'REJECTED'];
+const SUBMITTABLE_STATUSES = new Set(['PENDING_PROFILE', 'REJECTED']);
 
 /**
  * Transiciona o coach para PENDING_REVIEW.
@@ -20,7 +20,7 @@ export const submitForReview = async (coachId) => {
   const coach = await findCoachById(coachId);
   if (!coach) throw new NotFoundException('Coach', coachId);
 
-  if (!SUBMITTABLE_STATUSES.includes(coach.status)) {
+  if (!SUBMITTABLE_STATUSES.has(coach.status)) {
     throw new ConflictException(
       `Estado atual (${coach.status}) não permite submissão para revisão.`
     );

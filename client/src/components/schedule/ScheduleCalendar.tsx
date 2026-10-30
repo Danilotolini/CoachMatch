@@ -255,22 +255,18 @@ function DayColumn({
   onSlotClick?: (slot: Schedule) => void
   onTimeClick?: (selection: CalendarTimeSelection) => void
 }) {
-  function handleGridClick(event: MouseEvent<HTMLDivElement>) {
+  function handleGridClick(event: MouseEvent<HTMLButtonElement>) {
     if (!onTimeClick) return
     const rect = event.currentTarget.getBoundingClientRect()
     onTimeClick(getTimeSelection(date, event.clientY - rect.top))
   }
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       aria-label="Selecionar horário"
       onClick={handleGridClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') handleGridClick(e as unknown as MouseEvent<HTMLDivElement>)
-      }}
-      className={`relative flex-1 ${isToday ? 'bg-primary/4' : ''} ${!isLast ? 'border-r border-outline-variant/10' : ''}`}
+      className={`relative flex-1 border-0 bg-transparent p-0 ${isToday ? 'bg-primary/4' : ''} ${!isLast ? 'border-r border-outline-variant/10' : ''}`}
       style={{ height: GRID_HEIGHT }}
     >
       <GridLines />
@@ -283,7 +279,7 @@ function DayColumn({
           onClick={() => onSlotClick?.(slot)}
         />
       ))}
-    </div>
+    </button>
   )
 }
 

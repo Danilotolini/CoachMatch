@@ -357,9 +357,8 @@ function CardPanel({
     onSubmit(form)
   }
 
-  const expiryDisplay = form.expiryMonth
-    ? `${form.expiryMonth}${form.expiryYear ? `/${form.expiryYear.slice(2)}` : ''}`
-    : ''
+  const yearSuffix = form.expiryYear ? `/${form.expiryYear.slice(2)}` : ''
+  const expiryDisplay = form.expiryMonth ? `${form.expiryMonth}${yearSuffix}` : ''
 
   return (
     <div className="space-y-5">

@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto';
+import { randomBytes } from 'node:crypto';
 import { queryCoachSchedulesForConflict, gymExists, specialtyExists, putSchedule } from './repository.js';
 import { validateDateTimeRange } from '../shared/validation.js';
 import { ScheduleStateException } from '../shared/exceptions.js';
@@ -41,14 +41,16 @@ export const createSchedule = async (coachId, body) => {
   const checks = [];
 
   if (errors.length === 0) {
-    checks.push((async () => (await hasScheduleConflict(coachId, startDateTime, endDateTime)
-      ? `O coach '${coachId}' já tem um agendamento em conflito com ${startDateTime} – ${endDateTime}.`
-      : null))());
+    checks.push(hasScheduleConflict(coachId, startDateTime, endDateTime).then(
+      (conflict) => conflict
+        ? `O coach '${coachId}' já tem um agendamento em conflito com ${startDateTime} – ${endDateTime}.`
+        : null,
+    ));
   }
 
   checks.push(
-    (async () => ((await gymExists(gymId)) ? null : `Academia '${gymId}' não encontrada.`))(),
-    (async () => ((await specialtyExists(specialtyId)) ? null : `Especialidade '${specialtyId}' não encontrada.`))(),
+    gymExists(gymId).then((exists) => (exists ? null : `Academia '${gymId}' não encontrada.`)),
+    specialtyExists(specialtyId).then((exists) => (exists ? null : `Especialidade '${specialtyId}' não encontrada.`)),
   );
 
   errors.push(...(await Promise.all(checks)).filter(Boolean));
