@@ -1,24 +1,8 @@
 import { Card } from '@/components/ui/Card'
 import { formatScheduleDateTimeRange } from '@/lib/dateTime'
+import { formatMoney, paymentLabel } from '@/lib/money'
 import { SCHEDULE_STATUS_CHIP, SCHEDULE_STATUS_LABELS } from '@/lib/scheduleStatus'
 import type { Schedule } from '@/types/api'
-
-function formatMoney(value: string): string {
-  const amount = Number(value)
-  if (Number.isNaN(amount)) return value
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function paymentLabel(status: string | null): string | null {
-  if (!status) return null
-  if (status === 'PAID') return 'Pago'
-  if (status === 'PENDING') return 'Pendente'
-  return status.toLowerCase()
-}
 
 function Row({ label, value }: { label: string; value: string }) {
   return (

@@ -496,5 +496,73 @@ describe('CoachSchedulePage', () => {
       expect(await screen.findByText('1 slot')).toBeInTheDocument()
       expect(screen.queryByText('09:00-10:00')).not.toBeInTheDocument()
     })
+
+    it('cancela a edição de um slot sem alterar os valores', async () => {
+      useApprovedCoach()
+
+      server.use(
+        http.get('*/coach/schedule', () =>
+          HttpResponse.json<CoachScheduleResponse>(scheduleResponse([])),
+        ),
+      )
+
+      renderPage()
+      await userEvent.click(screen.getByRole('tab', { name: /criar horários/i }))
+
+      await screen.findByRole('option', { name: /Smart Fit Paulista/i })
+      await userEvent.selectOptions(screen.getByLabelText('Academia'), 'gym_smartfit_paulista')
+      await userEvent.selectOptions(screen.getByLabelText('Especialidade'), 'MUSCULATION')
+      await userEvent.type(screen.getByLabelText('Preço (R$)'), '10000')
+
+      fireEvent.change(screen.getByLabelText('Data início'), { target: { value: '2026-06-15' } })
+      fireEvent.change(screen.getByLabelText('Data fim'), { target: { value: '2026-06-15' } })
+      fireEvent.change(screen.getByLabelText('Início da janela'), { target: { value: '08:00' } })
+      fireEvent.change(screen.getByLabelText('Fim da janela'), { target: { value: '10:00' } })
+
+      await userEvent.click(screen.getByRole('button', { name: /gerar prévia/i }))
+      expect(await screen.findByText('2 slots')).toBeInTheDocument()
+
+      // Abre o editor do primeiro slot e altera o valor.
+      await userEvent.click(screen.getAllByRole('button', { name: 'Editar slot' })[0])
+      fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '10:00' } })
+      fireEvent.change(screen.getByLabelText('R$'), { target: { value: '200' } })
+
+      // Cancela sem salvar → valores originais voltam.
+      await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+      expect(screen.getByText('08:00-09:00')).toBeInTheDocument()
+    })
+
+    it('mostra erro de conflito ao editar slot que sobrepõe outro', async () => {
+      useApprovedCoach()
+
+      server.use(
+        http.get('*/coach/schedule', () =>
+          HttpResponse.json<CoachScheduleResponse>(scheduleResponse([])),
+        ),
+      )
+
+      renderPage()
+      await userEvent.click(screen.getByRole('tab', { name: /criar horários/i }))
+
+      await screen.findByRole('option', { name: /Smart Fit Paulista/i })
+      await userEvent.selectOptions(screen.getByLabelText('Academia'), 'gym_smartfit_paulista')
+      await userEvent.selectOptions(screen.getByLabelText('Especialidade'), 'MUSCULATION')
+      await userEvent.type(screen.getByLabelText('Preço (R$)'), '10000')
+
+      fireEvent.change(screen.getByLabelText('Data início'), { target: { value: '2026-06-15' } })
+      fireEvent.change(screen.getByLabelText('Data fim'), { target: { value: '2026-06-15' } })
+      fireEvent.change(screen.getByLabelText('Início da janela'), { target: { value: '08:00' } })
+      fireEvent.change(screen.getByLabelText('Fim da janela'), { target: { value: '10:00' } })
+
+      await userEvent.click(screen.getByRole('button', { name: /gerar prévia/i }))
+      expect(await screen.findByText('2 slots')).toBeInTheDocument()
+
+      // Edita o primeiro slot (08:00-09:00) para se sobrepor ao segundo (09:00-10:00).
+      await userEvent.click(screen.getAllByRole('button', { name: 'Editar slot' })[0])
+      fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '10:00' } })
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+      expect(await screen.findByText(/conflita/i)).toBeInTheDocument()
+    })
   })
 })
