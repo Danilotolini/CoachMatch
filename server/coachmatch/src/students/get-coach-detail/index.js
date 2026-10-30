@@ -7,7 +7,7 @@ const SEARCHABLE_STATUS = "APPROVED";
 export async function getCoachDetail(coachId) {
   const coach = await findCoachById(coachId);
 
-  if (!coach || coach.status !== SEARCHABLE_STATUS) {
+  if (coach?.status !== SEARCHABLE_STATUS) {
     throw new NotFoundException("Treinador", coachId);
   }
 

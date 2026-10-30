@@ -227,17 +227,17 @@ export default function CoachDashboardPage() {
                 {!isScheduleLoading && !scheduleQuery.isError && pendingRequests.length === 0 ? (
                   <InlineState icon="inbox" text="Você ainda não tem solicitações pendentes." />
                 ) : null}
-                {pendingRequests.map(({ schedule, request, count }) => (
-                  <RequestCard
-                    key={schedule.scheduleId}
-                    name={request?.studentName ?? 'Aluno'}
-                    message={`${formatDateTimeRange(schedule)} · ${
-                      specialtyLabels.get(schedule.specialtyId) ?? 'Sessão'
-                    }${
-                      count > 1 ? ` · +${String(count - 1)} pedido${count === 2 ? '' : 's'}` : ''
-                    }`}
-                  />
-                ))}
+                {pendingRequests.map(({ schedule, request, count }) => {
+                  const extraPlural = count > 2 ? 's' : ''
+                  const extraRequests = count > 1 ? ` · +${String(count - 1)} pedido${extraPlural}` : ''
+                  return (
+                    <RequestCard
+                      key={schedule.scheduleId}
+                      name={request?.studentName ?? 'Aluno'}
+                      message={`${formatDateTimeRange(schedule)} · ${specialtyLabels.get(schedule.specialtyId) ?? 'Sessão'}${extraRequests}`}
+                    />
+                  )
+                })}
               </div>
             </Section>
 

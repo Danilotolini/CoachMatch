@@ -11,7 +11,7 @@ import { getStudentCoachSchedules, requestStudentSchedule } from '@/api/schedule
 import { useCoachDetail } from '@/hooks/useCoachDetail'
 import { formatCoachScheduleSlot, nowMs } from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
-import type { CoachScheduleSlot } from '@/types/api'
+import type { CoachDetailWorkLocation, CoachScheduleSlot } from '@/types/api'
 import { buildStudentCoachScheduleWindow } from './clientCoachDetailWindow'
 
 function formatMoney(value: number | string): string {
@@ -25,6 +25,90 @@ function formatMoney(value: number | string): string {
 
 function formatSlot(schedule: CoachScheduleSlot): string {
   return formatCoachScheduleSlot(schedule)
+}
+
+function formatServiceArea(location: CoachDetailWorkLocation): string {
+  if (location.type === 'GYM') {
+    const parts = [location.gym?.name, location.gym?.neighborhood, location.gym?.city].filter(
+      Boolean,
+    )
+    return parts.length > 0 ? parts.join(' · ') : 'Academia parceira'
+  }
+  const { city, state, neighborhoods } = location.coverage
+  const where =
+    neighborhoods.length > 0
+      ? neighborhoods.join(', ')
+      : [city, state].filter(Boolean).join(' · ')
+  return where ? `Atendimento a domicílio · ${where}` : 'Atendimento a domicílio'
+}
+
+function ScheduleSlots({
+  isLoading,
+  availableSchedules,
+  activeScheduleId,
+  successScheduleId,
+  onSelect,
+}: {
+  isLoading: boolean
+  availableSchedules: CoachScheduleSlot[]
+  activeScheduleId: string | null
+  successScheduleId: string | null
+  onSelect: (id: string) => void
+}) {
+  if (isLoading) {
+    return (
+      <>
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="h-16 animate-pulse rounded-lg bg-surface-container" />
+        ))}
+      </>
+    )
+  }
+  if (availableSchedules.length === 0) {
+    return (
+      <div className="rounded-lg bg-surface-container p-4 text-center">
+        <Icon name="event_busy" size={28} className="mx-auto text-primary" />
+        <p className="mt-2 font-body text-sm text-on-surface-variant">
+          Este treinador ainda não abriu horários para as próximas semanas.
+        </p>
+      </div>
+    )
+  }
+  return (
+    <>
+      {availableSchedules.slice(0, 5).map((schedule) => {
+        const selected = activeScheduleId === schedule.scheduleId
+        const requested = successScheduleId === schedule.scheduleId
+        return (
+          <button
+            key={schedule.scheduleId}
+            type="button"
+            onClick={() => onSelect(schedule.scheduleId)}
+            aria-pressed={selected}
+            className={`flex min-h-16 w-full items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left transition-all active:scale-[0.98] ${
+              selected
+                ? 'border-primary bg-primary/10'
+                : 'border-outline-variant/10 bg-surface-container hover:border-primary/40'
+            }`}
+          >
+            <div className="min-w-0">
+              <p className="truncate font-headline text-sm font-semibold">
+                {formatSlot(schedule)}
+              </p>
+              <p className="mt-0.5 font-label text-xs text-on-surface-variant">
+                {requested ? 'Solicitação enviada' : 'Presencial'}
+              </p>
+            </div>
+            <Icon
+              name={selected ? 'radio_button_checked' : 'radio_button_unchecked'}
+              size={20}
+              className={selected ? 'text-primary' : 'text-on-surface-variant'}
+            />
+          </button>
+        )
+      })}
+    </>
+  )
 }
 
 export default function ClientCoachDetailPage() {
@@ -79,21 +163,7 @@ export default function ClientCoachDetailPage() {
   const coach = detailQuery.data
 
   const serviceAreas = useMemo(
-    () =>
-      (coach?.work_location ?? []).map((location) => {
-        if (location.type === 'GYM') {
-          const parts = [location.gym?.name, location.gym?.neighborhood, location.gym?.city].filter(
-            Boolean,
-          )
-          return parts.length > 0 ? parts.join(' · ') : 'Academia parceira'
-        }
-        const { city, state, neighborhoods } = location.coverage
-        const where =
-          neighborhoods.length > 0
-            ? neighborhoods.join(', ')
-            : [city, state].filter(Boolean).join(' · ')
-        return where ? `Atendimento a domicílio · ${where}` : 'Atendimento a domicílio'
-      }),
+    () => (coach?.work_location ?? []).map(formatServiceArea),
     [coach],
   )
 
@@ -249,55 +319,13 @@ export default function ClientCoachDetailPage() {
                   </div>
 
                   <div className="mt-5 grid gap-2">
-                    {scheduleQuery.isLoading ? (
-                      Array.from({ length: 3 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className="h-16 animate-pulse rounded-lg bg-surface-container"
-                        />
-                      ))
-                    ) : availableSchedules.length > 0 ? (
-                      availableSchedules.slice(0, 5).map((schedule) => {
-                        const selected = activeScheduleId === schedule.scheduleId
-                        const requested = successScheduleId === schedule.scheduleId
-                        return (
-                          <button
-                            key={schedule.scheduleId}
-                            type="button"
-                            onClick={() => {
-                              setSelectedScheduleId(schedule.scheduleId)
-                            }}
-                            aria-pressed={selected}
-                            className={`flex min-h-16 w-full items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left transition-all active:scale-[0.98] ${
-                              selected
-                                ? 'border-primary bg-primary/10'
-                                : 'border-outline-variant/10 bg-surface-container hover:border-primary/40'
-                            }`}
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate font-headline text-sm font-semibold">
-                                {formatSlot(schedule)}
-                              </p>
-                              <p className="mt-0.5 font-label text-xs text-on-surface-variant">
-                                {requested ? 'Solicitação enviada' : 'Presencial'}
-                              </p>
-                            </div>
-                            <Icon
-                              name={selected ? 'radio_button_checked' : 'radio_button_unchecked'}
-                              size={20}
-                              className={selected ? 'text-primary' : 'text-on-surface-variant'}
-                            />
-                          </button>
-                        )
-                      })
-                    ) : (
-                      <div className="rounded-lg bg-surface-container p-4 text-center">
-                        <Icon name="event_busy" size={28} className="mx-auto text-primary" />
-                        <p className="mt-2 font-body text-sm text-on-surface-variant">
-                          Este treinador ainda não abriu horários para as próximas semanas.
-                        </p>
-                      </div>
-                    )}
+                    <ScheduleSlots
+                      isLoading={scheduleQuery.isLoading}
+                      availableSchedules={availableSchedules}
+                      activeScheduleId={activeScheduleId}
+                      successScheduleId={successScheduleId}
+                      onSelect={setSelectedScheduleId}
+                    />
                   </div>
 
                   {requestMutation.isError ? (

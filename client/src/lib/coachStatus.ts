@@ -12,10 +12,6 @@ export function isCoachOnboardingStatus(status: CoachStatus): boolean {
 // `undefined` (o que deixa a UI presa no spinner).
 export function coachStatusRoute(status: CoachStatus): string {
   if (isCoachOnboardingStatus(status)) return '/coach/onboarding'
-  switch (status) {
-    case 'APPROVED':
-      return '/coach'
-    default:
-      return '/coach/onboarding'
-  }
+  if (status === 'APPROVED') return '/coach'
+  return '/coach/onboarding'
 }

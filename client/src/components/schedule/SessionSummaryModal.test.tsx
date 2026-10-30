@@ -92,7 +92,7 @@ describe('SessionSummaryModal', () => {
         onClose={vi.fn()}
       />,
     )
-    expect(screen.getByText(/2.*pendentes/i)).toBeInTheDocument()
+    expect(screen.getByText(/2 pendentes/i)).toBeInTheDocument()
   })
 
   it('chama onClose ao clicar no botão Fechar', async () => {

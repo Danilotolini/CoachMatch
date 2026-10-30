@@ -22,6 +22,33 @@ function clientStatusRoute(status: ClientStatus): string {
   }
 }
 
+async function navigateAfterTokenExchange(
+  audience: Role,
+  navigateFn: (to: string, opts: { replace: boolean }) => void,
+  setQueryData: (key: string[], data: unknown) => void,
+) {
+  const onboardingRoute = audience === 'client' ? '/client/onboarding' : '/coach/onboarding'
+  try {
+    if (audience === 'client') {
+      const client = await fetchClientMe()
+      setQueryData(['clientMe'], client)
+      void navigateFn(clientStatusRoute(client.status), { replace: true })
+    } else {
+      const coach = await fetchCoachMe()
+      setQueryData(['coachMe'], coach)
+      void navigateFn(coachStatusRoute(coach.status), { replace: true })
+    }
+  } catch (err) {
+    const is404 = err instanceof ApiError && err.status === 404
+    const isNetwork = err instanceof TypeError
+    if (is404 || isNetwork) {
+      void navigateFn(onboardingRoute, { replace: true })
+    } else {
+      throw err
+    }
+  }
+}
+
 interface CognitoCallbackPageProps {
   audience: Role
 }
@@ -38,11 +65,9 @@ export default function CognitoCallbackPage({ audience }: CognitoCallbackPagePro
   const state = searchParams.get('state')
   const errorParam = searchParams.get('error')
   const errorDesc = searchParams.get('error_description')
-  const urlError = errorParam
-    ? (errorDesc ?? errorParam)
-    : !code
-      ? 'Código de autorização não encontrado.'
-      : null
+  let urlError: string | null = null
+  if (errorParam) urlError = errorDesc ?? errorParam
+  else if (!code) urlError = 'Código de autorização não encontrado.'
 
   useEffect(() => {
     if (handled.current || !code || urlError) return
@@ -53,40 +78,13 @@ export default function CognitoCallbackPage({ audience }: CognitoCallbackPagePro
         const tokens = await exchangeCodeForTokens(authorizationCode, state, audience)
         const store = useSessionStore.getState()
         store.startSession(audience, tokens.id_token)
-
         // Remove code from URL before routing
         window.history.replaceState({}, '', window.location.pathname)
-
-        if (audience === 'client') {
-          try {
-            const client = await fetchClientMe()
-            queryClient.setQueryData(['clientMe'], client)
-            void navigate(clientStatusRoute(client.status), { replace: true })
-          } catch (err) {
-            const is404 = err instanceof ApiError && err.status === 404
-            const isNetwork = err instanceof TypeError
-            if (is404 || isNetwork) {
-              void navigate('/client/onboarding', { replace: true })
-            } else {
-              throw err
-            }
-          }
-          return
-        }
-
-        try {
-          const coach = await fetchCoachMe()
-          queryClient.setQueryData(['coachMe'], coach)
-          void navigate(coachStatusRoute(coach.status), { replace: true })
-        } catch (err) {
-          const is404 = err instanceof ApiError && err.status === 404
-          const isNetwork = err instanceof TypeError
-          if (is404 || isNetwork) {
-            void navigate('/coach/onboarding', { replace: true })
-          } else {
-            throw err
-          }
-        }
+        await navigateAfterTokenExchange(
+          audience,
+          (to, opts) => void navigate(to, opts),
+          (key, data) => queryClient.setQueryData(key, data),
+        )
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro na autenticação.')
       }

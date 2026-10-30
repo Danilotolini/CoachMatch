@@ -27,6 +27,13 @@ function renderPage() {
   )
 }
 
+// A 'ACTIVE' so existe no card do aluno e 'APPROVED' so no do treinador.
+function cardFor(statusLabel: string) {
+  const card = screen.getByRole('button', { name: statusLabel }).closest<HTMLElement>('div.p-5')
+  if (!card) throw new Error(`Card de ${statusLabel} nao encontrado`)
+  return card
+}
+
 describe('DevToolsPage', () => {
   beforeEach(() => {
     vi.stubEnv('VITE_API_MOCKING', 'disabled')
@@ -35,13 +42,6 @@ describe('DevToolsPage', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
   })
-
-  // A 'ACTIVE' so existe no card do aluno e 'APPROVED' so no do treinador.
-  function cardFor(statusLabel: string) {
-    const card = screen.getByRole('button', { name: statusLabel }).closest<HTMLElement>('div.p-5')
-    if (!card) throw new Error(`Card de ${statusLabel} nao encontrado`)
-    return card
-  }
 
   it('desloga pelo logout do sistema com o papel escolhido', async () => {
     const user = userEvent.setup()

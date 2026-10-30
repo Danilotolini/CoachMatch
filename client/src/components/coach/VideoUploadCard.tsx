@@ -29,7 +29,10 @@ export function VideoUploadCard({
         : 'Vídeo de apresentação publicado.'
       : 'Faça upload de um vídeo curto (até 60s) mostrando sua energia.'
 
-  const icon = uploaded ? 'check_circle' : uploading ? 'progress_activity' : 'videocam'
+  let icon: string
+  if (uploaded) icon = 'check_circle'
+  else if (uploading) icon = 'progress_activity'
+  else icon = 'videocam'
 
   return (
     <div className="flex flex-col gap-2">

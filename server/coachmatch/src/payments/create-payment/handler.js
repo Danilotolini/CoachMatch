@@ -2,7 +2,7 @@ import { withLogger } from '../../shared/logger.js';
 import { createCardPayment, createPixPayment } from './index.js';
 import { ValidationException } from '../../shared/exceptions.js';
 
-const VALID_METHODS = ['pix', 'credit_card'];
+const VALID_METHODS = new Set(['pix', 'credit_card']);
 
 const _handler = async (event) => {
   const studentId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
@@ -19,7 +19,7 @@ const _handler = async (event) => {
 
   const { method, ...data } = body;
 
-  if (!VALID_METHODS.includes(method)) {
+  if (!VALID_METHODS.has(method)) {
     return {
       statusCode: 400,
       body: JSON.stringify({ message: `Método de pagamento inválido: "${method}". Use "pix" ou "credit_card".` }),

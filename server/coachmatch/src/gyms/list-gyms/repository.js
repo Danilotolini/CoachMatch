@@ -14,7 +14,8 @@ export const listGyms = async () => {
   let exclusiveStartKey;
 
   do {
-    const result = await docClient.send(
+    // Each page depends on the previous LastEvaluatedKey — intentionally sequential.
+    const result = await docClient.send( // NOSONAR
       new ScanCommand({ TableName: TABLE, ExclusiveStartKey: exclusiveStartKey }),
     );
     items.push(...(result.Items ?? []));

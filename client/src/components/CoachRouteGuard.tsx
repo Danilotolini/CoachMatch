@@ -45,34 +45,26 @@ export function CoachRouteGuard({ allow, children }: RouteGuardProps) {
   }, [expired, isUnauthorized, endSession])
 
   if (!token || expired) {
-    return (
-      <Navigate
-        to="/coach/login"
-        replace
-        state={
-          expired ? { reason: 'expired' } : isUnauthorized ? { reason: 'unauthorized' } : undefined
-        }
-      />
-    )
+    let loginState: { reason: string } | undefined
+    if (expired) loginState = { reason: 'expired' }
+    else if (isUnauthorized) loginState = { reason: 'unauthorized' }
+
+    return <Navigate to="/coach/login" replace state={loginState} />
   }
 
   if (activeRole !== 'coach') return <Spinner />
 
   if (isLoading) return <Spinner />
 
-  if (isError) {
-    if (isUnauthorized)
-      return <Navigate to="/coach/login" replace state={{ reason: 'unauthorized' }} />
-    // 404 ou falha de rede (CORS, offline): assume perfil ainda não criado
-    if (!allow.some(isCoachOnboardingStatus)) {
-      return <Navigate to="/coach/onboarding" replace />
-    }
-    return <>{children}</>
-  }
+  if (isError && isUnauthorized)
+    return <Navigate to="/coach/login" replace state={{ reason: 'unauthorized' }} />
+  // 404 ou falha de rede (CORS, offline): assume perfil ainda não criado
+  if (isError && !allow.some(isCoachOnboardingStatus))
+    return <Navigate to="/coach/onboarding" replace />
+  if (isError) return <>{children}</>
 
-  if (data && !allow.includes(data.status)) {
+  if (data && !allow.includes(data.status))
     return <Navigate to={coachStatusRoute(data.status)} replace />
-  }
 
   return <>{children}</>
 }

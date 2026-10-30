@@ -7,33 +7,33 @@ interface ChipProps {
 
 export function Chip({ label, active = false, onRemove, onClick }: ChipProps) {
   if (active) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-primary text-on-primary-fixed font-label text-xs font-bold uppercase tracking-widest transition-transform active:scale-95 shadow-[0_0_15px_rgba(244,255,198,0.15)]"
-      >
-        {label}
-        {onRemove ? (
-          <span
-            role="button"
-            tabIndex={0}
+    const baseClass =
+      'inline-flex items-center gap-1 px-4 py-2 rounded-full bg-primary text-on-primary-fixed font-label text-xs font-bold uppercase tracking-widest transition-transform active:scale-95 shadow-[0_0_15px_rgba(244,255,198,0.15)]'
+
+    if (onRemove) {
+      return (
+        <span className={baseClass}>
+          <button type="button" onClick={onClick} className="cursor-pointer">
+            {label}
+          </button>
+          <button
+            type="button"
             aria-label={`Remover ${label}`}
             onClick={(e) => {
               e.stopPropagation()
               onRemove()
             }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.stopPropagation()
-                onRemove()
-              }
-            }}
             className="material-symbols-outlined text-[14px] cursor-pointer"
           >
             close
-          </span>
-        ) : null}
+          </button>
+        </span>
+      )
+    }
+
+    return (
+      <button type="button" onClick={onClick} className={baseClass}>
+        {label}
       </button>
     )
   }

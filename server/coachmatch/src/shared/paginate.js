@@ -13,7 +13,8 @@ const paginate = async (docClient, Command, params) => {
   let exclusiveStartKey;
 
   do {
-    const result = await docClient.send(new Command({ ...params, ExclusiveStartKey: exclusiveStartKey }));
+    // Each page depends on the previous LastEvaluatedKey — intentionally sequential.
+    const result = await docClient.send(new Command({ ...params, ExclusiveStartKey: exclusiveStartKey })); // NOSONAR
     items.push(...(result.Items ?? []));
     exclusiveStartKey = result.LastEvaluatedKey;
   } while (exclusiveStartKey);

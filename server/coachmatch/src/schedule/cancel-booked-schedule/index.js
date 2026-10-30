@@ -45,7 +45,7 @@ export const cancelBookedSchedule = async (studentId, scheduleId) => {
     expectedStatus: SCHEDULE_STATUS.BOOKED,
   });
 
-  const [{ email: coachEmail, name: coachName }, studentName] = await Promise.all([
+  const [{ email: coachEmail }, studentName] = await Promise.all([
     getCoachEmailAndName(schedule.coachId),
     getStudentName(studentId),
   ]);

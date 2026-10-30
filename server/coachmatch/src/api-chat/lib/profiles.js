@@ -10,15 +10,12 @@ const COACHES_TABLE = tableName("coaches");
 
 const batchGet = async (table, keys) => {
   if (keys.length === 0) return [];
-  const found = [];
-  for (let i = 0; i < keys.length; i += 100) {
-    const slice = keys.slice(i, i + 100);
-    const result = await dynamo.send(
-      new BatchGetCommand({ RequestItems: { [table]: { Keys: slice } } })
-    );
-    found.push(...(result.Responses?.[table] ?? []));
-  }
-  return found;
+  const slices = [];
+  for (let i = 0; i < keys.length; i += 100) slices.push(keys.slice(i, i + 100));
+  const results = await Promise.all(
+    slices.map((slice) => dynamo.send(new BatchGetCommand({ RequestItems: { [table]: { Keys: slice } } }))),
+  );
+  return results.flatMap((result) => result.Responses?.[table] ?? []);
 };
 
 /**
