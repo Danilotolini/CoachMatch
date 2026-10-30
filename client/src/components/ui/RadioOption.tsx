@@ -1,11 +1,11 @@
 import { Icon } from '@/components/ui/Icon'
 
 interface RadioOptionProps {
-  label: string
-  description?: string
-  checked: boolean
-  onChange: () => void
-  className?: string
+  readonly label: string
+  readonly description?: string
+  readonly checked: boolean
+  readonly onChange: () => void
+  readonly className?: string
 }
 
 export function RadioOption({

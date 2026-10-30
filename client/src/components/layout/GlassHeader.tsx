@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 
 interface GlassHeaderProps {
-  children: ReactNode
-  sticky?: boolean
-  className?: string
+  readonly children: ReactNode
+  readonly sticky?: boolean
+  readonly className?: string
 }
 
 export function GlassHeader({ children, sticky = true, className = '' }: GlassHeaderProps) {

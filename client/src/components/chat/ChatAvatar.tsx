@@ -1,11 +1,11 @@
 import { Icon } from '@/components/ui/Icon'
 
 interface ChatAvatarProps {
-  name?: string | null | undefined
-  image?: string | null | undefined
+  readonly name?: string | null | undefined
+  readonly image?: string | null | undefined
   /** Classes de tamanho do avatar (ex.: "h-11 w-11"). */
-  className?: string
-  iconSize?: number
+  readonly className?: string
+  readonly iconSize?: number
 }
 
 export function ChatAvatar({

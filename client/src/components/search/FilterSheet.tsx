@@ -6,11 +6,11 @@ import { useStudentSpecialties } from '@/hooks/useStudentSpecialties'
 import type { CoachSearchFilters } from '@/types/api'
 
 interface FilterSheetProps {
-  open: boolean
-  filters: CoachSearchFilters
-  onClose: () => void
-  onApply: (filters: CoachSearchFilters) => void
-  onClear: () => void
+  readonly open: boolean
+  readonly filters: CoachSearchFilters
+  readonly onClose: () => void
+  readonly onApply: (filters: CoachSearchFilters) => void
+  readonly onClear: () => void
 }
 
 function toggleItem(items: string[], item: string): string[] {
@@ -48,7 +48,7 @@ function FilterSheetContent({
   }
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+    <dialog open className="fixed inset-0 z-50" aria-modal="true">
       <button
         type="button"
         aria-label="Fechar filtros"
@@ -108,6 +108,6 @@ function FilterSheetContent({
           </Button>
         </div>
       </aside>
-    </div>
+    </dialog>
   )
 }

@@ -1,5 +1,5 @@
 interface WordmarkProps {
-  className?: string
+  readonly className?: string
 }
 
 export function Wordmark({ className = '' }: WordmarkProps) {

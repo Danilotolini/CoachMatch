@@ -7,9 +7,9 @@ import type { Role } from '@/stores/sessionStore'
 import type { ChatConversation } from '@/types/api'
 
 interface ConversationListProps {
-  role: Role
-  selectedId: string | null
-  onSelect: (id: string) => void
+  readonly role: Role
+  readonly selectedId: string | null
+  readonly onSelect: (id: string) => void
 }
 
 function conversationTitle(conversation: ChatConversation): string {

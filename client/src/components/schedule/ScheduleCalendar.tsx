@@ -284,18 +284,18 @@ function DayColumn({
 }
 
 interface Props {
-  slots: Schedule[]
-  specialtyLabels: Map<string, string>
-  onSlotClick?: (slot: Schedule) => void
-  onTimeClick?: (selection: CalendarTimeSelection) => void
-  visibleStatuses: ScheduleStatus[]
-  statusLabels?: Partial<Record<ScheduleStatus, string>>
+  readonly slots: Schedule[]
+  readonly specialtyLabels: Map<string, string>
+  readonly onSlotClick?: (slot: Schedule) => void
+  readonly onTimeClick?: (selection: CalendarTimeSelection) => void
+  readonly visibleStatuses: ScheduleStatus[]
+  readonly statusLabels?: Partial<Record<ScheduleStatus, string>>
 }
 
 export interface CalendarTimeSelection {
-  date: string
-  start: string
-  end: string
+  readonly date: string
+  readonly start: string
+  readonly end: string
 }
 
 export default function ScheduleCalendar({

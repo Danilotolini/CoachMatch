@@ -1,13 +1,13 @@
 import { Icon } from '@/components/ui/Icon'
 
 interface PhotoUploadCardProps {
-  label: string
-  previewUrl: string | null
-  uploading: boolean
-  progress: number
-  error?: string | undefined
-  hint?: string | undefined
-  onPick: () => void
+  readonly label: string
+  readonly previewUrl: string | null
+  readonly uploading: boolean
+  readonly progress: number
+  readonly error?: string | undefined
+  readonly hint?: string | undefined
+  readonly onPick: () => void
 }
 
 export function PhotoUploadCard({

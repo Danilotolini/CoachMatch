@@ -9,12 +9,12 @@ import type { Role } from '@/stores/sessionStore'
 import type { ChatMessage } from '@/types/api'
 
 interface MessageThreadProps {
-  role: Role
-  conversationId: string
-  title: string
-  image?: string | null
-  onBack: () => void
-  onHeaderClick?: (() => void) | undefined
+  readonly role: Role
+  readonly conversationId: string
+  readonly title: string
+  readonly image?: string | null
+  readonly onBack: () => void
+  readonly onHeaderClick?: (() => void) | undefined
 }
 
 function sortByCreatedAt(messages: ChatMessage[]): ChatMessage[] {

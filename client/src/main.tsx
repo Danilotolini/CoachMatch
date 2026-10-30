@@ -224,14 +224,13 @@ const router = createBrowserRouter([
 const root = document.getElementById('root')
 if (!root) throw new Error('Root element not found')
 
-void enableMocking().then(() => {
-  createRoot(root).render(
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
-      </QueryClientProvider>
-    </StrictMode>,
-  )
-  markBooted()
-})
+await enableMocking()
+createRoot(root).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+    </QueryClientProvider>
+  </StrictMode>,
+)
+markBooted()

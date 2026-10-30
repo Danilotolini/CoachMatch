@@ -1,14 +1,14 @@
 import { RatingPill } from '@/components/coach/RatingPill'
 
 interface CoachCardProps {
-  name: string
-  specialties: string
-  image?: string
-  rating?: string | number
-  price?: string | number
-  location?: string
-  availability?: string
-  onClick?: () => void
+  readonly name: string
+  readonly specialties: string
+  readonly image?: string
+  readonly rating?: string | number
+  readonly price?: string | number
+  readonly location?: string
+  readonly availability?: string
+  readonly onClick?: () => void
 }
 
 export function CoachCard({

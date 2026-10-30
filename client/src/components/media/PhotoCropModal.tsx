@@ -5,12 +5,12 @@ import { cropToSquareFile } from '@/lib/cropImage'
 
 interface PhotoCropModalProps {
   /** Arquivo cru escolhido pelo usuário, antes do recorte. */
-  file: File
+  readonly file: File
   /** Object URL do arquivo; o ciclo de vida (criar/revogar) é do `usePhotoCrop`. */
-  imageUrl: string
-  onCancel: () => void
+  readonly imageUrl: string
+  readonly onCancel: () => void
   /** Recebe o `File` já recortado em 1:1, pronto pro upload. */
-  onConfirm: (cropped: File) => void
+  readonly onConfirm: (cropped: File) => void
 }
 
 /**
@@ -50,9 +50,9 @@ export function PhotoCropModal({ file, imageUrl, onCancel, onConfirm }: PhotoCro
         aria-label="Fechar"
         onClick={onCancel}
       />
-      <div
+      <dialog
+        open
         className="relative z-10 flex w-full max-w-md flex-col gap-5 rounded-xl border border-outline-variant/10 bg-surface-container p-5 shadow-modal"
-        role="dialog"
         aria-modal="true"
         aria-labelledby="photo-crop-title"
       >
@@ -126,7 +126,7 @@ export function PhotoCropModal({ file, imageUrl, onCancel, onConfirm }: PhotoCro
             {processing ? 'Processando' : 'Usar foto'}
           </button>
         </div>
-      </div>
+      </dialog>
     </div>
   )
 }

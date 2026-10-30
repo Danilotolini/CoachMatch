@@ -1,14 +1,14 @@
 import { Icon } from '@/components/ui/Icon'
 
 interface ConfirmDialogProps {
-  title: string
-  description?: string
-  confirmLabel: string
-  cancelLabel?: string
-  tone?: 'primary' | 'danger'
-  busy?: boolean
-  onConfirm: () => void
-  onClose: () => void
+  readonly title: string
+  readonly description?: string
+  readonly confirmLabel: string
+  readonly cancelLabel?: string
+  readonly tone?: 'primary' | 'danger'
+  readonly busy?: boolean
+  readonly onConfirm: () => void
+  readonly onClose: () => void
 }
 
 /**

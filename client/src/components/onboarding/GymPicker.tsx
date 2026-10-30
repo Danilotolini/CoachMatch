@@ -7,18 +7,18 @@ import { GymSuggestForm } from './GymSuggestForm'
 import type { Gym } from '@/types/api'
 
 export interface GymOption {
-  id: string
-  name: string
-  city: string
-  state: string
-  neighborhood: string
+  readonly id: string
+  readonly name: string
+  readonly city: string
+  readonly state: string
+  readonly neighborhood: string
 }
 
 interface GymPickerProps {
-  selectedGyms: GymOption[]
-  onAdd: (gym: Gym) => void
-  onRemove: (gymId: string) => void
-  error?: string | undefined
+  readonly selectedGyms: GymOption[]
+  readonly onAdd: (gym: Gym) => void
+  readonly onRemove: (gymId: string) => void
+  readonly error?: string | undefined
 }
 
 function GymSearchResults({
@@ -30,13 +30,13 @@ function GymSearchResults({
   sentinelRef,
   onAdd,
 }: {
-  isLoading: boolean
-  options: Gym[]
-  hasNextPage: boolean
-  isFetchingNextPage: boolean
-  rootRef: RefObject<HTMLDivElement | null>
-  sentinelRef: RefObject<HTMLDivElement | null>
-  onAdd: (gym: Gym) => void
+  readonly isLoading: boolean
+  readonly options: Gym[]
+  readonly hasNextPage: boolean
+  readonly isFetchingNextPage: boolean
+  readonly rootRef: RefObject<HTMLDivElement | null>
+  readonly sentinelRef: RefObject<HTMLDivElement | null>
+  readonly onAdd: (gym: Gym) => void
 }) {
   if (isLoading)
     return <p className="px-1 font-body text-xs text-on-surface-variant">Buscando academias...</p>

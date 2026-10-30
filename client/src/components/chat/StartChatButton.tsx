@@ -6,13 +6,13 @@ import { parseApiErrors } from '@/lib/http'
 import type { Role } from '@/stores/sessionStore'
 
 interface StartChatButtonProps {
-  role: Role
-  peerId: string
-  peerName?: string | null
-  chatPath: string
-  label?: string
-  variant?: 'primary' | 'secondary' | 'ghost'
-  className?: string
+  readonly role: Role
+  readonly peerId: string
+  readonly peerName?: string | null
+  readonly chatPath: string
+  readonly label?: string
+  readonly variant?: 'primary' | 'secondary' | 'ghost'
+  readonly className?: string
 }
 
 export function StartChatButton({

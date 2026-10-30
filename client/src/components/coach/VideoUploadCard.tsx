@@ -1,14 +1,14 @@
 import { Icon } from '@/components/ui/Icon'
 
 interface VideoUploadCardProps {
-  label: string
-  uploaded: boolean
-  uploading: boolean
-  progress: number
-  fileName: string | null
-  error?: string | undefined
-  hint?: string | undefined
-  onPick: () => void
+  readonly label: string
+  readonly uploaded: boolean
+  readonly uploading: boolean
+  readonly progress: number
+  readonly fileName: string | null
+  readonly error?: string | undefined
+  readonly hint?: string | undefined
+  readonly onPick: () => void
 }
 
 export function VideoUploadCard({

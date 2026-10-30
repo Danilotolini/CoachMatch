@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button'
 import type { Client } from '@/types/api'
 
 interface LoginPageProps {
-  audience: Role
+  readonly audience: Role
 }
 
 function isLocalMockingEnabled(): boolean {

@@ -50,7 +50,7 @@ async function navigateAfterTokenExchange(
 }
 
 interface CognitoCallbackPageProps {
-  audience: Role
+  readonly audience: Role
 }
 
 export default function CognitoCallbackPage({ audience }: CognitoCallbackPageProps) {

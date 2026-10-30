@@ -30,6 +30,45 @@ function filtersFromParams(searchParams: URLSearchParams): CoachSearchFilters {
   }
 }
 
+function LoadMoreSection({
+  isLoading,
+  isError,
+  hasNextPage,
+  isFetchingNextPage,
+  coachCount,
+  onFetch,
+}: {
+  readonly isLoading: boolean
+  readonly isError: boolean
+  readonly hasNextPage: boolean
+  readonly isFetchingNextPage: boolean
+  readonly coachCount: number
+  readonly onFetch: () => void
+}) {
+  if (isLoading || isError) return null
+  if (hasNextPage) {
+    return (
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={isFetchingNextPage}
+        onClick={onFetch}
+        className="mx-auto w-full max-w-xs"
+      >
+        {isFetchingNextPage ? 'CARREGANDO...' : 'VER MAIS'}
+      </Button>
+    )
+  }
+  if (coachCount > 0) {
+    return (
+      <p className="py-2 text-center font-label text-xs text-on-surface-variant">
+        Fim dos resultados
+      </p>
+    )
+  }
+  return null
+}
+
 function paramsFromFilters(filters: CoachSearchFilters): URLSearchParams {
   const params = new URLSearchParams()
   if (filters.q) params.set('q', filters.q)
@@ -151,23 +190,14 @@ export default function ClientSearchPage() {
             />
           ) : null}
 
-          {!isLoading && !isError && hasNextPage ? (
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={isFetchingNextPage}
-              onClick={() => {
-                void fetchNextPage()
-              }}
-              className="mx-auto w-full max-w-xs"
-            >
-              {isFetchingNextPage ? 'CARREGANDO...' : 'VER MAIS'}
-            </Button>
-          ) : !isLoading && !isError && coaches.length > 0 ? (
-            <p className="py-2 text-center font-label text-xs text-on-surface-variant">
-              Fim dos resultados
-            </p>
-          ) : null}
+          <LoadMoreSection
+            isLoading={isLoading}
+            isError={isError}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            coachCount={coaches.length}
+            onFetch={() => { void fetchNextPage() }}
+          />
         </section>
       </div>
 

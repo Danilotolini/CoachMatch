@@ -4,15 +4,15 @@ import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
 
 interface StudentPaymentSimulatorProps {
-  scheduleId: string
-  coachId: string
-  studentId: string
-  amountCents: number
-  amountLabel: string
-  coachName?: string | undefined
-  specialtyLabel?: string | undefined
-  dateLabel?: string | undefined
-  onPaid: () => void
+  readonly scheduleId: string
+  readonly coachId: string
+  readonly studentId: string
+  readonly amountCents: number
+  readonly amountLabel: string
+  readonly coachName?: string | undefined
+  readonly specialtyLabel?: string | undefined
+  readonly dateLabel?: string | undefined
+  readonly onPaid: () => void
 }
 
 export function StudentPaymentSimulator({

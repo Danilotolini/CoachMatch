@@ -7,15 +7,15 @@ import type { Schedule } from '@/types/api'
 type Viewer = 'coach' | 'client'
 
 interface SessionSummaryModalProps {
-  slot: Schedule
-  viewer: Viewer
+  readonly slot: Schedule
+  readonly viewer: Viewer
   /** Nome da contraparte: treinador (visão aluno) ou aluno (visão treinador). */
-  counterpartName?: string | undefined
-  specialtyLabel: string
-  gymLabel?: string
+  readonly counterpartName?: string | undefined
+  readonly specialtyLabel: string
+  readonly gymLabel?: string
   /** Abre a página detalhada da sessão. */
-  onViewDetails?: () => void
-  onClose: () => void
+  readonly onViewDetails?: () => void
+  readonly onClose: () => void
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -61,9 +61,9 @@ export function SessionSummaryModal({
         aria-label="Fechar"
         onClick={onClose}
       />
-      <div
+      <dialog
+        open
         className="relative z-10 flex w-full max-w-md flex-col gap-5 rounded-xl border border-outline-variant/10 bg-surface-container p-5 shadow-modal"
-        role="dialog"
         aria-modal="true"
         aria-labelledby="session-summary-title"
       >
@@ -119,7 +119,7 @@ export function SessionSummaryModal({
             </button>
           )}
         </div>
-      </div>
+      </dialog>
     </div>
   )
 }

@@ -6,8 +6,8 @@ import { CityAutocomplete, SelectField } from './LocationFields'
 import type { Gym } from '@/types/api'
 
 interface GymSuggestFormProps {
-  onSuggested: (gym: Gym) => void
-  onCancel: () => void
+  readonly onSuggested: (gym: Gym) => void
+  readonly onCancel: () => void
 }
 
 export function GymSuggestForm({ onSuggested, onCancel }: GymSuggestFormProps) {

@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 
 interface LabelMicroProps {
-  children: ReactNode
-  className?: string
+  readonly children: ReactNode
+  readonly className?: string
 }
 
 export function LabelMicro({ children, className = '' }: LabelMicroProps) {

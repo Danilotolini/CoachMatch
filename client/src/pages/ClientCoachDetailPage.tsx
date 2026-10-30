@@ -11,7 +11,7 @@ import { getStudentCoachSchedules, requestStudentSchedule } from '@/api/schedule
 import { useCoachDetail } from '@/hooks/useCoachDetail'
 import { formatCoachScheduleSlot, nowMs } from '@/lib/dateTime'
 import { parseApiErrors } from '@/lib/http'
-import type { CoachDetailWorkLocation, CoachScheduleSlot } from '@/types/api'
+import type { CoachDetail, CoachDetailWorkLocation, CoachScheduleSlot } from '@/types/api'
 import { buildStudentCoachScheduleWindow } from './clientCoachDetailWindow'
 
 function formatMoney(value: number | string): string {
@@ -49,11 +49,11 @@ function ScheduleSlots({
   successScheduleId,
   onSelect,
 }: {
-  isLoading: boolean
-  availableSchedules: CoachScheduleSlot[]
-  activeScheduleId: string | null
-  successScheduleId: string | null
-  onSelect: (id: string) => void
+  readonly isLoading: boolean
+  readonly availableSchedules: CoachScheduleSlot[]
+  readonly activeScheduleId: string | null
+  readonly successScheduleId: string | null
+  readonly onSelect: (id: string) => void
 }) {
   if (isLoading) {
     return (
@@ -107,6 +107,191 @@ function ScheduleSlots({
           </button>
         )
       })}
+    </>
+  )
+}
+
+interface CoachContentProps {
+  readonly coach: CoachDetail
+  readonly serviceAreas: string[]
+  readonly availableSchedules: CoachScheduleSlot[]
+  readonly activeScheduleId: string | null
+  readonly successScheduleId: string | null
+  readonly priceLabel: string | null
+  readonly scheduleIsLoading: boolean
+  readonly mutationIsPending: boolean
+  readonly mutationIsError: boolean
+  readonly mutationError: unknown
+  readonly selectedSchedule: CoachScheduleSlot | undefined
+  readonly onSelect: (id: string) => void
+  readonly onSchedule: () => void
+}
+
+function CoachContent({
+  coach,
+  serviceAreas,
+  availableSchedules,
+  activeScheduleId,
+  successScheduleId,
+  priceLabel,
+  scheduleIsLoading,
+  mutationIsPending,
+  mutationIsError,
+  mutationError,
+  selectedSchedule,
+  onSelect,
+  onSchedule,
+}: CoachContentProps) {
+  const bookDisabled = !selectedSchedule || successScheduleId === selectedSchedule.scheduleId
+  return (
+    <>
+      <div className="flex min-w-0 flex-col gap-5">
+        <Card className="p-5 sm:p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+            <div
+              className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-surface-container bg-cover bg-center sm:h-32 sm:w-32"
+              {...(coach.profile.photo_url
+                ? { style: { backgroundImage: `url(${coach.profile.photo_url})` } }
+                : {})}
+            >
+              {coach.profile.photo_url ? null : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Icon name="person" size={40} className="text-on-surface-variant" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <CrefBadge cref={coach.profile.cref} />
+              </div>
+              <h2 className="mt-3 font-headline text-2xl font-bold tracking-tight sm:text-3xl">
+                {coach.profile.name}
+              </h2>
+              {coach.profile.instagram ? (
+                <p className="mt-1 font-body text-sm text-on-surface-variant">
+                  <InstagramLink
+                    handle={coach.profile.instagram}
+                    className="inline-flex items-center gap-1 transition-colors hover:text-primary"
+                  />
+                </p>
+              ) : null}
+              {coach.profile.specialties.length > 0 ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {coach.profile.specialties.map((specialty) => (
+                    <span
+                      key={specialty}
+                      className="rounded-full bg-surface-container-high px-3 py-1.5 font-label text-xs font-medium text-on-surface"
+                    >
+                      {specialty}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <SectionTitle icon="map" title="Atendimento" />
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {serviceAreas.length > 0 ? (
+              serviceAreas.map((area) => (
+                <div
+                  key={area}
+                  className="flex items-center gap-3 rounded-lg bg-surface-container px-3 py-3"
+                >
+                  <Icon name="pin_drop" size={18} className="text-primary" />
+                  <span className="font-body text-sm text-on-surface-variant">{area}</span>
+                </div>
+              ))
+            ) : (
+              <p className="font-body text-sm text-on-surface-variant">
+                O treinador ainda não informou locais de atendimento.
+              </p>
+            )}
+          </div>
+        </Card>
+
+        {coach.profile.video_url ? (
+          <Card className="p-5">
+            <SectionTitle icon="videocam" title="Vídeo de apresentação" />
+            <video
+              src={coach.profile.video_url}
+              controls
+              className="mt-4 max-h-[70vh] w-full rounded-xl border border-outline-variant/10 bg-black object-contain"
+            >
+              <track kind="captions" srcLang="pt" label="Português" />
+            </video>
+          </Card>
+        ) : null}
+      </div>
+
+      <aside className="lg:sticky lg:top-8 lg:self-start">
+        <Card className="p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <span className="font-label text-xs text-on-surface-variant">Próximos horários</span>
+              <h2 className="mt-1 font-headline text-xl font-semibold">Agendar sessão</h2>
+            </div>
+            {priceLabel ? (
+              <div className="rounded-lg bg-primary px-3 py-2 text-on-primary-fixed">
+                <p className="font-headline text-lg font-bold">{priceLabel}</p>
+                <p className="font-label text-[10px] font-medium uppercase">sessão</p>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-5 grid gap-2">
+            <ScheduleSlots
+              isLoading={scheduleIsLoading}
+              availableSchedules={availableSchedules}
+              activeScheduleId={activeScheduleId}
+              successScheduleId={successScheduleId}
+              onSelect={onSelect}
+            />
+          </div>
+
+          {mutationIsError ? (
+            <p className="mt-4 rounded-lg bg-error-container px-3 py-2 font-body text-sm text-on-error-container">
+              {parseApiErrors(mutationError, 'Não foi possível solicitar este horário.')}
+            </p>
+          ) : null}
+
+          {successScheduleId ? (
+            <p className="mt-4 rounded-lg bg-primary/10 px-3 py-2 font-body text-sm text-primary">
+              Solicitação enviada. O treinador vai confirmar o agendamento.
+            </p>
+          ) : null}
+
+          <div className="mt-5 hidden lg:block">
+            <Button
+              type="button"
+              onClick={onSchedule}
+              loading={mutationIsPending}
+              disabled={bookDisabled}
+              className="w-full"
+              icon="event_available"
+            >
+              AGENDAR
+            </Button>
+          </div>
+        </Card>
+      </aside>
+
+      <div className="fixed inset-x-0 bottom-20 z-20 px-4 lg:hidden">
+        <Card className="p-3 shadow-[0_18px_45px_rgba(0,0,0,0.28)]">
+          <Button
+            type="button"
+            onClick={onSchedule}
+            loading={mutationIsPending}
+            disabled={bookDisabled}
+            className="w-full"
+            icon="event_available"
+          >
+            AGENDAR
+          </Button>
+        </Card>
+      </div>
     </>
   )
 }
@@ -219,167 +404,24 @@ export default function ClientCoachDetailPage() {
           ) : null}
 
           {coach ? (
-            <>
-              <div className="flex min-w-0 flex-col gap-5">
-                <Card className="p-5 sm:p-6">
-                  <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                    <div
-                      className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-surface-container bg-cover bg-center sm:h-32 sm:w-32"
-                      {...(coach.profile.photo_url
-                        ? { style: { backgroundImage: `url(${coach.profile.photo_url})` } }
-                        : {})}
-                    >
-                      {coach.profile.photo_url ? null : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <Icon name="person" size={40} className="text-on-surface-variant" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <CrefBadge cref={coach.profile.cref} />
-                      </div>
-                      <h2 className="mt-3 font-headline text-2xl font-bold tracking-tight sm:text-3xl">
-                        {coach.profile.name}
-                      </h2>
-                      {coach.profile.instagram ? (
-                        <p className="mt-1 font-body text-sm text-on-surface-variant">
-                          <InstagramLink
-                            handle={coach.profile.instagram}
-                            className="inline-flex items-center gap-1 transition-colors hover:text-primary"
-                          />
-                        </p>
-                      ) : null}
-                      {coach.profile.specialties.length > 0 ? (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {coach.profile.specialties.map((specialty) => (
-                            <span
-                              key={specialty}
-                              className="rounded-full bg-surface-container-high px-3 py-1.5 font-label text-xs font-medium text-on-surface"
-                            >
-                              {specialty}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-5">
-                  <SectionTitle icon="map" title="Atendimento" />
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {serviceAreas.length > 0 ? (
-                      serviceAreas.map((area) => (
-                        <div
-                          key={area}
-                          className="flex items-center gap-3 rounded-lg bg-surface-container px-3 py-3"
-                        >
-                          <Icon name="pin_drop" size={18} className="text-primary" />
-                          <span className="font-body text-sm text-on-surface-variant">{area}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="font-body text-sm text-on-surface-variant">
-                        O treinador ainda não informou locais de atendimento.
-                      </p>
-                    )}
-                  </div>
-                </Card>
-
-                {coach.profile.video_url ? (
-                  <Card className="p-5">
-                    <SectionTitle icon="videocam" title="Vídeo de apresentação" />
-                    <video
-                      src={coach.profile.video_url}
-                      controls
-                      className="mt-4 max-h-[70vh] w-full rounded-xl border border-outline-variant/10 bg-black object-contain"
-                    >
-                      <track kind="captions" srcLang="pt" label="Português" />
-                    </video>
-                  </Card>
-                ) : null}
-              </div>
-
-              <aside className="lg:sticky lg:top-8 lg:self-start">
-                <Card className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <span className="font-label text-xs text-on-surface-variant">
-                        Próximos horários
-                      </span>
-                      <h2 className="mt-1 font-headline text-xl font-semibold">Agendar sessão</h2>
-                    </div>
-                    {priceLabel ? (
-                      <div className="rounded-lg bg-primary px-3 py-2 text-on-primary-fixed">
-                        <p className="font-headline text-lg font-bold">{priceLabel}</p>
-                        <p className="font-label text-[10px] font-medium uppercase">sessão</p>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-5 grid gap-2">
-                    <ScheduleSlots
-                      isLoading={scheduleQuery.isLoading}
-                      availableSchedules={availableSchedules}
-                      activeScheduleId={activeScheduleId}
-                      successScheduleId={successScheduleId}
-                      onSelect={setSelectedScheduleId}
-                    />
-                  </div>
-
-                  {requestMutation.isError ? (
-                    <p className="mt-4 rounded-lg bg-error-container px-3 py-2 font-body text-sm text-on-error-container">
-                      {parseApiErrors(
-                        requestMutation.error,
-                        'Não foi possível solicitar este horário.',
-                      )}
-                    </p>
-                  ) : null}
-
-                  {successScheduleId ? (
-                    <p className="mt-4 rounded-lg bg-primary/10 px-3 py-2 font-body text-sm text-primary">
-                      Solicitação enviada. O treinador vai confirmar o agendamento.
-                    </p>
-                  ) : null}
-
-                  <div className="mt-5 hidden lg:block">
-                    <Button
-                      type="button"
-                      onClick={handleSchedule}
-                      loading={requestMutation.isPending}
-                      disabled={
-                        !selectedSchedule || successScheduleId === selectedSchedule.scheduleId
-                      }
-                      className="w-full"
-                      icon="event_available"
-                    >
-                      AGENDAR
-                    </Button>
-                  </div>
-                </Card>
-              </aside>
-            </>
+            <CoachContent
+              coach={coach}
+              serviceAreas={serviceAreas}
+              availableSchedules={availableSchedules}
+              activeScheduleId={activeScheduleId}
+              successScheduleId={successScheduleId}
+              priceLabel={priceLabel}
+              scheduleIsLoading={scheduleQuery.isLoading}
+              mutationIsPending={requestMutation.isPending}
+              mutationIsError={requestMutation.isError}
+              mutationError={requestMutation.error}
+              selectedSchedule={selectedSchedule}
+              onSelect={setSelectedScheduleId}
+              onSchedule={handleSchedule}
+            />
           ) : null}
         </section>
       </div>
-
-      {coach ? (
-        <div className="fixed inset-x-0 bottom-20 z-20 px-4 lg:hidden">
-          <Card className="p-3 shadow-[0_18px_45px_rgba(0,0,0,0.28)]">
-            <Button
-              type="button"
-              onClick={handleSchedule}
-              loading={requestMutation.isPending}
-              disabled={!selectedSchedule || successScheduleId === selectedSchedule.scheduleId}
-              className="w-full"
-              icon="event_available"
-            >
-              AGENDAR
-            </Button>
-          </Card>
-        </div>
-      ) : null}
 
       <ClientBottomNav />
     </main>

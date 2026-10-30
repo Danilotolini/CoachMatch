@@ -2,8 +2,8 @@ import { Chip } from '@/components/ui/Chip'
 import type { CoachSearchFilters } from '@/types/api'
 
 interface ActiveFiltersBarProps {
-  filters: CoachSearchFilters
-  onRemove: (key: keyof CoachSearchFilters, value?: string) => void
+  readonly filters: CoachSearchFilters
+  readonly onRemove: (key: keyof CoachSearchFilters, value?: string) => void
 }
 
 export function ActiveFiltersBar({ filters, onRemove }: ActiveFiltersBarProps) {

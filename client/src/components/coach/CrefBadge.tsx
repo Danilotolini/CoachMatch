@@ -1,7 +1,7 @@
 import { Icon } from '@/components/ui/Icon'
 
 interface CrefBadgeProps {
-  cref?: string | null
+  readonly cref?: string | null
 }
 
 export function CrefBadge({ cref }: CrefBadgeProps) {

@@ -1,8 +1,8 @@
 import { instagramUrl } from '@/lib/formatters'
 
 interface InstagramLinkProps {
-  handle: string
-  className?: string
+  readonly handle: string
+  readonly className?: string
 }
 
 /** Handle do Instagram como link para o perfil público, abrindo em nova aba. */

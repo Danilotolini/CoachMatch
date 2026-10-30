@@ -633,9 +633,9 @@ function QuickSlotModal({
         aria-label="Fechar modal"
         onClick={onClose}
       />
-      <div
+      <dialog
+        open
         className="relative z-10 flex max-h-[min(760px,calc(100dvh-2rem))] w-full max-w-lg flex-col gap-5 overflow-y-auto rounded-xl border border-outline-variant/10 bg-surface-container p-5 shadow-modal"
-        role="dialog"
         aria-modal="true"
         aria-labelledby="quick-slot-modal-title"
       >
@@ -670,7 +670,7 @@ function QuickSlotModal({
           onCreated={onCreated}
           onClose={onClose}
         />
-      </div>
+      </dialog>
     </div>
   )
 }

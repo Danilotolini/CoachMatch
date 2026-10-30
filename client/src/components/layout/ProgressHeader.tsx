@@ -1,8 +1,8 @@
 interface ProgressHeaderProps {
-  currentStep: number
-  totalSteps: number
-  title?: string
-  contentClassName?: string
+  readonly currentStep: number
+  readonly totalSteps: number
+  readonly title?: string
+  readonly contentClassName?: string
 }
 
 export function ProgressHeader({

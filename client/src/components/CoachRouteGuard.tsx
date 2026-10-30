@@ -9,8 +9,8 @@ import { coachStatusRoute, isCoachOnboardingStatus } from '@/lib/coachStatus'
 import type { CoachStatus } from '@/types/api'
 
 interface RouteGuardProps {
-  allow: CoachStatus[]
-  children: ReactNode
+  readonly allow: CoachStatus[]
+  readonly children: ReactNode
 }
 
 function Spinner() {

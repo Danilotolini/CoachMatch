@@ -20,9 +20,26 @@ function routeForStatus(status: unknown): string {
   return STATUS_ROUTE.PENDING_PROFILE
 }
 
+function buildLoginState(expired: boolean, isUnauthorized: boolean): { reason: string } | undefined {
+  if (expired) return { reason: 'expired' }
+  if (isUnauthorized) return { reason: 'unauthorized' }
+  return undefined
+}
+
+function getExpectedPath(
+  data: { status: ClientStatus },
+  requireOnboarded: boolean,
+  pathname: string,
+): string | null {
+  const expectedPath = routeForStatus(data.status)
+  if (requireOnboarded && data.status !== 'ACTIVE') return expectedPath
+  if (!requireOnboarded && pathname !== expectedPath) return expectedPath
+  return null
+}
+
 interface ClientRouteGuardProps {
-  children: ReactNode
-  requireOnboarded?: boolean
+  readonly children: ReactNode
+  readonly requireOnboarded?: boolean
 }
 
 function Spinner() {
@@ -58,11 +75,7 @@ export function ClientRouteGuard({ children, requireOnboarded = false }: ClientR
   }, [expired, isUnauthorized, endSession])
 
   if (!token || expired) {
-    let loginState: { reason: string } | undefined
-    if (expired) loginState = { reason: 'expired' }
-    else if (isUnauthorized) loginState = { reason: 'unauthorized' }
-
-    return <Navigate to="/client/login" replace state={loginState} />
+    return <Navigate to="/client/login" replace state={buildLoginState(expired, isUnauthorized)} />
   }
 
   if (activeRole !== 'client') return <Spinner />
@@ -75,11 +88,8 @@ export function ClientRouteGuard({ children, requireOnboarded = false }: ClientR
   if (isError) return <>{children}</>
 
   if (data) {
-    const expectedPath = routeForStatus(data.status)
-    if (requireOnboarded && data.status !== 'ACTIVE')
-      return <Navigate to={expectedPath} replace />
-    if (!requireOnboarded && location.pathname !== expectedPath)
-      return <Navigate to={expectedPath} replace />
+    const redirectTo = getExpectedPath(data, requireOnboarded, location.pathname)
+    if (redirectTo) return <Navigate to={redirectTo} replace />
   }
 
   return <>{children}</>

@@ -2,8 +2,8 @@ import { CoachCard } from '@/components/coach/CoachCard'
 import type { CoachSummary } from '@/types/api'
 
 interface SearchResultsListProps {
-  coaches: CoachSummary[]
-  onCoachClick?: (coachId: string) => void
+  readonly coaches: CoachSummary[]
+  readonly onCoachClick?: (coachId: string) => void
 }
 
 export function SearchResultsList({ coaches, onCoachClick }: SearchResultsListProps) {

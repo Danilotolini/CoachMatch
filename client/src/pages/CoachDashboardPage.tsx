@@ -285,9 +285,9 @@ function InlineState({ icon, text }: { icon: string; text: string }) {
 }
 
 interface TopBarProps {
-  firstName: string
-  profilePhoto: string | undefined
-  name: string | undefined
+  readonly firstName: string
+  readonly profilePhoto: string | undefined
+  readonly name: string | undefined
 }
 
 function TopBar({ firstName, profilePhoto, name }: TopBarProps) {
@@ -333,10 +333,10 @@ function ApprovedBanner({ className = '' }: { className?: string }) {
 }
 
 interface StatCardProps {
-  icon: string
-  label: string
-  value: string
-  trend: string
+  readonly icon: string
+  readonly label: string
+  readonly value: string
+  readonly trend: string
 }
 
 function StatCard({ icon, label, value, trend }: StatCardProps) {
@@ -351,10 +351,10 @@ function StatCard({ icon, label, value, trend }: StatCardProps) {
 }
 
 interface SectionProps {
-  title: string
-  action?: { label: string; icon: string; to?: string }
-  children: React.ReactNode
-  className?: string
+  readonly title: string
+  readonly action?: { label: string; icon: string; to?: string }
+  readonly children: React.ReactNode
+  readonly className?: string
 }
 
 function Section({ title, action, children, className = '' }: SectionProps) {
@@ -386,10 +386,10 @@ function Section({ title, action, children, className = '' }: SectionProps) {
 }
 
 interface SessionCardProps {
-  clientName: string
-  when: string
-  location: string
-  kind: string
+  readonly clientName: string
+  readonly when: string
+  readonly location: string
+  readonly kind: string
 }
 
 function SessionCard({ clientName, when, location, kind }: SessionCardProps) {
@@ -412,8 +412,8 @@ function SessionCard({ clientName, when, location, kind }: SessionCardProps) {
 }
 
 interface RequestCardProps {
-  name: string
-  message: string
+  readonly name: string
+  readonly message: string
 }
 
 function RequestCard({ name, message }: RequestCardProps) {
@@ -439,11 +439,11 @@ function RequestCard({ name, message }: RequestCardProps) {
 }
 
 interface ProfileCardProps {
-  name: string | undefined
-  cref: string | undefined
-  specialtiesCount: number
-  territoryLabel: string
-  territoryValue: string
+  readonly name: string | undefined
+  readonly cref: string | undefined
+  readonly specialtiesCount: number
+  readonly territoryLabel: string
+  readonly territoryValue: string
 }
 
 function ProfileCard({

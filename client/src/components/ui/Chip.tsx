@@ -1,8 +1,8 @@
 interface ChipProps {
-  label: string
-  active?: boolean
-  onRemove?: () => void
-  onClick?: () => void
+  readonly label: string
+  readonly active?: boolean
+  readonly onRemove?: () => void
+  readonly onClick?: () => void
 }
 
 export function Chip({ label, active = false, onRemove, onClick }: ChipProps) {

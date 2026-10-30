@@ -1,10 +1,10 @@
 import { Icon } from '@/components/ui/Icon'
 
 interface SearchHeaderProps {
-  type: string
-  value: string
-  onChange: (value: string) => void
-  onOpenFilters: () => void
+  readonly type: string
+  readonly value: string
+  readonly onChange: (value: string) => void
+  readonly onOpenFilters: () => void
 }
 
 export function SearchHeader({ type, value, onChange, onOpenFilters }: SearchHeaderProps) {

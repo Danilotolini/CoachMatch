@@ -25,17 +25,17 @@ interface CardErrors {
 }
 
 interface StudentPaymentModalProps {
-  scheduleId: string
-  coachId: string
-  studentId: string
-  amountCents: number
-  amountLabel: string
-  coachName?: string | undefined
-  specialtyLabel?: string | undefined
-  dateLabel?: string | undefined
+  readonly scheduleId: string
+  readonly coachId: string
+  readonly studentId: string
+  readonly amountCents: number
+  readonly amountLabel: string
+  readonly coachName?: string | undefined
+  readonly specialtyLabel?: string | undefined
+  readonly dateLabel?: string | undefined
   /** Chamado uma vez quando o pagamento é confirmado, ao fechar o modal. */
-  onPaid: () => void
-  onClose: () => void
+  readonly onPaid: () => void
+  readonly onClose: () => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -468,9 +468,9 @@ export function StudentPaymentModal({
         aria-label="Fechar"
         onClick={handleClose}
       />
-      <div
+      <dialog
+        open
         className="relative z-10 flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container shadow-modal"
-        role="dialog"
         aria-modal="true"
         aria-labelledby="student-payment-title"
       >
@@ -598,7 +598,7 @@ export function StudentPaymentModal({
             </>
           )}
         </div>
-      </div>
+      </dialog>
     </div>
   )
 }

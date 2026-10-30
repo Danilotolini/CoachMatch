@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router'
 
 interface WelcomeProfileCardProps {
-  title: string
-  description: string
-  icon: string
-  to: string
-  badge?: string
+  readonly title: string
+  readonly description: string
+  readonly icon: string
+  readonly to: string
+  readonly badge?: string
 }
 
 export function WelcomeProfileCard({

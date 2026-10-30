@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 interface CityAutocompleteProps {
-  value: string
-  onChange: (value: string) => void
-  options: string[]
-  placeholder: string
-  disabled?: boolean
+  readonly value: string
+  readonly onChange: (value: string) => void
+  readonly options: string[]
+  readonly placeholder: string
+  readonly disabled?: boolean
 }
 
 export function CityAutocomplete({
@@ -124,12 +124,12 @@ export function CityAutocomplete({
 }
 
 interface SelectFieldProps {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  options: { value: string; label: string }[]
-  placeholder: string
-  disabled?: boolean
+  readonly label: string
+  readonly value: string
+  readonly onChange: (value: string) => void
+  readonly options: { value: string; label: string }[]
+  readonly placeholder: string
+  readonly disabled?: boolean
 }
 
 export function SelectField({

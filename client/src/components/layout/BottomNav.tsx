@@ -3,9 +3,9 @@ import { Icon } from '@/components/ui/Icon'
 export type BottomNavTabId = 'browse' | 'workouts' | 'agenda' | 'profile'
 
 interface BottomNavTab {
-  id: BottomNavTabId
-  icon: string
-  label: string
+  readonly id: BottomNavTabId
+  readonly icon: string
+  readonly label: string
 }
 
 const TABS: BottomNavTab[] = [
@@ -16,8 +16,8 @@ const TABS: BottomNavTab[] = [
 ]
 
 interface BottomNavProps {
-  active: BottomNavTabId
-  onChange: (id: BottomNavTabId) => void
+  readonly active: BottomNavTabId
+  readonly onChange: (id: BottomNavTabId) => void
 }
 
 export function BottomNav({ active, onChange }: BottomNavProps) {

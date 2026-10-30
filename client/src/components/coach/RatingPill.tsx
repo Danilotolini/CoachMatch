@@ -1,7 +1,7 @@
 import { Icon } from '@/components/ui/Icon'
 
 interface RatingPillProps {
-  value: string | number
+  readonly value: string | number
 }
 
 export function RatingPill({ value }: RatingPillProps) {

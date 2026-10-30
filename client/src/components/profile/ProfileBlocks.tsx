@@ -1,41 +1,41 @@
 import { Icon } from '@/components/ui/Icon'
 
 interface ProfileHeroProps {
-  eyebrow: string
-  name: string
-  email: string
-  initials: string
-  meta: string[]
-  statusLabel: string
-  photoUrl?: string | null
+  readonly eyebrow: string
+  readonly name: string
+  readonly email: string
+  readonly initials: string
+  readonly meta: string[]
+  readonly statusLabel: string
+  readonly photoUrl?: string | null
 }
 
 interface ProfileInfoItem {
-  label: string
-  value: string
+  readonly label: string
+  readonly value: string
 }
 
 interface ProfileSectionProps {
-  title: string
-  description?: string
-  icon?: string
-  aside?: React.ReactNode
-  children: React.ReactNode
+  readonly title: string
+  readonly description?: string
+  readonly icon?: string
+  readonly aside?: React.ReactNode
+  readonly children: React.ReactNode
 }
 
 interface ProfileInfoGridProps {
-  items: ProfileInfoItem[]
+  readonly items: ProfileInfoItem[]
 }
 
 interface ProfileActionRowProps {
-  icon: string
-  title: string
-  description: string
-  action: string
+  readonly icon: string
+  readonly title: string
+  readonly description: string
+  readonly action: string
 }
 
 interface ProfileLogoutButtonProps {
-  onClick: () => void
+  readonly onClick: () => void
 }
 
 export function ProfileHero({

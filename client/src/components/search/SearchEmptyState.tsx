@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
 
 interface SearchEmptyStateProps {
-  onClear: () => void
+  readonly onClear: () => void
 }
 
 export function SearchEmptyState({ onClear }: SearchEmptyStateProps) {
