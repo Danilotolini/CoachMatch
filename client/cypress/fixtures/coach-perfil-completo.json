@@ -1,0 +1,18 @@
+{
+  "coachId": "mock-coach-id",
+  "email": "treinador@coachmatch.app",
+  "status": "APPROVED",
+  "visibility": "VISIBLE",
+  "profile": {
+    "name": "Treinador Demo",
+    "phone": "+5511988888888",
+    "specialties": ["MUSCULATION", "FUNCTIONAL"],
+    "cref": "123456-G/SP",
+    "instagram": "treinadordemo",
+    "photo_url": null,
+    "video_url": null
+  },
+  "work_location": [{ "type": "GYM", "gymId": "gym_smartfit_paulista" }],
+  "createdAt": "2026-04-18T10:00:00Z",
+  "updatedAt": "2026-04-18T10:00:00Z"
+}

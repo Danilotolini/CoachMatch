@@ -26,6 +26,27 @@ pnpm format:check  # prettier --check src
 
 Para a lista completa de scripts, consulte [`package.json`](package.json).
 
+## Testes end-to-end (Cypress)
+
+Os testes em [`cypress/e2e`](cypress/e2e) rodam contra o app em modo mock, sem backend nem Cognito. Eles exigem `VITE_API_MOCKING=enabled` no `.env.local` e o servidor de desenvolvimento no ar em `http://localhost:5173`.
+
+```bash
+pnpm dev       # terminal 1
+pnpm cy:open   # terminal 2: modo interativo
+pnpm cy:run    # terminal 2: headless, grava vídeo em cypress/videos
+```
+
+Para escolher o navegador no modo headless: `pnpm cy:run --browser chrome`.
+
+Para acompanhar os testes na tela, `pnpm cy:open:lento` espera 800 ms antes de cada comando. Outro valor: `pnpm cy:open --expose commandDelay=1500`. O mesmo `--expose` funciona no `cy:run`. Sem ele, os testes rodam na velocidade normal.
+
+Comandos de apoio em [`cypress/support/commands.ts`](cypress/support/commands.ts):
+
+- `cy.loginAs('client' | 'coach')` entra com o perfil já completo. Sem ele, o perfil padrão dos mocks está pendente e o app redireciona para o onboarding.
+- `cy.disableApiMocks()` desliga os mocks na página atual, para que `cy.intercept` controle as respostas da API.
+
+Os horários dos mocks são fixos em junho de 2026. Testes que dependem da agenda congelam a data com `cy.clock`.
+
 ## Autenticação e sessão
 
 A aplicação suporta dois papéis — **treinador** (`coach`) e **aluno** (`client`) — cada um com seu próprio user pool na Amazon Cognito. As duas sessões podem coexistir no mesmo navegador, mas só uma fica ativa por vez.

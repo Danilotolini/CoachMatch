@@ -43,4 +43,22 @@ describe('Chip', () => {
     expect(onRemove).toHaveBeenCalledTimes(1)
     expect(onClick).not.toHaveBeenCalled()
   })
+
+  it('aciona onRemove ao pressionar Enter no botão de remover', async () => {
+    const onRemove = vi.fn()
+    render(<Chip label="Pilates" active onRemove={onRemove} />)
+    const removeBtn = screen.getByRole('button', { name: 'Remover Pilates' })
+    removeBtn.focus()
+    await userEvent.keyboard('{Enter}')
+    expect(onRemove).toHaveBeenCalledTimes(1)
+  })
+
+  it('aciona onRemove ao pressionar Espaço no botão de remover', async () => {
+    const onRemove = vi.fn()
+    render(<Chip label="Pilates" active onRemove={onRemove} />)
+    const removeBtn = screen.getByRole('button', { name: 'Remover Pilates' })
+    removeBtn.focus()
+    await userEvent.keyboard('{ }')
+    expect(onRemove).toHaveBeenCalledTimes(1)
+  })
 })

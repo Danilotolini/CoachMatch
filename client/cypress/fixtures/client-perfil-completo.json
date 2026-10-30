@@ -1,0 +1,16 @@
+{
+  "clientId": "client_demo",
+  "email": "aluno@coachmatch.app",
+  "status": "ACTIVE",
+  "name": "Aluno Demo",
+  "phone": "+5511999999999",
+  "birthDate": "1995-05-20",
+  "gender": "NA",
+  "cep": "01310-100",
+  "city": "São Paulo",
+  "state": "SP",
+  "radius": 10,
+  "goal": "CONDITIONING",
+  "health": null,
+  "photo_url": null
+}

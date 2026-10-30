@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { ActiveFiltersBar } from '@/components/search/ActiveFiltersBar'
 import { FilterSheet } from '@/components/search/FilterSheet'
 import { SearchEmptyState } from '@/components/search/SearchEmptyState'
@@ -39,8 +39,51 @@ function paramsFromFilters(filters: CoachSearchFilters): URLSearchParams {
   return params
 }
 
+// A URL só muda quando a navegação do roteador termina, de forma assíncrona. Um
+// input controlado direto por ela volta ao valor antigo entre duas teclas rápidas
+// e perde caracteres, por isso o texto vive em estado local. Mudanças na URL que
+// não vieram da digitação (limpar filtros, voltar no histórico) sobrescrevem o
+// texto; ecos da própria digitação são ignorados.
+//
+// O efeito roda a cada navegação, e não só quando o texto muda: o roteador pode
+// aplicar várias teclas num render só e terminar no valor inicial (digitar e
+// apagar). Sem isso, as teclas ficariam pendentes e um "voltar" para elas seria
+// tomado por eco.
+function useSearchQuery(
+  urlQuery: string,
+  navigationKey: string,
+  onChange: (query: string) => void,
+) {
+  const [query, setQuery] = useState(urlQuery)
+  const pendingWrites = useRef<string[]>([])
+
+  useEffect(() => {
+    const pending = pendingWrites.current
+    if (pending.at(-1) === urlQuery) {
+      pendingWrites.current = []
+      return
+    }
+    const echoIndex = pending.indexOf(urlQuery)
+    if (echoIndex >= 0) {
+      pendingWrites.current = pending.slice(echoIndex + 1)
+      return
+    }
+    pendingWrites.current = []
+    setQuery(urlQuery)
+  }, [urlQuery, navigationKey])
+
+  function changeQuery(next: string) {
+    pendingWrites.current.push(next)
+    setQuery(next)
+    onChange(next)
+  }
+
+  return [query, changeQuery] as const
+}
+
 export default function ClientSearchPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filtersOpen, setFiltersOpen] = useState(false)
   const filters = useMemo(() => filtersFromParams(searchParams), [searchParams])
@@ -55,6 +98,10 @@ export default function ClientSearchPage() {
     isFetchingNextPage,
   } = useCoachSearch(filters)
   const coaches = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data])
+
+  const [query, changeQuery] = useSearchQuery(filters.q ?? '', location.key, (q) => {
+    updateFilters({ q: q || undefined })
+  })
 
   function updateFilters(next: CoachSearchFilters) {
     setSearchParams(paramsFromFilters({ ...filters, ...next }))
@@ -100,10 +147,8 @@ export default function ClientSearchPage() {
         <section className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 pb-12 sm:px-6 md:px-10">
           <SearchHeader
             type="search"
-            value={filters.q ?? ''}
-            onChange={(q) => {
-              updateFilters({ q: q || undefined })
-            }}
+            value={query}
+            onChange={changeQuery}
             onOpenFilters={() => {
               setFiltersOpen(true)
             }}

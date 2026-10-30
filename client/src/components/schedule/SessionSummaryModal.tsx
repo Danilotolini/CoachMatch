@@ -1,5 +1,6 @@
 import { Icon } from '@/components/ui/Icon'
 import { formatScheduleDateTimeRange } from '@/lib/dateTime'
+import { formatMoney, paymentLabel } from '@/lib/money'
 import { SCHEDULE_STATUS_CHIP, SCHEDULE_STATUS_LABELS } from '@/lib/scheduleStatus'
 import type { Schedule } from '@/types/api'
 
@@ -15,23 +16,6 @@ interface SessionSummaryModalProps {
   /** Abre a página detalhada da sessão. */
   onViewDetails?: () => void
   onClose: () => void
-}
-
-function formatMoney(value: string): string {
-  const amount = Number(value)
-  if (Number.isNaN(amount)) return value
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function paymentLabel(status: string | null): string | null {
-  if (!status) return null
-  if (status === 'PAID') return 'Pago'
-  if (status === 'PENDING') return 'Pendente'
-  return status.toLowerCase()
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {

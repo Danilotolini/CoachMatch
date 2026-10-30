@@ -5,3 +5,8 @@ dev-dist/
 
 # Test coverage (local)
 coverage/
+
+# Cypress (artefatos de execução)
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/

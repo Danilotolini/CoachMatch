@@ -1,0 +1,18 @@
+{
+  "data": [
+    {
+      "coachId": "coach_camila",
+      "profile": {
+        "name": "Camila Rocha",
+        "phone": null,
+        "specialties": ["Funcional", "Corrida"],
+        "cref": "CREF CAMILA-G/SP",
+        "instagram": "@camila",
+        "photo_url": null,
+        "video_url": null
+      },
+      "work_location": []
+    }
+  ],
+  "meta": { "limit": 9, "lastKey": null }
+}
