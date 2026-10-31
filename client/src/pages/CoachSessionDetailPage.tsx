@@ -40,7 +40,7 @@ function StudentSection({
   readonly hasStudent: boolean
   readonly fallbackName?: string | null | undefined
   readonly action?: ReactNode
-  chatPeerId?: string | undefined
+  readonly chatPeerId?: string | undefined
 }) {
   const query = useQuery({
     queryKey: ['coach-student-detail', studentId],

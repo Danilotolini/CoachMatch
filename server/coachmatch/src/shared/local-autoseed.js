@@ -48,7 +48,7 @@ export const ensureLocalRecord = async (role, event) => {
 
   try {
     // A criação usa PutCommand, que sobrescreve o item inteiro: sem esta checagem
-    // todo GET zeraria o progresso do onboarding.
+    // qualquer GET zeraria o progresso do onboarding.
     if (await find(claims.sub)) return;
 
     await create({ sub: claims.sub, email: claims.email, name: claimName(claims) });
