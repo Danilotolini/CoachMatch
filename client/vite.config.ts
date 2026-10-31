@@ -27,7 +27,15 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.d.ts', 'src/main.tsx', 'src/mocks/**', 'src/test/**'],
+      exclude: [
+        'src/**/*.d.ts',
+        'src/main.tsx',
+        'src/mocks/**',
+        'src/test/**',
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.spec.{ts,tsx}',
+        'src/pages/lazy.ts',
+      ],
     },
   },
   resolve: {
